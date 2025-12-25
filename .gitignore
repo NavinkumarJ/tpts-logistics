@@ -1,9 +1,52 @@
-# Environment files
+##################################
+# ENV FILES (NEVER COMMIT THESE)
+##################################
 .env
+.env.*
+tpts-frontend/.env
+tpts-backend/.env
 
-# Build
-target/
+##################################
+# NODE / REACT (tpts-frontend)
+##################################
+node_modules/
+tpts-frontend/node_modules/
+tpts-frontend/build/
+tpts-frontend/dist/
+tpts-frontend/dist-ssr/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
 
-# IDE
+##################################
+# JAVA / SPRING BOOT (tpts-backend)
+##################################
+tpts-backend/target/
+tpts-backend/*.jar
+*.class
+
+##################################
+# IDE / EDITORS
+##################################
+.vscode/
 .idea/
 *.iml
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+##################################
+# OS FILES
+##################################
+.DS_Store
+Thumbs.db
+
+##################################
+# TEMP / CACHE
+##################################
+.cache/
+.tmp/

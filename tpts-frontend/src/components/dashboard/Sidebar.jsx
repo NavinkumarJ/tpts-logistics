@@ -1,0 +1,117 @@
+import { useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import {
+  FaHome, FaBox, FaPlus, FaHistory, FaCog, FaBell,
+  FaMapMarkerAlt, FaWallet, FaSignOutAlt, FaUser
+} from "react-icons/fa";
+import { getUser, logout } from "../../utils/auth";
+import LogoutConfirmModal from "../common/LogoutConfirmModal";
+
+export default function Sidebar() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const user = getUser();
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+
+  const menuItems = [
+    { label: "Dashboard", icon: FaHome, path: "/customer/dashboard" },
+    { label: "New Shipment", icon: FaPlus, path: "/customer/new-shipment", primary: true },
+    { label: "My Shipments", icon: FaBox, path: "/customer/shipments" },
+    { label: "Order History", icon: FaHistory, path: "/customer/history" },
+    { label: "Saved Addresses", icon: FaMapMarkerAlt, path: "/customer/addresses" },
+    { label: "Notifications", icon: FaBell, path: "/customer/notifications" },
+    { label: "Settings", icon: FaCog, path: "/customer/settings" },
+  ];
+
+  const handleLogout = () => {
+    logout();
+    navigate("/login");
+  };
+
+  return (
+    <>
+      <aside className="fixed left-0 top-0 h-screen w-64 bg-gradient-to-b from-slate-800 to-slate-900 text-white shadow-2xl z-50 flex flex-col">
+        {/* Logo */}
+        <div className="p-6 border-b border-slate-700">
+          <Link to="/" className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary-600 text-white font-bold text-lg shadow-lg">
+              T
+            </div>
+            <span className="text-xl font-bold">TPTS</span>
+          </Link>
+        </div>
+
+        {/* User Profile */}
+        <div className="p-6 border-b border-slate-700">
+          <div className="flex items-center gap-3 mb-3">
+            {user?.profileImageUrl ? (
+              <img
+                src={user.profileImageUrl}
+                alt={user?.fullName}
+                className="h-12 w-12 rounded-full object-cover border-2 border-primary-500"
+              />
+            ) : (
+              <div className="h-12 w-12 rounded-full bg-primary-600 flex items-center justify-center text-lg font-bold">
+                {user?.fullName?.charAt(0) || "U"}
+              </div>
+            )}
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold truncate">{user?.fullName}</p>
+              <p className="text-xs text-slate-400 truncate">{user?.email}</p>
+            </div>
+          </div>
+          <Link
+            to="/customer/profile"
+            className="flex items-center justify-center gap-2 w-full py-2 px-3 bg-slate-700 hover:bg-slate-600 rounded-lg text-xs font-medium transition"
+          >
+            <FaUser className="text-xs" />
+            View Profile
+          </Link>
+        </div>
+
+        {/* Navigation Menu */}
+        <nav className="flex-1 overflow-y-auto py-4 px-3">
+          <div className="space-y-1">
+            {menuItems.map((item, idx) => {
+              const isActive = location.pathname === item.path;
+              return (
+                <Link
+                  key={idx}
+                  to={item.path}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition ${item.primary
+                    ? "bg-primary-600 hover:bg-primary-700 text-white shadow-lg"
+                    : isActive
+                      ? "bg-slate-700 text-white"
+                      : "text-slate-300 hover:bg-slate-700 hover:text-white"
+                    }`}
+                >
+                  <item.icon className="text-base" />
+                  {item.label}
+                </Link>
+              );
+            })}
+          </div>
+        </nav>
+
+        {/* Logout Button */}
+        <div className="p-4 border-t border-slate-700">
+          <button
+            onClick={() => setShowLogoutModal(true)}
+            className="flex items-center justify-center gap-2 w-full py-3 px-4 bg-red-600 hover:bg-red-700 rounded-lg text-sm font-medium transition"
+          >
+            <FaSignOutAlt />
+            Logout
+          </button>
+        </div>
+      </aside>
+
+      {/* Logout Confirmation Modal */}
+      <LogoutConfirmModal
+        isOpen={showLogoutModal}
+        onClose={() => setShowLogoutModal(false)}
+        onConfirm={handleLogout}
+        userName={user?.fullName}
+      />
+    </>
+  );
+}
