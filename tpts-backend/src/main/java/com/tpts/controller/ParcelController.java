@@ -188,7 +188,7 @@ public class ParcelController {
          * Confirm parcel (after payment)
          * POST /api/parcels/{id}/confirm
          */
-        @PostMapping("/{id}/confirm")
+        @PostMapping("/{id}/")
         @PreAuthorize("hasRole('CUSTOMER')")
         public ResponseEntity<ApiResponse<ParcelDTO>> confirmParcel(
                         @PathVariable Long id,
