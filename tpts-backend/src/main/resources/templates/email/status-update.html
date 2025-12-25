@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Parcel Status Update</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 0; }
+        .container { max-width: 600px; margin: 40px auto; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .header { background: linear-gradient(135deg, #3b82f6, #2563eb); color: white; padding: 30px 20px; text-align: center; }
+        .content { padding: 40px 30px; }
+        .status-box { background: #eff6ff; border-left: 4px solid #3b82f6; padding: 20px; margin: 20px 0; }
+        .status-title { font-size: 20px; font-weight: bold; color: #1e40af; margin-bottom: 10px; }
+        .btn { display: inline-block; background: #3b82f6; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; margin: 20px 0; }
+        .footer { background: #f8fafc; padding: 20px; text-align: center; font-size: 12px; color: #64748b; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>Parcel Update</h1>
+        <p th:text="${trackingNumber}">TRK123456</p>
+    </div>
+
+    <div class="content">
+        <h2>Hi <span th:text="${customerName}">Customer</span>,</h2>
+        <p>Your parcel status has been updated:</p>
+
+        <div class="status-box">
+            <div class="status-title" th:text="${status}">IN TRANSIT</div>
+            <p th:text="${statusMessage}">Your parcel is on the way</p>
+            <p style="font-size: 12px; color: #64748b; margin: 10px 0 0 0;">
+                Updated: <span th:text="${updateTime}">17 Dec 2024, 10:30 AM</span>
+            </p>
+        </div>
+
+        <p><strong>What's Next:</strong></p>
+        <p th:text="${nextAction}">Your parcel will be delivered soon</p>
+
+        <div style="text-align: center;">
+            <a th:href="${trackingUrl}" class="btn">Track Live</a>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>© 2024 <span th:text="${appName}">TPTS</span>. All rights reserved.</p>
+    </div>
+</div>
+</body>
+</html>

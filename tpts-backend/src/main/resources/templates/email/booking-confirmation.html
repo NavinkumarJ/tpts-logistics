@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Booking Confirmation</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 0; }
+        .container { max-width: 600px; margin: 40px auto; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .header { background: linear-gradient(135deg, #10b981, #059669); color: white; padding: 30px 20px; text-align: center; }
+        .success-icon { font-size: 48px; margin-bottom: 10px; }
+        .content { padding: 40px 30px; }
+        .tracking-box { background: #f0fdf4; border: 2px solid #10b981; border-radius: 8px; padding: 20px; text-align: center; margin: 20px 0; }
+        .tracking-number { font-size: 24px; font-weight: bold; color: #059669; letter-spacing: 2px; }
+        .detail-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #e2e8f0; }
+        .detail-label { color: #64748b; font-weight: 600; }
+        .detail-value { color: #1e293b; font-weight: 500; }
+        .btn { display: inline-block; background: #10b981; color: white; padding: 14px 30px; text-decoration: none; border-radius: 6px; margin: 20px 10px; }
+        .footer { background: #f8fafc; padding: 20px; text-align: center; font-size: 12px; color: #64748b; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <div class="success-icon">✓</div>
+        <h1>Booking Confirmed!</h1>
+        <p>Your parcel is ready for pickup</p>
+    </div>
+
+    <div class="content">
+        <h2>Hi <span th:text="${customerName}">Customer</span>,</h2>
+        <p>Thank you for choosing <span th:text="${companyName}">Company</span>! Your booking is confirmed.</p>
+
+        <div class="tracking-box">
+            <p style="margin: 0 0 10px 0; color: #64748b; font-size: 14px;">Your Tracking Number</p>
+            <div class="tracking-number" th:text="${trackingNumber}">TRK123456</div>
+        </div>
+
+        <h3>Shipment Details</h3>
+        <div class="detail-row">
+            <span class="detail-label">From:</span>
+            <span class="detail-value" th:text="${pickupCity}">Chennai</span>
+        </div>
+        <div class="detail-row">
+            <span class="detail-label">To:</span>
+            <span class="detail-value" th:text="${deliveryCity}">Bangalore</span>
+        </div>
+        <div class="detail-row">
+            <span class="detail-label">Booking Date:</span>
+            <span class="detail-value" th:text="${bookingDate}">17 Dec 2024</span>
+        </div>
+        <div class="detail-row">
+            <span class="detail-label">Estimated Delivery:</span>
+            <span class="detail-value" th:text="${estimatedDelivery}">18 Dec 2024</span>
+        </div>
+        <div class="detail-row">
+            <span class="detail-label">Amount Paid:</span>
+            <span class="detail-value">₹<span th:text="${amount}">297</span></span>
+        </div>
+        <div class="detail-row">
+            <span class="detail-label">Transaction ID:</span>
+            <span class="detail-value" th:text="${transactionId}">TXN123456789</span>
+        </div>
+
+        <div style="text-align: center; margin-top: 30px;">
+            <a th:href="${trackingUrl}" class="btn">Track Your Parcel</a>
+            <p style="margin-top: 20px; color: #64748b; font-size: 14px;">
+                Receipt PDF is attached to this email
+            </p>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>© 2024 <span th:text="${appName}">TPTS</span>. All rights reserved.</p>
+        <p>Need help? Contact us at support@tpts.in or call 1800-TPTS-000</p>
+    </div>
+</div>
+</body>
+</html>
