@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Job Application Update</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 0; }
+        .container { max-width: 600px; margin: 40px auto; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .header { background: linear-gradient(135deg, #6366f1, #4f46e5); color: white; padding: 35px 20px; text-align: center; }
+        .icon { font-size: 56px; margin-bottom: 10px; }
+        .content { padding: 40px 30px; }
+        .status-card { border-radius: 10px; padding: 25px; margin: 25px 0; text-align: center; }
+        .status-approved { background: linear-gradient(135deg, #ecfdf5, #d1fae5); border: 2px solid #10b981; }
+        .status-rejected { background: linear-gradient(135deg, #fee2e2, #fecaca); border: 2px solid #ef4444; }
+        .status-interview { background: linear-gradient(135deg, #fef3c7, #fde68a); border: 2px solid #f59e0b; }
+        .status-pending { background: linear-gradient(135deg, #dbeafe, #bfdbfe); border: 2px solid #3b82f6; }
+        .status-title { font-size: 28px; font-weight: bold; margin: 15px 0; }
+        .approved-title { color: #065f46; }
+        .rejected-title { color: #991b1b; }
+        .interview-title { color: #92400e; }
+        .pending-title { color: #1e40af; }
+        .company-info { background: #f8fafc; padding: 20px; border-radius: 8px; margin: 20px 0; }
+        .info-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #e2e8f0; }
+        .action-btn { display: inline-block; color: white; padding: 14px 35px; text-decoration: none; border-radius: 8px; font-weight: 600; margin: 15px 0; }
+        .btn-success { background: #10b981; }
+        .btn-primary { background: #3b82f6; }
+        .footer { background: #f8fafc; padding: 20px; text-align: center; font-size: 12px; color: #64748b; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <div class="icon">💼</div>
+        <h1 style="margin: 0;">Job Application Update</h1>
+        <p style="margin: 10px 0 0 0;">
+            <span th:text="${companyName}">Company Name</span>
+        </p>
+    </div>
+
+    <div class="content">
+        <h2>Hi <span th:text="${applicantName}">Applicant</span>,</h2>
+        <p>We have an update regarding your delivery agent application.</p>
+
+        <!-- Dynamic Status Card -->
+        <div th:class="${'status-card status-' + status.toLowerCase()}">
+            <div class="icon" th:if="${status == 'APPROVED'}">✓</div>
+            <div class="icon" th:if="${status == 'REJECTED'}">✗</div>
+            <div class="icon" th:if="${status == 'INTERVIEW_SCHEDULED'}">📅</div>
+            <div class="icon" th:if="${status == 'PENDING'}">⏳</div>
+
+            <div th:class="${'status-title ' + status.toLowerCase() + '-title'}">
+                <span th:if="${status == 'APPROVED'}">🎉 Congratulations!</span>
+                <span th:if="${status == 'REJECTED'}">Application Not Approved</span>
+                <span th:if="${status == 'INTERVIEW_SCHEDULED'}">Interview Scheduled</span>
+                <span th:if="${status == 'PENDING'}">Under Review</span>
+            </div>
+
+            <p style="margin: 15px 0; font-size: 16px;" th:text="${message}">
+                Your application message here
+            </p>
+        </div>
+
+        <!-- Company Information -->
+        <div class="company-info">
+            <h3 style="margin: 0 0 15px 0; color: #1e293b;">📋 Application Details</h3>
+            <div class="info-row">
+                <span style="color: #64748b; font-weight: 600;">Company:</span>
+                <span style="color: #1e293b; font-weight: 500;" th:text="${companyName}">Company Name</span>
+            </div>
+            <div class="info-row">
+                <span style="color: #64748b; font-weight: 600;">Position:</span>
+                <span style="color: #1e293b; font-weight: 500;">Delivery Agent</span>
+            </div>
+            <div class="info-row">
+                <span style="color: #64748b; font-weight: 600;">Status:</span>
+                <span style="color: #1e293b; font-weight: 500;" th:text="${status}">PENDING</span>
+            </div>
+            <div class="info-row" th:if="${interviewDate}" style="border-bottom: none;">
+                <span style="color: #64748b; font-weight: 600;">Interview Date:</span>
+                <span style="color: #1e293b; font-weight: 500;" th:text="${interviewDate}">TBD</span>
+            </div>
+        </div>
+
+        <!-- Conditional Actions -->
+        <div style="text-align: center; margin-top: 30px;">
+            <div th:if="${status == 'APPROVED'}">
+                <p style="color: #065f46; font-weight: 600; margin-bottom: 15px;">
+                    ✓ Your agent account will be activated soon. Login credentials will be sent separately.
+                </p>
+            </div>
+
+            <div th:if="${status == 'REJECTED'}">
+                <p style="color: #991b1b; margin-bottom: 15px;">
+                    We appreciate your interest. You may apply again after 30 days.
+                </p>
+                <a th:href="${jobsUrl}" class="action-btn btn-primary">View Other Opportunities</a>
+            </div>
+
+            <div th:if="${status == 'INTERVIEW_SCHEDULED'}">
+                <div style="background: #fef3c7; border: 2px solid #f59e0b; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                    <p style="margin: 0; color: #92400e;">
+                        <strong>📍 Please arrive 10 minutes early</strong><br>
+                        <span style="font-size: 14px;">Bring: Original ID, License, Vehicle RC, and Aadhaar Card</span>
+                    </p>
+                </div>
+            </div>
+
+            <div th:if="${status == 'PENDING'}">
+                <p style="color: #1e40af;">
+                    We're reviewing your application. You'll hear from us within 24-48 hours.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>© 2024 <span th:text="${appName}">TPTS</span>. All rights reserved.</p>
+        <p>Questions about your application? Contact <span th:text="${companyName}">company</span> directly</p>
+        <p style="margin-top: 15px;">
+            <a th:href="${jobsUrl}" style="color: #6366f1;">Browse More Jobs</a>
+        </p>
+    </div>
+</div>
+</body>
+</html>

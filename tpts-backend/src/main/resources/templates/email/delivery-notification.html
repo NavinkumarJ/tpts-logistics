@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Out for Delivery</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 0; }
+        .container { max-width: 600px; margin: 40px auto; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .header { background: linear-gradient(135deg, #f97316, #fb923c); color: white; padding: 30px 20px; text-align: center; }
+        .truck-icon { font-size: 48px; margin-bottom: 10px; }
+        .content { padding: 40px 30px; }
+        .info-box { background: #fff7ed; border-left: 4px solid #f97316; padding: 20px; margin: 20px 0; }
+        .otp-display { background: #fef3c7; border: 2px dashed #f59e0b; border-radius: 8px; padding: 15px; text-align: center; margin: 20px 0; }
+        .otp-code { font-size: 32px; font-weight: bold; color: #f59e0b; letter-spacing: 5px; }
+        .agent-card { background: #f8fafc; border-radius: 8px; padding: 20px; margin: 20px 0; }
+        .agent-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #e2e8f0; }
+        .call-btn { display: inline-block; background: #10b981; color: white; padding: 12px 25px; text-decoration: none; border-radius: 6px; margin: 15px 0; }
+        .footer { background: #f8fafc; padding: 20px; text-align: center; font-size: 12px; color: #64748b; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <div class="truck-icon">🚚</div>
+        <h1>Out for Delivery!</h1>
+        <p>Your parcel is on the way</p>
+    </div>
+
+    <div class="content">
+        <h2>Hi <span th:text="${receiverName}">Receiver</span>,</h2>
+        <p>Great news! Your parcel <strong th:text="${trackingNumber}">TRK123456</strong> is out for delivery and will reach you soon.</p>
+
+        <div class="info-box">
+            <h3 style="margin-top: 0; color: #f97316;">📦 Delivery Instructions</h3>
+            <p style="margin-bottom: 0;">Please share this OTP with the delivery agent to receive your parcel:</p>
+        </div>
+
+        <div class="otp-display">
+            <p style="margin: 0 0 8px 0; color: #92400e; font-size: 14px;">Your Delivery OTP</p>
+            <div class="otp-code" th:text="${deliveryOtp}">4829</div>
+            <p style="margin: 8px 0 0 0; color: #92400e; font-size: 12px;">🔒 Do not share with anyone else</p>
+        </div>
+
+        <div class="agent-card">
+            <h3 style="margin-top: 0; color: #1e293b;">👤 Your Delivery Agent</h3>
+            <div class="agent-row">
+                <span style="color: #64748b; font-weight: 600;">Name:</span>
+                <span style="color: #1e293b; font-weight: 500;" th:text="${agentName}">Agent Name</span>
+            </div>
+            <div class="agent-row" style="border: none;">
+                <span style="color: #64748b; font-weight: 600;">Phone:</span>
+                <span style="color: #1e293b; font-weight: 500;" th:text="${agentPhone}">+91 98765 43210</span>
+            </div>
+
+            <div style="text-align: center; margin-top: 15px;">
+                <a th:href="'tel:' + ${agentPhone}" class="call-btn">📞 Call Agent</a>
+            </div>
+        </div>
+
+        <div style="background: #dbeafe; border-left: 4px solid #3b82f6; padding: 15px; margin: 20px 0;">
+            <p style="margin: 0; color: #1e40af; font-size: 14px;">
+                💡 <strong>Tip:</strong> Please keep your phone handy. The agent will call you when nearby.
+            </p>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>© 2024 <span th:text="${appName}">TPTS</span>. All rights reserved.</p>
+        <p>Need help? Contact support@tpts.in | 1800-TPTS-000</p>
+    </div>
+</div>
+</body>
+</html>
