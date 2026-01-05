@@ -24,10 +24,10 @@ public class CloudinaryService {
     private final Cloudinary cloudinary;
 
     // Allowed image types
-    private static final String[] ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/jpg", "image/png", "image/webp"};
+    private static final String[] ALLOWED_IMAGE_TYPES = { "image/jpeg", "image/jpg", "image/png", "image/webp" };
 
     // Allowed document types
-    private static final String[] ALLOWED_DOCUMENT_TYPES = {"application/pdf"};
+    private static final String[] ALLOWED_DOCUMENT_TYPES = { "application/pdf" };
 
     // Max file sizes (in bytes)
     private static final long MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
@@ -81,14 +81,12 @@ public class CloudinaryService {
         // Allow both images and PDFs for documents
         if (!isValidImage(file) && !isValidDocument(file)) {
             throw new TptsExceptions.InvalidFileTypeException(
-                    "File must be an image (JPG, PNG) or PDF"
-            );
+                    "File must be an image (JPG, PNG) or PDF");
         }
 
         if (file.getSize() > MAX_DOCUMENT_SIZE) {
             throw new TptsExceptions.FileTooLargeException(
-                    "Document size cannot exceed 10MB"
-            );
+                    "Document size cannot exceed 10MB");
         }
 
         String folder = "tpts/applications/" + applicationId;
@@ -114,18 +112,37 @@ public class CloudinaryService {
         try {
             log.info("Uploading file: {} to folder: {}", file.getOriginalFilename(), folder);
 
-            // ✅ Basic upload parameters (no transformations)
-            Map<String, Object> uploadParams = ObjectUtils.asMap(
-                    "folder", folder,
-                    "public_id", publicId,
-                    "resource_type", "auto",
-                    "overwrite", true
-            );
+            boolean isPdf = file.getContentType() != null &&
+                    file.getContentType().equalsIgnoreCase("application/pdf");
 
-            // ✅ Add optimization parameters directly (not as transformation object)
-            if (optimize && isValidImage(file)) {
-                uploadParams.put("quality", "auto:good");
-                // Note: fetch_format is not supported in upload params, only in transformation URLs
+            Map<String, Object> uploadParams;
+
+            if (isPdf) {
+                // ✅ For PDF files - upload as 'image' for inline viewing in browser
+                // flags: "attachment:false" ensures PDFs open in browser, not download
+                log.info("Uploading PDF file as 'image' for inline viewing");
+                uploadParams = ObjectUtils.asMap(
+                        "folder", folder,
+                        "public_id", publicId,
+                        "resource_type", "image",
+                        "format", "pdf",
+                        "overwrite", true,
+                        "type", "upload",
+                        "access_mode", "public",
+                        "flags", "attachment:false");
+            } else {
+                // For images - can include optimization
+                uploadParams = ObjectUtils.asMap(
+                        "folder", folder,
+                        "public_id", publicId,
+                        "resource_type", "auto",
+                        "overwrite", true,
+                        "access_mode", "public",
+                        "type", "upload");
+
+                if (optimize && isValidImage(file)) {
+                    uploadParams.put("quality", "auto:good");
+                }
             }
 
             // Upload to Cloudinary
@@ -171,7 +188,8 @@ public class CloudinaryService {
 
     /**
      * Extract public ID from Cloudinary URL
-     * Example URL: https://res.cloudinary.com/cloud-name/image/upload/v1234567890/tpts/folder/file.jpg
+     * Example URL:
+     * https://res.cloudinary.com/cloud-name/image/upload/v1234567890/tpts/folder/file.jpg
      * Returns: tpts/folder/file
      */
     public String extractPublicId(String cloudinaryUrl) {
@@ -181,7 +199,8 @@ public class CloudinaryService {
         }
 
         try {
-            // URL format: https://res.cloudinary.com/{cloud_name}/image/upload/v{version}/{folder}/{public_id}.{format}
+            // URL format:
+            // https://res.cloudinary.com/{cloud_name}/image/upload/v{version}/{folder}/{public_id}.{format}
             String[] parts = cloudinaryUrl.split("/upload/");
             if (parts.length < 2) {
                 log.warn("Cannot extract public ID from URL: {}", cloudinaryUrl);
@@ -220,16 +239,14 @@ public class CloudinaryService {
         if (!isValidImage(file)) {
             log.error("File validation failed: Invalid image type - {}", file.getContentType());
             throw new TptsExceptions.InvalidFileTypeException(
-                    "File must be an image (JPG, PNG, WEBP)"
-            );
+                    "File must be an image (JPG, PNG, WEBP)");
         }
 
         if (file.getSize() > MAX_IMAGE_SIZE) {
             log.error("File validation failed: Size {} exceeds maximum {}",
                     file.getSize(), MAX_IMAGE_SIZE);
             throw new TptsExceptions.FileTooLargeException(
-                    "Image size cannot exceed 5MB"
-            );
+                    "Image size cannot exceed 5MB");
         }
 
         log.info("✅ File validation passed: {} ({} bytes)",
@@ -238,6 +255,7 @@ public class CloudinaryService {
 
     /**
      * Check if file is valid image
+     * Uses startsWith to handle all image MIME types
      */
     private boolean isValidImage(MultipartFile file) {
         String contentType = file.getContentType();
@@ -245,12 +263,8 @@ public class CloudinaryService {
             return false;
         }
 
-        for (String allowedType : ALLOWED_IMAGE_TYPES) {
-            if (contentType.equalsIgnoreCase(allowedType)) {
-                return true;
-            }
-        }
-        return false;
+        // Accept any image MIME type (image/jpeg, image/png, image/webp, etc.)
+        return contentType.toLowerCase().startsWith("image/");
     }
 
     /**
@@ -297,7 +311,6 @@ public class CloudinaryService {
         return ObjectUtils.asMap(
                 "url", cloudinaryUrl,
                 "publicId", publicId,
-                "valid", String.valueOf(publicId != null)
-        );
+                "valid", String.valueOf(publicId != null));
     }
 }

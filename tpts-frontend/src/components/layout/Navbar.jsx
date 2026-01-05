@@ -10,14 +10,14 @@ export default function Navbar() {
 
   const getDashboardLink = () => {
     if (!user || !user.userType) return "/";
-    
+
     const typeMap = {
       CUSTOMER: "/customer/dashboard",
       DELIVERY_AGENT: "/agent/dashboard",
       COMPANY_ADMIN: "/company/dashboard",
       SUPER_ADMIN: "/admin/dashboard",
     };
-    
+
     return typeMap[user.userType] || "/";
   };
 
@@ -26,13 +26,12 @@ export default function Navbar() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-14 items-center justify-between">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-600 text-white font-bold">
-              T
-            </div>
-            <span className="text-lg font-semibold tracking-tight">
-              TPTS
-            </span>
+          <Link to="/" className="flex items-center gap-2 group">
+            <img
+              src="/logo.png"
+              alt="TPTS Logo"
+              className="h-14 w-auto object-contain transition-all duration-200 group-hover:brightness-125 group-hover:scale-105"
+            />
           </Link>
 
           {/* Center nav */}

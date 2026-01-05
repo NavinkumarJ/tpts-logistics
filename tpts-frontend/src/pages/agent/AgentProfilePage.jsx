@@ -142,8 +142,8 @@ export default function AgentProfilePage() {
         return (
             <div className="flex items-center justify-center min-h-[60vh]">
                 <div className="text-center">
-                    <div className="inline-block h-12 w-12 animate-spin rounded-full border-4 border-orange-600 border-t-transparent"></div>
-                    <p className="mt-4 text-gray-600 font-medium">Loading profile...</p>
+                    <div className="inline-block h-12 w-12 animate-spin rounded-full border-4 border-indigo-400 border-t-transparent"></div>
+                    <p className="mt-4 text-white/70 font-medium">Loading profile...</p>
                 </div>
             </div>
         );
@@ -152,16 +152,16 @@ export default function AgentProfilePage() {
     return (
         <div className="space-y-6">
             {/* Profile Header Card */}
-            <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
+            <div className="bg-white/10 backdrop-blur-xl rounded-2xl border border-white/20 overflow-hidden">
                 {/* Cover */}
-                <div className="h-40 bg-gradient-to-r from-orange-500 via-orange-600 to-amber-500 relative">
+                <div className="h-40 bg-gradient-to-r from-indigo-600 via-indigo-700 to-purple-700 relative">
                     <div className="absolute inset-0 bg-black/10"></div>
                     <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-black/30 to-transparent"></div>
 
                     {/* Profile Photo */}
                     <div className="absolute -bottom-16 left-8">
                         <div className="relative">
-                            <div className="w-32 h-32 rounded-2xl border-4 border-white bg-gray-200 overflow-hidden shadow-xl">
+                            <div className="w-32 h-32 rounded-2xl border-4 border-white/20 bg-white/10 backdrop-blur-xl overflow-hidden shadow-xl">
                                 {agent?.profilePhotoUrl ? (
                                     <img
                                         src={agent.profilePhotoUrl}
@@ -169,12 +169,12 @@ export default function AgentProfilePage() {
                                         className="w-full h-full object-cover"
                                     />
                                 ) : (
-                                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-orange-400 to-orange-600 text-white text-4xl font-bold">
+                                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-indigo-500 to-purple-600 text-white text-4xl font-bold">
                                         {agent?.fullName?.charAt(0) || "A"}
                                     </div>
                                 )}
                             </div>
-                            <label className="absolute -bottom-1 -right-1 w-10 h-10 bg-orange-600 text-white rounded-xl flex items-center justify-center cursor-pointer hover:bg-orange-700 transition shadow-lg">
+                            <label className="absolute -bottom-1 -right-1 w-10 h-10 bg-indigo-600 text-white rounded-xl flex items-center justify-center cursor-pointer hover:bg-indigo-700 transition shadow-lg">
                                 {uploadingImage ? (
                                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                                 ) : (
@@ -206,19 +206,19 @@ export default function AgentProfilePage() {
                 <div className="pt-20 pb-6 px-8">
                     <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
                         <div>
-                            <h1 className="text-2xl font-bold text-gray-900">{agent?.fullName}</h1>
-                            <p className="text-gray-500 flex items-center gap-2 mt-1">
-                                <FaEnvelope className="text-gray-400" /> {agent?.email}
+                            <h1 className="text-2xl font-bold text-white">{agent?.fullName}</h1>
+                            <p className="text-white/60 flex items-center gap-2 mt-1">
+                                <FaEnvelope className="text-white/40" /> {agent?.email}
                             </p>
                             <div className="flex flex-wrap items-center gap-3 mt-3">
                                 {agent?.city && (
-                                    <span className="flex items-center gap-1 text-sm text-gray-600 bg-gray-100 px-3 py-1 rounded-full">
-                                        <FaMapMarkerAlt className="text-orange-500" /> {agent.city}
+                                    <span className="flex items-center gap-1 text-sm text-white/80 bg-white/10 px-3 py-1 rounded-full">
+                                        <FaMapMarkerAlt className="text-indigo-400" /> {agent.city}
                                     </span>
                                 )}
                                 {agent?.vehicleType && (
-                                    <span className="flex items-center gap-1 text-sm text-gray-600 bg-gray-100 px-3 py-1 rounded-full">
-                                        <VehicleIcon className="text-blue-500" /> {agent.vehicleType?.replace(/_/g, ' ')}
+                                    <span className="flex items-center gap-1 text-sm text-white/80 bg-white/10 px-3 py-1 rounded-full">
+                                        <VehicleIcon className="text-blue-400" /> {agent.vehicleType?.replace(/_/g, ' ')}
                                     </span>
                                 )}
                             </div>
@@ -238,19 +238,19 @@ export default function AgentProfilePage() {
             {/* Stats Grid */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {[
-                    { label: "Total Deliveries", value: agent?.totalDeliveries || 0, icon: FaShippingFast, color: "text-orange-600", bg: "bg-orange-100", gradient: "from-orange-500 to-orange-600" },
-                    { label: "Account Status", value: agent?.isActive ? "Active" : "Inactive", icon: agent?.isActive ? FaCheckCircle : FaTimesCircle, color: agent?.isActive ? "text-green-600" : "text-red-600", bg: agent?.isActive ? "bg-green-100" : "bg-red-100" },
-                    { label: "Availability", value: agent?.isAvailable ? "Online" : "Offline", icon: agent?.isAvailable ? FaCheckCircle : FaTimesCircle, color: agent?.isAvailable ? "text-green-600" : "text-gray-500", bg: agent?.isAvailable ? "bg-green-100" : "bg-gray-100" },
-                    { label: "Member Since", value: formatDate(agent?.createdAt).split(' ').slice(1, 3).join(' '), icon: FaCalendarAlt, color: "text-indigo-600", bg: "bg-indigo-100" },
+                    { label: "Total Deliveries", value: agent?.totalDeliveries || 0, icon: FaShippingFast, color: "text-indigo-400", bg: "bg-indigo-500/20" },
+                    { label: "Account Status", value: agent?.isActive ? "Active" : "Inactive", icon: agent?.isActive ? FaCheckCircle : FaTimesCircle, color: agent?.isActive ? "text-green-400" : "text-red-400", bg: agent?.isActive ? "bg-green-500/20" : "bg-red-500/20" },
+                    { label: "Availability", value: agent?.isAvailable ? "Online" : "Offline", icon: agent?.isAvailable ? FaCheckCircle : FaTimesCircle, color: agent?.isAvailable ? "text-green-400" : "text-white/50", bg: agent?.isAvailable ? "bg-green-500/20" : "bg-white/10" },
+                    { label: "Member Since", value: formatDate(agent?.createdAt).split(' ').slice(1, 3).join(' '), icon: FaCalendarAlt, color: "text-indigo-400", bg: "bg-indigo-500/20" },
                 ].map((stat, i) => (
-                    <div key={i} className="bg-white rounded-xl p-5 shadow-md border border-gray-200">
+                    <div key={i} className="bg-white/10 backdrop-blur-xl rounded-xl p-5 border border-white/20">
                         <div className="flex items-center gap-3">
                             <div className={`w-12 h-12 rounded-xl ${stat.bg} flex items-center justify-center`}>
                                 <stat.icon className={`text-xl ${stat.color}`} />
                             </div>
                             <div>
                                 <p className={`text-xl font-bold ${stat.color}`}>{stat.value}</p>
-                                <p className="text-xs text-gray-500">{stat.label}</p>
+                                <p className="text-xs text-white/50">{stat.label}</p>
                             </div>
                         </div>
                     </div>
@@ -258,16 +258,16 @@ export default function AgentProfilePage() {
             </div>
 
             {/* Account Info */}
-            <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
-                <div className="bg-gray-50 px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-                    <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                        <FaUser className="text-orange-500" /> Account Details
+            <div className="bg-white/10 backdrop-blur-xl rounded-xl border border-white/20 overflow-hidden">
+                <div className="bg-white/5 px-6 py-4 border-b border-white/10 flex items-center justify-between">
+                    <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                        <FaUser className="text-indigo-400" /> Account Details
                     </h3>
                     <button
                         onClick={() => setIsEditing(!isEditing)}
                         className={`px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-2 transition ${isEditing
-                                ? "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                                : "bg-orange-100 text-orange-600 hover:bg-orange-200"
+                            ? "bg-white/20 text-white hover:bg-white/30"
+                            : "bg-indigo-500/20 text-indigo-400 hover:bg-indigo-500/30 border border-indigo-500/30"
                             }`}
                     >
                         <FaEdit /> {isEditing ? "Cancel" : "Edit Profile"}
@@ -279,22 +279,22 @@ export default function AgentProfilePage() {
                         /* View Mode */
                         <div className="grid md:grid-cols-2 gap-6">
                             {[
-                                { label: "Full Name", value: agent?.fullName, icon: FaUser, color: "text-orange-500", bg: "bg-orange-50" },
-                                { label: "Phone", value: agent?.phone, icon: FaPhone, color: "text-blue-500", bg: "bg-blue-50" },
-                                { label: "Email", value: agent?.email, icon: FaEnvelope, color: "text-purple-500", bg: "bg-purple-50" },
-                                { label: "City", value: agent?.city, icon: FaMapMarkerAlt, color: "text-green-500", bg: "bg-green-50" },
-                                { label: "Vehicle Type", value: agent?.vehicleType?.replace(/_/g, ' '), icon: FaTruck, color: "text-indigo-500", bg: "bg-indigo-50" },
-                                { label: "Vehicle Number", value: agent?.vehicleNumber, icon: FaIdCard, color: "text-teal-500", bg: "bg-teal-50" },
-                                { label: "License Number", value: agent?.licenseNumber, icon: FaIdCard, color: "text-amber-500", bg: "bg-amber-50" },
-                                { label: "Company", value: agent?.companyName, icon: FaBuilding, color: "text-rose-500", bg: "bg-rose-50" },
+                                { label: "Full Name", value: agent?.fullName, icon: FaUser, color: "text-indigo-400", bg: "bg-indigo-500/20" },
+                                { label: "Phone", value: agent?.phone, icon: FaPhone, color: "text-blue-400", bg: "bg-blue-500/20" },
+                                { label: "Email", value: agent?.email, icon: FaEnvelope, color: "text-purple-400", bg: "bg-purple-500/20" },
+                                { label: "City", value: agent?.city, icon: FaMapMarkerAlt, color: "text-green-400", bg: "bg-green-500/20" },
+                                { label: "Vehicle Type", value: agent?.vehicleType?.replace(/_/g, ' '), icon: FaTruck, color: "text-indigo-400", bg: "bg-indigo-500/20" },
+                                { label: "Vehicle Number", value: agent?.vehicleNumber, icon: FaIdCard, color: "text-teal-400", bg: "bg-teal-500/20" },
+                                { label: "License Number", value: agent?.licenseNumber, icon: FaIdCard, color: "text-amber-400", bg: "bg-amber-500/20" },
+                                { label: "Company", value: agent?.companyName, icon: FaBuilding, color: "text-rose-400", bg: "bg-rose-500/20" },
                             ].map((item, i) => (
                                 <div key={i} className="flex items-start gap-3">
                                     <div className={`w-10 h-10 rounded-lg ${item.bg} flex items-center justify-center flex-shrink-0`}>
                                         <item.icon className={item.color} />
                                     </div>
                                     <div>
-                                        <p className="text-xs text-gray-500 uppercase tracking-wide">{item.label}</p>
-                                        <p className="font-medium text-gray-900">{item.value || "Not provided"}</p>
+                                        <p className="text-xs text-white/50 uppercase tracking-wide">{item.label}</p>
+                                        <p className="font-medium text-white">{item.value || "Not provided"}</p>
                                     </div>
                                 </div>
                             ))}
@@ -304,78 +304,78 @@ export default function AgentProfilePage() {
                         <form onSubmit={handleSubmit} className="space-y-4">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
+                                    <label className="block text-sm font-medium text-white/80 mb-2">Full Name</label>
                                     <div className="relative">
-                                        <FaUser className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+                                        <FaUser className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40" />
                                         <input
                                             type="text"
                                             value={formData.fullName}
                                             onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                                            className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                                            className="w-full pl-12 pr-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/40 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                                             placeholder="Your full name"
                                         />
                                     </div>
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">Phone</label>
+                                    <label className="block text-sm font-medium text-white/80 mb-2">Phone</label>
                                     <div className="relative">
-                                        <FaPhone className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+                                        <FaPhone className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40" />
                                         <input
                                             type="tel"
                                             value={formData.phone}
                                             onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                                            className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                                            className="w-full pl-12 pr-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/40 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                                             placeholder="+91 XXXXXXXXXX"
                                         />
                                     </div>
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">City</label>
+                                    <label className="block text-sm font-medium text-white/80 mb-2">City</label>
                                     <div className="relative">
-                                        <FaMapMarkerAlt className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+                                        <FaMapMarkerAlt className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40" />
                                         <input
                                             type="text"
                                             value={formData.city}
                                             onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                                            className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                                            className="w-full pl-12 pr-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/40 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                                             placeholder="City"
                                         />
                                     </div>
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">Pincode</label>
+                                    <label className="block text-sm font-medium text-white/80 mb-2">Pincode</label>
                                     <input
                                         type="text"
                                         value={formData.pincode}
                                         onChange={(e) => setFormData({ ...formData, pincode: e.target.value })}
-                                        className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                                        className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/40 focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                                         placeholder="6-digit pincode"
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">Vehicle Type</label>
+                                    <label className="block text-sm font-medium text-white/80 mb-2">Vehicle Type</label>
                                     <div className="relative">
-                                        <FaTruck className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+                                        <FaTruck className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40" />
                                         <select
                                             value={formData.vehicleType}
                                             onChange={(e) => setFormData({ ...formData, vehicleType: e.target.value })}
-                                            className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 appearance-none"
+                                            className="w-full pl-12 pr-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white focus:ring-2 focus:ring-orange-500 focus:border-transparent appearance-none"
                                         >
-                                            <option value="">Select vehicle</option>
-                                            <option value="BIKE">Bike</option>
-                                            <option value="SCOOTER">Scooter</option>
-                                            <option value="CAR">Car</option>
-                                            <option value="VAN">Van</option>
+                                            <option value="" className="bg-slate-800">Select vehicle</option>
+                                            <option value="BIKE" className="bg-slate-800">Bike</option>
+                                            <option value="SCOOTER" className="bg-slate-800">Scooter</option>
+                                            <option value="CAR" className="bg-slate-800">Car</option>
+                                            <option value="VAN" className="bg-slate-800">Van</option>
                                         </select>
                                     </div>
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">Vehicle Number</label>
+                                    <label className="block text-sm font-medium text-white/80 mb-2">Vehicle Number</label>
                                     <input
                                         type="text"
                                         value={formData.vehicleNumber}
                                         onChange={(e) => setFormData({ ...formData, vehicleNumber: e.target.value })}
-                                        className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                                        className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/40 focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                                         placeholder="KA01AB1234"
                                     />
                                 </div>
@@ -385,7 +385,7 @@ export default function AgentProfilePage() {
                                 <button
                                     type="submit"
                                     disabled={saving}
-                                    className="bg-gradient-to-r from-orange-500 to-orange-600 text-white px-6 py-3 rounded-xl font-semibold hover:from-orange-600 hover:to-orange-700 transition-all shadow-md hover:shadow-lg flex items-center gap-2 disabled:opacity-50"
+                                    className="bg-gradient-to-r from-indigo-500 to-indigo-600 text-white px-6 py-3 rounded-xl font-semibold hover:from-indigo-600 hover:to-indigo-700 transition-all shadow-md hover:shadow-lg flex items-center gap-2 disabled:opacity-50"
                                 >
                                     {saving ? (
                                         <>
@@ -401,7 +401,7 @@ export default function AgentProfilePage() {
                                 <button
                                     type="button"
                                     onClick={() => setIsEditing(false)}
-                                    className="px-6 py-3 rounded-xl font-medium border border-gray-300 text-gray-700 hover:bg-gray-50 transition"
+                                    className="px-6 py-3 rounded-xl font-medium border border-white/20 text-white hover:bg-white/10 transition"
                                 >
                                     Cancel
                                 </button>

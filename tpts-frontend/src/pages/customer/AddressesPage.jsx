@@ -109,12 +109,12 @@ export default function AddressesPage() {
         setEditingAddress(address);
         setFormData({
             label: address.label || "",
-            addressLine: address.addressLine || "",
+            addressLine: address.addressLine1 || address.addressLine || "",
             city: address.city || "",
             state: address.state || "",
             pincode: address.pincode || "",
-            contactName: address.contactName || "",
-            contactPhone: address.contactPhone || "",
+            contactName: address.contactName || address.fullName || "",
+            contactPhone: address.contactPhone || address.phone || "",
             addressType: address.addressType || "HOME",
             latitude: address.latitude || null,
             longitude: address.longitude || null,
@@ -217,8 +217,8 @@ export default function AddressesPage() {
         return (
             <div className="flex items-center justify-center min-h-[400px]">
                 <div className="text-center">
-                    <div className="inline-block h-12 w-12 animate-spin rounded-full border-4 border-primary-600 border-t-transparent"></div>
-                    <p className="mt-4 text-gray-600 font-medium">Loading addresses...</p>
+                    <div className="inline-block h-12 w-12 animate-spin rounded-full border-4 border-indigo-400 border-t-transparent"></div>
+                    <p className="mt-4 text-white/70 font-medium">Loading addresses...</p>
                 </div>
             </div>
         );
@@ -227,7 +227,7 @@ export default function AddressesPage() {
     return (
         <div className="space-y-6">
             {/* Header with Gradient */}
-            <div className="bg-gradient-to-r from-emerald-600 to-teal-600 rounded-2xl p-6 text-white shadow-lg">
+            <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-6 text-white shadow-lg border border-white/20">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
                         <div className="w-16 h-16 rounded-2xl bg-white/20 flex items-center justify-center">
@@ -249,7 +249,7 @@ export default function AddressesPage() {
                         </button>
                         <button
                             onClick={openAddModal}
-                            className="px-4 py-2 bg-white text-emerald-600 hover:bg-white/90 rounded-xl flex items-center gap-2 font-medium transition"
+                            className="px-4 py-2 bg-indigo-600 text-white hover:bg-indigo-500 rounded-xl flex items-center gap-2 font-medium transition"
                         >
                             <FaPlus /> Add Address
                         </button>
@@ -260,20 +260,19 @@ export default function AddressesPage() {
             {/* Summary Cards */}
             <div className="grid grid-cols-3 gap-4">
                 {ADDRESS_TYPES.map((type) => {
-                    // Check addressType OR if label contains the type name (case-insensitive)
                     const count = addresses.filter(a =>
                         a.addressType?.toUpperCase() === type.value ||
                         a.label?.toUpperCase().includes(type.label.toUpperCase())
                     ).length;
                     return (
-                        <div key={type.value} className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
+                        <div key={type.value} className="bg-white/10 backdrop-blur-xl rounded-xl p-4 border border-white/20">
                             <div className="flex items-center gap-3">
-                                <div className="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center">
+                                <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center">
                                     <span className="text-2xl">{type.emoji}</span>
                                 </div>
                                 <div>
-                                    <p className="text-2xl font-bold text-gray-900">{count}</p>
-                                    <p className="text-sm text-gray-500">{type.label}</p>
+                                    <p className="text-2xl font-bold text-white">{count}</p>
+                                    <p className="text-sm text-white/60">{type.label}</p>
                                 </div>
                             </div>
                         </div>
@@ -283,13 +282,13 @@ export default function AddressesPage() {
 
             {/* Address List */}
             {addresses.length === 0 ? (
-                <div className="bg-white rounded-2xl p-12 shadow-md border border-gray-200 text-center">
-                    <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
-                        <FaMapMarkerAlt className="text-4xl text-gray-300" />
+                <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-12 border border-white/20 text-center">
+                    <div className="w-20 h-20 rounded-full bg-white/10 flex items-center justify-center mx-auto mb-4">
+                        <FaMapMarkerAlt className="text-4xl text-white/40" />
                     </div>
-                    <h3 className="text-xl font-bold text-gray-900 mb-2">No Addresses Saved</h3>
-                    <p className="text-gray-500 mb-6">Add your first address to make shipping faster</p>
-                    <button onClick={openAddModal} className="px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-medium rounded-xl hover:from-emerald-600 hover:to-teal-600 transition shadow-md">
+                    <h3 className="text-xl font-bold text-white mb-2">No Addresses Saved</h3>
+                    <p className="text-white/60 mb-6">Add your first address to make shipping faster</p>
+                    <button onClick={openAddModal} className="px-6 py-3 bg-indigo-600 text-white font-medium rounded-xl hover:bg-indigo-500 transition shadow-md">
                         <FaPlus className="inline mr-2" /> Add Address
                     </button>
                 </div>
@@ -301,26 +300,26 @@ export default function AddressesPage() {
                             return (
                                 <div
                                     key={address.id}
-                                    className={`bg-white rounded-xl shadow-sm border-2 overflow-hidden transition hover:shadow-md ${address.isDefault ? "border-emerald-500" : "border-gray-200"}`}
+                                    className={`bg-white/10 backdrop-blur-xl rounded-xl border-2 overflow-hidden transition hover:bg-white/15 ${address.isDefault ? "border-indigo-500" : "border-white/20"}`}
                                 >
                                     {/* Card Header */}
-                                    <div className={`px-5 py-3 flex items-center justify-between ${address.isDefault ? "bg-emerald-50" : "bg-gray-50"}`}>
+                                    <div className={`px-5 py-3 flex items-center justify-between ${address.isDefault ? "bg-emerald-500/20" : "bg-white/5"}`}>
                                         <div className="flex items-center gap-2">
                                             <span className="text-xl">{typeConfig.emoji}</span>
-                                            <span className="font-semibold text-gray-900">
+                                            <span className="font-semibold text-white">
                                                 {address.label || typeConfig.label}
                                             </span>
                                             {address.isDefault && (
-                                                <span className="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-xs font-medium flex items-center gap-1">
+                                                <span className="bg-indigo-500/30 text-indigo-400 px-2 py-0.5 rounded-full text-xs font-medium flex items-center gap-1 border border-indigo-500/30">
                                                     <FaStar className="text-xs" /> Default
                                                 </span>
                                             )}
                                         </div>
                                         <div className="flex gap-2">
-                                            <button onClick={() => openEditModal(address)} className="w-8 h-8 rounded-lg bg-white border border-gray-200 flex items-center justify-center text-gray-500 hover:text-primary-600 hover:border-primary-300 transition">
+                                            <button onClick={() => openEditModal(address)} className="w-8 h-8 rounded-lg bg-white/10 border border-white/20 flex items-center justify-center text-white/60 hover:text-indigo-400 hover:border-indigo-400/50 transition">
                                                 <FaEdit className="text-sm" />
                                             </button>
-                                            <button onClick={() => handleDelete(address.id)} className="w-8 h-8 rounded-lg bg-white border border-gray-200 flex items-center justify-center text-gray-500 hover:text-red-600 hover:border-red-300 transition">
+                                            <button onClick={() => handleDelete(address.id)} className="w-8 h-8 rounded-lg bg-white/10 border border-white/20 flex items-center justify-center text-white/60 hover:text-red-400 hover:border-red-400/50 transition">
                                                 <FaTrash className="text-sm" />
                                             </button>
                                         </div>
@@ -328,21 +327,21 @@ export default function AddressesPage() {
 
                                     {/* Card Body */}
                                     <div className="p-5">
-                                        <p className="text-gray-800 font-medium mb-1">{address.addressLine}</p>
-                                        <p className="text-gray-600 text-sm">
+                                        <p className="text-white font-medium mb-1">{address.addressLine1 || address.addressLine || "No address line"}</p>
+                                        <p className="text-white/60 text-sm">
                                             {address.city}, {address.state} - {address.pincode}
                                         </p>
                                         {address.landmark && (
-                                            <p className="text-gray-500 text-xs mt-1">🏛️ {address.landmark}</p>
+                                            <p className="text-white/50 text-xs mt-1">🏛️ {address.landmark}</p>
                                         )}
 
                                         {address.contactName && (
-                                            <div className="mt-3 pt-3 border-t border-gray-100 flex items-center gap-4 text-sm">
-                                                <span className="flex items-center gap-1 text-gray-600">
-                                                    <FaUser className="text-gray-400" /> {address.contactName}
+                                            <div className="mt-3 pt-3 border-t border-white/10 flex items-center gap-4 text-sm">
+                                                <span className="flex items-center gap-1 text-white/60">
+                                                    <FaUser className="text-white/40" /> {address.contactName}
                                                 </span>
-                                                <span className="flex items-center gap-1 text-gray-600">
-                                                    <FaPhone className="text-gray-400" /> {address.contactPhone}
+                                                <span className="flex items-center gap-1 text-white/60">
+                                                    <FaPhone className="text-white/40" /> {address.contactPhone}
                                                 </span>
                                             </div>
                                         )}
@@ -350,7 +349,7 @@ export default function AddressesPage() {
                                         {!address.isDefault && (
                                             <button
                                                 onClick={() => handleSetDefault(address.id)}
-                                                className="mt-4 text-sm text-emerald-600 hover:text-emerald-700 font-medium flex items-center gap-1"
+                                                className="mt-4 text-sm text-indigo-400 hover:text-indigo-300 font-medium flex items-center gap-1"
                                             >
                                                 <FaStar /> Set as Default
                                             </button>
@@ -376,8 +375,8 @@ export default function AddressesPage() {
 
             {/* Add/Edit Modal */}
             {showModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-                    <div className="bg-white rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+                    <div className="bg-slate-800 border border-white/20 rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl">
                         <div className="bg-gradient-to-r from-emerald-500 to-teal-500 px-6 py-4 flex items-center justify-between text-white">
                             <div className="flex items-center gap-3">
                                 <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
@@ -395,14 +394,14 @@ export default function AddressesPage() {
                         <form onSubmit={handleSubmit} className="p-6 space-y-4">
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Label</label>
-                                    <input type="text" name="label" className="input" value={formData.label} onChange={handleChange} placeholder="Home, Office, etc." />
+                                    <label className="block text-sm font-medium text-white/80 mb-1.5">Label</label>
+                                    <input type="text" name="label" className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/40 focus:ring-2 focus:ring-emerald-500 focus:border-transparent" value={formData.label} onChange={handleChange} placeholder="Home, Office, etc." />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Type</label>
-                                    <select name="addressType" className="input" value={formData.addressType} onChange={handleChange}>
+                                    <label className="block text-sm font-medium text-white/80 mb-1.5">Type</label>
+                                    <select name="addressType" className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white focus:ring-2 focus:ring-emerald-500 focus:border-transparent" value={formData.addressType} onChange={handleChange}>
                                         {ADDRESS_TYPES.map(t => (
-                                            <option key={t.value} value={t.value}>{t.emoji} {t.label}</option>
+                                            <option key={t.value} value={t.value} className="bg-slate-800">{t.emoji} {t.label}</option>
                                         ))}
                                     </select>
                                 </div>
@@ -435,11 +434,11 @@ export default function AddressesPage() {
                             />
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1.5">Landmark</label>
+                                <label className="block text-sm font-medium text-white/80 mb-1.5">Landmark</label>
                                 <input
                                     type="text"
                                     name="landmark"
-                                    className="input"
+                                    className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/40 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                                     value={formData.landmark}
                                     onChange={handleChange}
                                     placeholder="Near hospital, behind mall, etc."
@@ -448,17 +447,17 @@ export default function AddressesPage() {
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Contact Name *</label>
-                                    <input type="text" name="contactName" className="input" value={formData.contactName} onChange={handleChange} required />
+                                    <label className="block text-sm font-medium text-white/80 mb-1.5">Contact Name *</label>
+                                    <input type="text" name="contactName" className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/40 focus:ring-2 focus:ring-emerald-500 focus:border-transparent" value={formData.contactName} onChange={handleChange} required />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Contact Phone *</label>
-                                    <input type="tel" name="contactPhone" className="input" value={formData.contactPhone} onChange={handleChange} pattern="[6-9][0-9]{9}" required />
+                                    <label className="block text-sm font-medium text-white/80 mb-1.5">Contact Phone *</label>
+                                    <input type="tel" name="contactPhone" className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/40 focus:ring-2 focus:ring-emerald-500 focus:border-transparent" value={formData.contactPhone} onChange={handleChange} pattern="[6-9][0-9]{9}" required />
                                 </div>
                             </div>
 
                             <div className="flex gap-3 pt-4">
-                                <button type="button" onClick={() => setShowModal(false)} className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 font-medium rounded-xl hover:bg-gray-50 transition">
+                                <button type="button" onClick={() => setShowModal(false)} className="flex-1 px-4 py-3 border border-white/20 text-white font-medium rounded-xl hover:bg-white/10 transition">
                                     Cancel
                                 </button>
                                 <button

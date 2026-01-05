@@ -29,8 +29,8 @@ public interface CompanyAdminRepository extends JpaRepository<CompanyAdmin, Long
     // Find approved companies
     List<CompanyAdmin> findByIsApprovedTrue();
 
-    // ADD THIS - Find pending companies
-    List<CompanyAdmin> findByIsApprovedFalseOrderByCreatedAtDesc();
+    // ADD THIS - Find pending companies (not approved AND not rejected)
+    List<CompanyAdmin> findByIsApprovedFalseAndIsRejectedFalseOrderByCreatedAtDesc();
 
     // Find hiring companies (for public jobs page)
     List<CompanyAdmin> findByIsHiringAndIsApproved(Boolean isHiring, Boolean isApproved);
@@ -55,12 +55,25 @@ public interface CompanyAdminRepository extends JpaRepository<CompanyAdmin, Long
 
     // ADD THESE - Count methods
     long countByIsApproved(Boolean isApproved);
-    long countByIsApprovedFalse(); // ADD THIS
-    long countByIsApprovedTrue();  // ADD THIS
+
+    long countByIsApprovedFalse(); // Total not approved (includes rejected)
+
+    long countByIsApprovedFalseAndIsRejectedFalse(); // Pending only (excludes rejected)
+
+    long countByIsApprovedTrue(); // ADD THIS
 
     // Count hiring companies
     long countByIsHiringTrueAndIsApprovedTrue();
 
     // Find top rated companies
     List<CompanyAdmin> findByIsApprovedTrueOrderByRatingAvgDesc();
+
+    // Search by company name for messaging
+    List<CompanyAdmin> findByCompanyNameContainingIgnoreCaseAndIsApprovedTrue(String companyName);
+
+    // Find rejected companies
+    List<CompanyAdmin> findByIsRejectedTrueOrderByCreatedAtDesc();
+
+    // Count rejected companies
+    long countByIsRejectedTrue();
 }

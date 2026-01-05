@@ -4,14 +4,14 @@ import apiClient from "../../utils/api";
 import { FaBell, FaCheck, FaBox, FaTruck, FaCreditCard, FaInfoCircle } from "react-icons/fa";
 
 const NOTIFICATION_TYPES = {
-  PARCEL_CREATED: { emoji: "📦", color: "text-blue-600", bg: "bg-blue-100" },
-  PARCEL_PICKED_UP: { emoji: "🚚", color: "text-orange-600", bg: "bg-orange-100" },
-  PARCEL_IN_TRANSIT: { emoji: "🛣️", color: "text-indigo-600", bg: "bg-indigo-100" },
-  PARCEL_OUT_FOR_DELIVERY: { emoji: "📍", color: "text-purple-600", bg: "bg-purple-100" },
-  PARCEL_DELIVERED: { emoji: "✅", color: "text-green-600", bg: "bg-green-100" },
-  PAYMENT_SUCCESS: { emoji: "💳", color: "text-green-600", bg: "bg-green-100" },
-  PAYMENT_FAILED: { emoji: "⚠️", color: "text-red-600", bg: "bg-red-100" },
-  INFO: { emoji: "ℹ️", color: "text-gray-600", bg: "bg-gray-100" },
+  PARCEL_CREATED: { emoji: "📦", color: "text-blue-400", bg: "bg-blue-500/20" },
+  PARCEL_PICKED_UP: { emoji: "🚚", color: "text-orange-400", bg: "bg-orange-500/20" },
+  PARCEL_IN_TRANSIT: { emoji: "🛣️", color: "text-indigo-400", bg: "bg-indigo-500/20" },
+  PARCEL_OUT_FOR_DELIVERY: { emoji: "📍", color: "text-purple-400", bg: "bg-purple-500/20" },
+  PARCEL_DELIVERED: { emoji: "✅", color: "text-green-400", bg: "bg-green-500/20" },
+  PAYMENT_SUCCESS: { emoji: "💳", color: "text-green-400", bg: "bg-green-500/20" },
+  PAYMENT_FAILED: { emoji: "⚠️", color: "text-red-400", bg: "bg-red-500/20" },
+  INFO: { emoji: "ℹ️", color: "text-white/60", bg: "bg-white/10" },
 };
 
 export default function RecentNotifications({ customerId, limit = 5 }) {
@@ -64,11 +64,11 @@ export default function RecentNotifications({ customerId, limit = 5 }) {
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-      <div className="bg-gradient-to-r from-primary-50 to-indigo-50 border-b border-gray-200 px-4 py-3 flex items-center justify-between">
+    <div className="bg-white/10 backdrop-blur-xl rounded-2xl border border-white/20 overflow-hidden">
+      <div className="bg-white/5 border-b border-white/10 px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span className="text-lg">🔔</span>
-          <h3 className="text-sm font-semibold text-gray-900">Notifications</h3>
+          <h3 className="text-sm font-semibold text-white">Notifications</h3>
           {unreadCount > 0 && (
             <span className="flex h-5 min-w-5 px-1.5 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white">
               {unreadCount}
@@ -77,7 +77,7 @@ export default function RecentNotifications({ customerId, limit = 5 }) {
         </div>
         <Link
           to="/customer/notifications"
-          className="text-xs font-medium text-primary-600 hover:text-primary-700"
+          className="text-xs font-medium text-primary-400 hover:text-primary-300 transition"
         >
           View All
         </Link>
@@ -86,14 +86,14 @@ export default function RecentNotifications({ customerId, limit = 5 }) {
       <div className="p-3 space-y-2 max-h-80 overflow-y-auto">
         {loading ? (
           <div className="text-center py-6">
-            <div className="inline-block h-6 w-6 animate-spin rounded-full border-2 border-primary-600 border-t-transparent"></div>
+            <div className="inline-block h-6 w-6 animate-spin rounded-full border-2 border-primary-400 border-t-transparent"></div>
           </div>
         ) : notifications.length === 0 ? (
           <div className="text-center py-6">
-            <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-2">
-              <FaBell className="text-xl text-gray-400" />
+            <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center mx-auto mb-2">
+              <FaBell className="text-xl text-white/40" />
             </div>
-            <p className="text-xs text-gray-500">No notifications yet</p>
+            <p className="text-xs text-white/50">No notifications yet</p>
           </div>
         ) : (
           notifications.map((notification) => {
@@ -102,8 +102,8 @@ export default function RecentNotifications({ customerId, limit = 5 }) {
               <div
                 key={notification.id}
                 className={`rounded-xl p-3 cursor-pointer transition border ${!notification.isRead
-                    ? "bg-primary-50/50 border-primary-200 hover:bg-primary-50"
-                    : "bg-gray-50 border-gray-100 hover:bg-gray-100"
+                  ? "bg-white/10 border-white/20 hover:bg-white/15"
+                  : "bg-white/5 border-white/10 hover:bg-white/10"
                   }`}
                 onClick={() => !notification.isRead && handleMarkAsRead(notification.id)}
               >
@@ -113,17 +113,17 @@ export default function RecentNotifications({ customerId, limit = 5 }) {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2 mb-0.5">
-                      <p className={`text-xs font-semibold truncate ${!notification.isRead ? "text-gray-900" : "text-gray-700"}`}>
+                      <p className={`text-xs font-semibold truncate ${!notification.isRead ? "text-white" : "text-white/70"}`}>
                         {notification.title}
                       </p>
                       {!notification.isRead && (
-                        <span className="w-2 h-2 rounded-full bg-primary-500 flex-shrink-0"></span>
+                        <span className="w-2 h-2 rounded-full bg-primary-400 flex-shrink-0"></span>
                       )}
                     </div>
-                    <p className="text-xs text-gray-600 line-clamp-2">
+                    <p className="text-xs text-white/60 line-clamp-2">
                       {notification.message}
                     </p>
-                    <p className="text-xs text-gray-400 mt-1">
+                    <p className="text-xs text-white/40 mt-1">
                       {formatTime(notification.createdAt)}
                     </p>
                   </div>

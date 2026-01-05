@@ -12,6 +12,7 @@ import {
     FaBox, FaMapMarkerAlt, FaPhone, FaArrowLeft, FaCheck,
     FaRoute, FaExternalLinkAlt, FaClock, FaTruck, FaToggleOn, FaToggleOff, FaBroadcastTower
 } from "react-icons/fa";
+import ChatPanel from "../../components/chat/ChatPanel";
 
 // Fix Leaflet default icon issue
 delete L.Icon.Default.prototype._getIconUrl;
@@ -218,8 +219,8 @@ export default function AgentDeliveryDetailPage() {
     if (loading) {
         return (
             <div className="text-center py-12">
-                <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-orange-600 border-t-transparent"></div>
-                <p className="mt-3 text-sm text-gray-600">Loading delivery details...</p>
+                <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-indigo-400 border-t-transparent"></div>
+                <p className="mt-3 text-sm text-white/60">Loading delivery details...</p>
             </div>
         );
     }
@@ -239,12 +240,12 @@ export default function AgentDeliveryDetailPage() {
             {/* Header */}
             <div className="flex items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
-                    <Link to="/agent/deliveries" className="p-2 hover:bg-gray-100 rounded-lg">
-                        <FaArrowLeft className="text-gray-600" />
+                    <Link to="/agent/deliveries" className="p-2 hover:bg-white/10 rounded-lg">
+                        <FaArrowLeft className="text-white/60" />
                     </Link>
                     <div>
-                        <h1 className="text-2xl font-bold text-gray-900">Delivery Details</h1>
-                        <p className="text-sm text-gray-500">{parcel.trackingNumber}</p>
+                        <h1 className="text-2xl font-bold text-white">Delivery Details</h1>
+                        <p className="text-sm text-white/50">{parcel.trackingNumber}</p>
                     </div>
                 </div>
 
@@ -252,8 +253,8 @@ export default function AgentDeliveryDetailPage() {
                 <button
                     onClick={toggleSharing}
                     className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition ${isSharing
-                        ? "bg-green-100 text-green-700 hover:bg-green-200"
-                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                        ? "bg-green-500/20 text-green-400 hover:bg-green-500/30 border border-green-500/30"
+                        : "bg-white/10 text-white/70 hover:bg-white/15 border border-white/20"
                         }`}
                 >
                     {isSharing ? (
@@ -272,13 +273,13 @@ export default function AgentDeliveryDetailPage() {
 
             {/* Location Sharing Status Banner */}
             {isSharing && (
-                <div className="bg-green-50 border border-green-200 rounded-lg p-3 flex items-center gap-3">
-                    <FaBroadcastTower className="text-green-600 animate-pulse" />
+                <div className="bg-green-500/20 border border-green-500/30 rounded-lg p-3 flex items-center gap-3">
+                    <FaBroadcastTower className="text-green-400 animate-pulse" />
                     <div className="flex-1">
-                        <p className="text-sm font-medium text-green-800">
+                        <p className="text-sm font-medium text-green-300">
                             📍 Live location sharing active - Customer can see you!
                         </p>
-                        <p className="text-xs text-green-600">
+                        <p className="text-xs text-green-400">
                             Accuracy: ±{Math.round(accuracy || 0)}m •
                             Last update: {lastUpdate ? new Date(lastUpdate).toLocaleTimeString() : 'Starting...'}
                         </p>
@@ -293,7 +294,7 @@ export default function AgentDeliveryDetailPage() {
             )}
 
             {/* Map Section */}
-            <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
+            <div className="bg-white/10 backdrop-blur-xl rounded-xl border border-white/20 overflow-hidden">
                 {/* Route Info Banner */}
                 {routeInfo && currentLocation && (
                     <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4 py-3 flex items-center justify-between">
@@ -377,12 +378,12 @@ export default function AgentDeliveryDetailPage() {
             </div>
 
             {/* Status Timeline */}
-            <div className="bg-white rounded-xl p-6 shadow-md border border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                    <FaClock className="text-orange-500" /> Status Timeline
+            <div className="bg-white/10 backdrop-blur-xl rounded-xl p-6 border border-white/20">
+                <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                    <FaClock className="text-orange-400" /> Status Timeline
                 </h3>
                 <div className="flex items-center justify-between relative">
-                    <div className="absolute top-4 left-0 right-0 h-1 bg-gray-200 z-0"></div>
+                    <div className="absolute top-4 left-0 right-0 h-1 bg-white/20 z-0"></div>
                     {STATUS_FLOW.map((status, idx) => {
                         const currentIdx = getCurrentStatusIndex();
                         const isCompleted = idx <= currentIdx;
@@ -401,12 +402,12 @@ export default function AgentDeliveryDetailPage() {
                         return (
                             <div key={status.value} className="relative z-10 flex flex-col items-center">
                                 <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold
-                                    ${isCompleted ? `${bgClass} text-white` : "bg-gray-200 text-gray-500"}
-                                    ${isCurrent ? "ring-4 ring-offset-2 ring-orange-300" : ""}`}>
+                                    ${isCompleted ? `${bgClass} text-white` : "bg-white/20 text-white/50"}
+                                    ${isCurrent ? "ring-4 ring-offset-2 ring-offset-slate-900 ring-orange-400" : ""}`}>
                                     {isCompleted ? "✓" : idx + 1}
                                 </div>
                                 <p className={`text-xs mt-2 text-center max-w-[80px]
-                                    ${isCurrent ? "font-bold text-orange-600" : "text-gray-500"}`}>
+                                    ${isCurrent ? "font-bold text-orange-400" : "text-white/50"}`}>
                                     {status.label}
                                 </p>
                             </div>
@@ -418,42 +419,42 @@ export default function AgentDeliveryDetailPage() {
             {/* Route Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Pickup */}
-                <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-5 border border-green-200">
-                    <div className="flex items-center gap-2 text-green-700 font-medium mb-3">
+                <div className="bg-green-500/20 backdrop-blur-xl rounded-xl p-5 border border-green-500/30">
+                    <div className="flex items-center gap-2 text-green-400 font-medium mb-3">
                         <FaMapMarkerAlt /> PICKUP LOCATION
                     </div>
-                    <p className="font-semibold text-gray-900">{parcel.pickupName}</p>
-                    <p className="text-sm text-gray-600 mt-1">{parcel.pickupAddress}</p>
-                    <p className="text-sm text-gray-500">{parcel.pickupCity} - {parcel.pickupPincode}</p>
+                    <p className="font-semibold text-white">{parcel.pickupName}</p>
+                    <p className="text-sm text-white/70 mt-1">{parcel.pickupAddress}</p>
+                    <p className="text-sm text-white/50">{parcel.pickupCity} - {parcel.pickupPincode}</p>
                     {parcel.pickupPhone && (
-                        <a href={`tel:${parcel.pickupPhone}`} className="mt-3 inline-flex items-center gap-2 text-sm text-green-600 hover:text-green-700">
+                        <a href={`tel:${parcel.pickupPhone}`} className="mt-3 inline-flex items-center gap-2 text-sm text-green-400 hover:text-green-300">
                             <FaPhone /> {parcel.pickupPhone}
                         </a>
                     )}
                     <button
                         onClick={() => openNavigation(pickupLat, pickupLng, "Pickup")}
-                        className="mt-4 w-full btn-primary flex items-center justify-center gap-2"
+                        className="mt-4 w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg flex items-center justify-center gap-2 font-medium"
                     >
                         <FaRoute /> Navigate to Pickup <FaExternalLinkAlt className="text-xs" />
                     </button>
                 </div>
 
                 {/* Delivery */}
-                <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-5 border border-blue-200">
-                    <div className="flex items-center gap-2 text-blue-700 font-medium mb-3">
+                <div className="bg-blue-500/20 backdrop-blur-xl rounded-xl p-5 border border-blue-500/30">
+                    <div className="flex items-center gap-2 text-blue-400 font-medium mb-3">
                         <FaMapMarkerAlt /> DELIVERY LOCATION
                     </div>
-                    <p className="font-semibold text-gray-900">{parcel.deliveryName}</p>
-                    <p className="text-sm text-gray-600 mt-1">{parcel.deliveryAddress}</p>
-                    <p className="text-sm text-gray-500">{parcel.deliveryCity} - {parcel.deliveryPincode}</p>
+                    <p className="font-semibold text-white">{parcel.deliveryName}</p>
+                    <p className="text-sm text-white/70 mt-1">{parcel.deliveryAddress}</p>
+                    <p className="text-sm text-white/50">{parcel.deliveryCity} - {parcel.deliveryPincode}</p>
                     {parcel.deliveryPhone && (
-                        <a href={`tel:${parcel.deliveryPhone}`} className="mt-3 inline-flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700">
+                        <a href={`tel:${parcel.deliveryPhone}`} className="mt-3 inline-flex items-center gap-2 text-sm text-blue-400 hover:text-blue-300">
                             <FaPhone /> {parcel.deliveryPhone}
                         </a>
                     )}
                     <button
                         onClick={() => openNavigation(deliveryLat, deliveryLng, "Delivery")}
-                        className="mt-4 w-full btn-primary flex items-center justify-center gap-2"
+                        className="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg flex items-center justify-center gap-2 font-medium"
                     >
                         <FaRoute /> Navigate to Delivery <FaExternalLinkAlt className="text-xs" />
                     </button>
@@ -461,116 +462,114 @@ export default function AgentDeliveryDetailPage() {
             </div>
 
             {/* Package Info */}
-            <div className="bg-white rounded-xl p-6 shadow-md border border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                    <FaBox className="text-orange-500" /> Package Details
+            <div className="bg-white/10 backdrop-blur-xl rounded-xl p-6 border border-white/20">
+                <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                    <FaBox className="text-orange-400" /> Package Details
                 </h3>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                    <div className="bg-gray-50 rounded-lg p-3">
-                        <p className="text-gray-500 text-xs">Weight</p>
-                        <p className="font-bold text-gray-900">{parcel.weightKg || "—"} kg</p>
+                    <div className="bg-white/10 rounded-lg p-3 border border-white/10">
+                        <p className="text-white/50 text-xs">Weight</p>
+                        <p className="font-bold text-white">{parcel.weightKg || "—"} kg</p>
                     </div>
-                    <div className="bg-gray-50 rounded-lg p-3">
-                        <p className="text-gray-500 text-xs">Total Amount</p>
-                        <p className="font-bold text-gray-900">
+                    <div className="bg-white/10 rounded-lg p-3 border border-white/10">
+                        <p className="text-white/50 text-xs">Total Amount</p>
+                        <p className="font-bold text-white">
                             ₹{(parcel.finalPrice || parcel.totalAmount || parcel.basePrice || 0).toLocaleString("en-IN", { maximumFractionDigits: 2 })}
                         </p>
-                        <p className="text-xs text-gray-500">(incl. GST)</p>
+                        <p className="text-xs text-white/40">(incl. GST)</p>
                     </div>
-                    <div className="bg-gray-50 rounded-lg p-3">
-                        <p className="text-gray-500 text-xs">Your Earnings</p>
-                        <p className="font-bold text-green-600">
+                    <div className="bg-white/10 rounded-lg p-3 border border-white/10">
+                        <p className="text-white/50 text-xs">Your Earnings</p>
+                        <p className="font-bold text-green-400">
                             ₹{((parcel.finalPrice || parcel.totalAmount || parcel.basePrice || 0) * 0.20).toLocaleString("en-IN", { maximumFractionDigits: 2 })}
                         </p>
-                        <p className="text-xs text-gray-500">(20% commission)</p>
+                        <p className="text-xs text-white/40">(20% commission)</p>
                     </div>
-                    <div className="bg-gray-50 rounded-lg p-3">
-                        <p className="text-gray-500 text-xs">Package Type</p>
-                        <p className="font-bold text-gray-900">{parcel.packageType || "STANDARD"}</p>
+                    <div className="bg-white/10 rounded-lg p-3 border border-white/10">
+                        <p className="text-white/50 text-xs">Package Type</p>
+                        <p className="font-bold text-white">{parcel.packageType || "STANDARD"}</p>
                     </div>
                 </div>
                 {parcel.description && (
-                    <p className="mt-4 text-sm text-gray-600">
-                        <strong>Notes:</strong> {parcel.description}
+                    <p className="mt-4 text-sm text-white/70">
+                        <strong className="text-white">Notes:</strong> {parcel.description}
                     </p>
                 )}
             </div>
 
-            {/* Sender & Receiver Details */}
-            <div className="bg-white rounded-xl p-6 shadow-md border border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                    <FaPhone className="text-orange-500" /> Contact Details
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Sender Details */}
-                    <div className="bg-green-50 rounded-xl p-4 border border-green-200">
-                        <h4 className="font-semibold text-green-800 mb-3 flex items-center gap-2">
-                            📦 Sender (Pickup)
-                        </h4>
-                        <div className="space-y-2 text-sm">
-                            <div>
-                                <p className="text-gray-500 text-xs">Name</p>
-                                <p className="font-medium text-gray-900">{parcel.pickupName || "—"}</p>
-                            </div>
-                            <div>
-                                <p className="text-gray-500 text-xs">Phone</p>
-                                {parcel.pickupPhone ? (
+            {/* Proof Photos - Show if any photos exist */}
+            {(parcel.pickupPhotoUrl || parcel.deliveryPhotoUrl) && (
+                <div className="bg-white/10 backdrop-blur-xl rounded-xl p-6 border border-white/20">
+                    <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                        📸 Proof Photos
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {/* Pickup Photo */}
+                        {parcel.pickupPhotoUrl && (
+                            <div className="space-y-2">
+                                <p className="text-sm text-white/70 font-medium flex items-center gap-2">
+                                    📦 Pickup Photo
+                                </p>
+                                <div className="relative group">
+                                    <img
+                                        src={parcel.pickupPhotoUrl}
+                                        alt="Pickup proof"
+                                        className="w-full h-48 object-cover rounded-lg border border-white/20"
+                                    />
                                     <a
-                                        href={`tel:${parcel.pickupPhone}`}
-                                        className="font-medium text-green-600 hover:text-green-700 flex items-center gap-1"
+                                        href={parcel.pickupPhotoUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="absolute inset-0 flex items-center justify-center bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg"
                                     >
-                                        <FaPhone className="text-xs" /> {parcel.pickupPhone}
+                                        <span className="text-white font-medium text-sm">🔍 View Full Size</span>
                                     </a>
-                                ) : (
-                                    <p className="text-gray-400">Not available</p>
+                                </div>
+                                {parcel.pickedUpAt && (
+                                    <p className="text-xs text-white/50">
+                                        Picked up: {new Date(parcel.pickedUpAt).toLocaleString("en-IN")}
+                                    </p>
                                 )}
                             </div>
-                            <div>
-                                <p className="text-gray-500 text-xs">Address</p>
-                                <p className="font-medium text-gray-900">{parcel.pickupAddress || "—"}</p>
-                                <p className="text-gray-600">{parcel.pickupCity}{parcel.pickupPincode ? ` - ${parcel.pickupPincode}` : ""}</p>
-                            </div>
-                        </div>
-                    </div>
+                        )}
 
-                    {/* Receiver Details */}
-                    <div className="bg-blue-50 rounded-xl p-4 border border-blue-200">
-                        <h4 className="font-semibold text-blue-800 mb-3 flex items-center gap-2">
-                            🏠 Receiver (Delivery)
-                        </h4>
-                        <div className="space-y-2 text-sm">
-                            <div>
-                                <p className="text-gray-500 text-xs">Name</p>
-                                <p className="font-medium text-gray-900">{parcel.deliveryName || "—"}</p>
-                            </div>
-                            <div>
-                                <p className="text-gray-500 text-xs">Phone</p>
-                                {parcel.deliveryPhone ? (
+                        {/* Delivery Photo */}
+                        {parcel.deliveryPhotoUrl && (
+                            <div className="space-y-2">
+                                <p className="text-sm text-white/70 font-medium flex items-center gap-2">
+                                    ✅ Delivery Photo
+                                </p>
+                                <div className="relative group">
+                                    <img
+                                        src={parcel.deliveryPhotoUrl}
+                                        alt="Delivery proof"
+                                        className="w-full h-48 object-cover rounded-lg border border-white/20"
+                                    />
                                     <a
-                                        href={`tel:${parcel.deliveryPhone}`}
-                                        className="font-medium text-blue-600 hover:text-blue-700 flex items-center gap-1"
+                                        href={parcel.deliveryPhotoUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="absolute inset-0 flex items-center justify-center bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg"
                                     >
-                                        <FaPhone className="text-xs" /> {parcel.deliveryPhone}
+                                        <span className="text-white font-medium text-sm">🔍 View Full Size</span>
                                     </a>
-                                ) : (
-                                    <p className="text-gray-400">Not available</p>
+                                </div>
+                                {parcel.deliveredAt && (
+                                    <p className="text-xs text-white/50">
+                                        Delivered: {new Date(parcel.deliveredAt).toLocaleString("en-IN")}
+                                    </p>
                                 )}
                             </div>
-                            <div>
-                                <p className="text-gray-500 text-xs">Address</p>
-                                <p className="font-medium text-gray-900">{parcel.deliveryAddress || "—"}</p>
-                                <p className="text-gray-600">{parcel.deliveryCity}{parcel.deliveryPincode ? ` - ${parcel.deliveryPincode}` : ""}</p>
-                            </div>
-                        </div>
+                        )}
                     </div>
                 </div>
-            </div>
+            )}
 
             {/* Action Buttons */}
             {parcel.status !== "DELIVERED" && parcel.status !== "CANCELLED" && (
-                <div className="bg-white rounded-xl p-6 shadow-md border border-gray-200">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                        <FaTruck className="text-orange-500" /> Update Status
+                <div className="bg-white/10 backdrop-blur-xl rounded-xl p-6 border border-white/20">
+                    <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                        <FaTruck className="text-orange-400" /> Update Status
                     </h3>
                     <div className="flex flex-wrap gap-3">
                         {getValidNextStatuses(parcel.status).map((status) => {
@@ -603,6 +602,7 @@ export default function AgentDeliveryDetailPage() {
             {showOtpModal && (
                 <OtpVerificationModal
                     parcelId={parcelId}
+                    trackingNumber={parcel?.trackingNumber}
                     onClose={() => setShowOtpModal(false)}
                     onSuccess={() => {
                         setShowOtpModal(false);
@@ -617,6 +617,7 @@ export default function AgentDeliveryDetailPage() {
             {showPickupOtpModal && (
                 <OtpVerificationModal
                     parcelId={parcelId}
+                    trackingNumber={parcel?.trackingNumber}
                     onClose={() => setShowPickupOtpModal(false)}
                     onSuccess={() => {
                         setShowPickupOtpModal(false);
@@ -626,17 +627,30 @@ export default function AgentDeliveryDetailPage() {
                     isPickup={true}
                 />
             )}
+
+            {/* Chat with Customer - only show for active deliveries */}
+            {parcel.status !== "DELIVERED" && parcel.status !== "CANCELLED" && (
+                <ChatPanel
+                    type="parcel"
+                    id={parseInt(parcelId)}
+                    receiverName={parcel.pickupName || "Customer"}
+                    isAgent={true}
+                    isMinimized={true}
+                />
+            )}
         </div>
     );
 }
 
-// OTP Verification Modal Component - handles both pickup and delivery
-function OtpVerificationModal({ parcelId, onClose, onSuccess, isPickup = false }) {
+// OTP Verification Modal Component - handles both pickup and delivery with photo proof
+function OtpVerificationModal({ parcelId, trackingNumber, onClose, onSuccess, isPickup = false }) {
     const [otp, setOtp] = useState("");
     const [verifying, setVerifying] = useState(false);
     const [error, setError] = useState("");
+    const [photo, setPhoto] = useState(null);
+    const [photoPreview, setPhotoPreview] = useState(null);
 
-    const status = isPickup ? "PICKED_UP" : "DELIVERED";
+
     const title = isPickup ? "Verify Pickup" : "Verify Delivery";
     const subtitle = isPickup
         ? "Enter OTP from sender"
@@ -644,60 +658,131 @@ function OtpVerificationModal({ parcelId, onClose, onSuccess, isPickup = false }
     const description = isPickup
         ? "Ask the sender for the 6-digit pickup OTP sent to their phone."
         : "Ask the receiver for the 6-digit delivery OTP sent to their phone.";
-    const successMessage = isPickup ? "Package picked up!" : "Delivery completed!";
+
+    const handlePhotoCapture = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            setPhoto(file);
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setPhotoPreview(reader.result);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
 
     const handleVerify = async () => {
         if (otp.length < 4) {
             setError("Please enter a valid OTP");
             return;
         }
+        if (!photo) {
+            setError("Please take a photo proof");
+            return;
+        }
+
         setVerifying(true);
         setError("");
         try {
-            // Send status update with OTP
-            await updateParcelStatus(parcelId, { status, otp });
+            // Import the new functions dynamically to avoid circular imports
+            const { verifyPickupWithPhoto, verifyDeliveryWithPhoto } = await import("../../services/agentService");
+
+            // Use backend endpoints that handle Cloudinary upload
+            if (isPickup) {
+                await verifyPickupWithPhoto(parcelId, otp, photo, trackingNumber);
+            } else {
+                await verifyDeliveryWithPhoto(parcelId, otp, photo, trackingNumber);
+            }
             onSuccess();
         } catch (err) {
-            setError(err.response?.data?.message || "Invalid OTP. Please try again.");
+            const message = err.response?.data?.message || err.message || "Verification failed. Please try again.";
+            setError(message);
         } finally {
             setVerifying(false);
         }
     };
 
     return (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl">
-                <div className={`bg-gradient-to-r ${isPickup ? "from-blue-600 to-indigo-600" : "from-green-600 to-emerald-600"} text-white px-6 py-4 rounded-t-2xl`}>
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+            <div className="bg-slate-800 rounded-2xl w-full max-w-md shadow-2xl max-h-[90vh] overflow-y-auto border border-white/10">
+                <div className={`bg-gradient-to-r ${isPickup ? "from-blue-600 to-indigo-600" : "from-green-600 to-emerald-600"} text-white px-6 py-4 rounded-t-2xl sticky top-0`}>
                     <h2 className="text-lg font-semibold">{title}</h2>
                     <p className={`text-sm ${isPickup ? "text-blue-200" : "text-green-200"}`}>{subtitle}</p>
                 </div>
 
-                <div className="p-6">
-                    <p className="text-sm text-gray-600 mb-4">
+                <div className="p-6 space-y-4">
+                    <p className="text-sm text-white/70">
                         {description}
                     </p>
 
-                    <input
-                        type="text"
-                        maxLength="6"
-                        placeholder="Enter OTP"
-                        value={otp}
-                        onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
-                        className="input text-center text-2xl tracking-widest font-mono"
-                    />
+                    {/* OTP Input */}
+                    <div>
+                        <label className="block text-sm font-medium text-white/80 mb-1">OTP Code *</label>
+                        <input
+                            type="text"
+                            maxLength="6"
+                            placeholder="Enter 6-digit OTP"
+                            value={otp}
+                            onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
+                            className="w-full px-4 py-3 text-center text-2xl tracking-widest font-mono bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/40 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                        />
+                    </div>
+
+                    {/* Photo Capture */}
+                    <div>
+                        <label className="block text-sm font-medium text-white/80 mb-2">
+                            📷 {isPickup ? "Pickup" : "Delivery"} Photo Proof *
+                        </label>
+                        {photoPreview ? (
+                            <div className="relative">
+                                <img
+                                    src={photoPreview}
+                                    alt="Proof"
+                                    className="w-full h-40 object-cover rounded-xl border-2 border-white/20"
+                                />
+                                <button
+                                    onClick={() => { setPhoto(null); setPhotoPreview(null); }}
+                                    className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-8 h-8 flex items-center justify-center shadow-lg hover:bg-red-600"
+                                >
+                                    ✕
+                                </button>
+                            </div>
+                        ) : (
+                            <label className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-xl cursor-pointer transition-all ${isPickup ? "border-blue-400/50 bg-blue-500/10 hover:bg-blue-500/20" : "border-green-400/50 bg-green-500/10 hover:bg-green-500/20"}`}>
+                                <div className="flex flex-col items-center justify-center">
+                                    <span className="text-3xl mb-2">📸</span>
+                                    <span className={`text-sm font-medium ${isPickup ? "text-blue-300" : "text-green-300"}`}>
+                                        Tap to take photo
+                                    </span>
+                                    <span className="text-xs text-white/50">Camera or Gallery</span>
+                                </div>
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    capture="environment"
+                                    onChange={handlePhotoCapture}
+                                    className="hidden"
+                                />
+                            </label>
+                        )}
+                    </div>
 
                     {error && (
-                        <p className="text-red-500 text-sm mt-2">{error}</p>
+                        <p className="text-red-400 text-sm bg-red-500/20 p-2 rounded-lg border border-red-500/30">{error}</p>
                     )}
 
-                    <div className="flex gap-3 mt-6">
-                        <button onClick={onClose} className="flex-1 btn-outline">
+                    <div className="flex gap-3 pt-2">
+                        <button
+                            onClick={onClose}
+                            className="flex-1 py-2.5 px-4 bg-white/10 hover:bg-white/20 text-white rounded-lg border border-white/20 transition font-medium"
+                            disabled={verifying}
+                        >
                             Cancel
                         </button>
                         <button
                             onClick={handleVerify}
-                            disabled={verifying || otp.length < 4}
-                            className="flex-1 btn-primary disabled:opacity-50"
+                            disabled={verifying || otp.length < 4 || !photo}
+                            className={`flex-1 py-2.5 px-4 rounded-lg text-white font-medium disabled:opacity-50 transition ${isPickup ? "bg-blue-600 hover:bg-blue-700" : "bg-green-600 hover:bg-green-700"}`}
                         >
                             {verifying ? "Verifying..." : `Verify & ${isPickup ? "Pickup" : "Complete"}`}
                         </button>

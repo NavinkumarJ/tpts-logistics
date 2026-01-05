@@ -19,6 +19,11 @@ export const getAgentDashboard = async () => {
   return response.data.data;
 };
 
+export const getMyGroupAssignments = async () => {
+  const response = await apiClient.get("/agents/my-groups");
+  return response.data.data;
+};
+
 export const updateAgentProfile = async (data) => {
   const response = await apiClient.put("/agents/profile", data);
   return response.data.data;
@@ -80,6 +85,62 @@ export const verifyDeliveryOtp = async (parcelId, otp) => {
   return response.data.data;
 };
 
+/**
+ * Verify pickup with OTP and photo - uses backend for Cloudinary upload
+ * @param {number} parcelId - The parcel ID
+ * @param {string} otp - The pickup OTP
+ * @param {File} photoFile - The pickup photo file
+ * @param {string} trackingNumber - The tracking number for photo upload
+ */
+export const verifyPickupWithPhoto = async (parcelId, otp, photoFile, trackingNumber) => {
+  // Step 1: Upload photo to backend
+  let photoUrl = null;
+  if (photoFile) {
+    const formData = new FormData();
+    formData.append("file", photoFile);
+    formData.append("trackingNumber", trackingNumber || `parcel-${parcelId}`);
+    formData.append("type", "pickup");
+    const uploadRes = await apiClient.post("/upload/delivery-proof", formData);
+    photoUrl = uploadRes.data.data.url;
+  }
+
+  // Step 2: Update parcel status with OTP and photo URL
+  const response = await apiClient.patch(`/parcels/${parcelId}/status`, {
+    status: "PICKED_UP",
+    otp,
+    photoUrl
+  });
+  return response.data;
+};
+
+/**
+ * Verify delivery with OTP and photo - uses backend for Cloudinary upload
+ * @param {number} parcelId - The parcel ID
+ * @param {string} otp - The delivery OTP
+ * @param {File} photoFile - The delivery photo file
+ * @param {string} trackingNumber - The tracking number for photo upload
+ */
+export const verifyDeliveryWithPhoto = async (parcelId, otp, photoFile, trackingNumber) => {
+  // Step 1: Upload photo to backend
+  let photoUrl = null;
+  if (photoFile) {
+    const formData = new FormData();
+    formData.append("file", photoFile);
+    formData.append("trackingNumber", trackingNumber || `parcel-${parcelId}`);
+    formData.append("type", "delivery");
+    const uploadRes = await apiClient.post("/upload/delivery-proof", formData);
+    photoUrl = uploadRes.data.data.url;
+  }
+
+  // Step 2: Update parcel status with OTP and photo URL
+  const response = await apiClient.patch(`/parcels/${parcelId}/status`, {
+    status: "DELIVERED",
+    otp,
+    photoUrl
+  });
+  return response.data;
+};
+
 // ==========================================
 // Earnings (Direct calculation from delivered parcels)
 // ==========================================
@@ -134,7 +195,7 @@ export const getAgentRatingSummary = async (agentId) => {
 // ==========================================
 
 export const getAgentNotifications = async () => {
-  const response = await apiClient.get("/notifications");
+  const response = await apiClient.get("/notifications/in-app");
   return response.data.data;
 };
 
@@ -155,9 +216,8 @@ export const markAllNotificationsRead = async () => {
 export const uploadProfileImage = async (agentId, file) => {
   const formData = new FormData();
   formData.append("file", file);
-  const response = await apiClient.post(`/agents/${agentId}/profile-image`, formData, {
-    headers: { "Content-Type": "multipart/form-data" },
-  });
+  // Don't set Content-Type for FormData - browser will set it with the correct boundary
+  const response = await apiClient.post(`/agents/${agentId}/profile-image`, formData);
   return response.data.data.profilePhotoUrl;
 };
 

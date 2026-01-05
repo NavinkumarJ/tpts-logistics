@@ -10,15 +10,14 @@ import com.tpts.dto.request.ChangePasswordRequest;
 import com.tpts.dto.response.AgentDTO;
 import com.tpts.dto.response.AgentDashboardDTO;
 import com.tpts.dto.response.AgentPublicDTO;
-import com.tpts.entity.CompanyAdmin;
-import com.tpts.entity.DeliveryAgent;
-import com.tpts.entity.User;
-import com.tpts.entity.UserType;
+import com.tpts.entity.*;
 import com.tpts.exception.TptsExceptions.*;
 import com.tpts.repository.DeliveryAgentRepository;
 import com.tpts.repository.EarningRepository;
+import com.tpts.repository.GroupShipmentRepository;
 import com.tpts.repository.ParcelRepository;
 import com.tpts.repository.RatingRepository;
+import com.tpts.repository.CompanyAdminRepository;
 import com.tpts.repository.UserRepository;
 import com.tpts.util.OtpUtil;
 import lombok.RequiredArgsConstructor;
@@ -30,7 +29,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -45,12 +46,15 @@ public class AgentService {
     private final UserRepository userRepository;
     private final CompanyService companyService;
     private final NotificationService notificationService;
+    private final EmailService emailService;
     private final PasswordEncoder passwordEncoder;
     private final ObjectMapper objectMapper;
     private final OtpUtil otpUtil;
     private final EarningRepository earningRepository;
     private final ParcelRepository parcelRepository;
     private final RatingRepository ratingRepository;
+    private final GroupShipmentRepository groupShipmentRepository;
+    private final CompanyAdminRepository companyRepository;
 
     // ==========================================
     // Get Agent Profile
@@ -285,24 +289,45 @@ public class AgentService {
 
     /**
      * Update agent active status (by company)
+     * This works like platform admin suspension - deactivated agents cannot log in
      */
     @Transactional
-    public AgentDTO updateActiveStatus(Long agentId, Boolean isActive, User companyUser) {
+    public AgentDTO updateActiveStatus(Long agentId, Boolean isActive, String reason, User companyUser) {
         CompanyAdmin company = companyService.getCompanyEntityByUser(companyUser);
 
         DeliveryAgent agent = agentRepository.findByIdAndCompanyId(agentId, company.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Agent", "id", agentId));
 
+        // Update agent's active status
         agent.setIsActive(isActive);
 
-        // If deactivating, also set unavailable
+        // Also update the User's isActive status to prevent/allow login
+        User agentUser = agent.getUser();
+        agentUser.setIsActive(isActive);
+        userRepository.save(agentUser);
+
+        // If deactivating, also set unavailable (agent can't take orders if suspended)
         if (!isActive) {
             agent.setIsAvailable(false);
         }
 
         agent = agentRepository.save(agent);
 
-        log.info("Company {} set agent {} active status to {}", company.getId(), agentId, isActive);
+        // Send email notification
+        try {
+            if (isActive) {
+                emailService.sendUserActivationEmail(agent.getUser().getEmail(), agent.getFullName());
+            } else {
+                String deactivationReason = reason != null ? reason : "Deactivated by company";
+                emailService.sendUserSuspensionEmail(agent.getUser().getEmail(), agent.getFullName(),
+                        deactivationReason);
+            }
+        } catch (Exception e) {
+            log.warn("Failed to send agent status change email: {}", e.getMessage());
+        }
+
+        log.info("Company {} set agent {} active status to {} (login {})",
+                company.getId(), agentId, isActive, isActive ? "enabled" : "disabled");
         return mapToDTO(agent);
     }
 
@@ -402,6 +427,294 @@ public class AgentService {
                 .todayStats(todayStats)
                 .earnings(earnings)
                 .build();
+    }
+
+    /**
+     * Get agent's assigned group shipments (both pickup and delivery)
+     */
+    public Map<String, Object> getAgentGroupAssignments(User currentUser) {
+        DeliveryAgent agent = agentRepository.findByUser(currentUser)
+                .orElseThrow(() -> new ResourceNotFoundException("Agent profile not found"));
+
+        Long agentId = agent.getId();
+
+        // Get groups where this agent is assigned as pickup agent
+        var pickupGroups = groupShipmentRepository.findByPickupAgentId(agentId);
+
+        // Get groups where this agent is assigned as delivery agent
+        var deliveryGroups = groupShipmentRepository.findByDeliveryAgentId(agentId);
+
+        // Map to simple DTOs with earnings calculation
+        List<Map<String, Object>> pickupDTOs = pickupGroups.stream().map(g -> {
+            Map<String, Object> dto = new HashMap<>();
+            dto.put("id", g.getId());
+            dto.put("groupCode", g.getGroupCode());
+            dto.put("sourceCity", g.getSourceCity());
+            dto.put("destinationCity", g.getTargetCity());
+            dto.put("status", g.getStatus().name());
+            dto.put("currentMembers", g.getCurrentMembers());
+            dto.put("createdAt", g.getCreatedAt());
+            dto.put("updatedAt", g.getUpdatedAt());
+            dto.put("pickupCompletedAt", g.getPickupCompletedAt());
+            dto.put("deliveryCompletedAt", g.getDeliveryCompletedAt());
+
+            // Calculate total group value from parcels
+            List<Parcel> parcels = parcelRepository.findByGroupShipmentId(g.getId());
+            java.math.BigDecimal totalValue = parcels.stream()
+                    .map(p -> p.getFinalPrice() != null ? p.getFinalPrice() : java.math.BigDecimal.ZERO)
+                    .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
+
+            // Agent earnings: 10% of total value
+            java.math.BigDecimal earnings = totalValue.multiply(new java.math.BigDecimal("0.10"))
+                    .setScale(2, java.math.RoundingMode.HALF_UP);
+
+            dto.put("totalGroupValue", totalValue);
+            dto.put("pickupAgentEarnings", earnings);
+            dto.put("deliveryAgentEarnings", earnings);
+
+            return dto;
+        }).collect(java.util.stream.Collectors.toList());
+
+        List<Map<String, Object>> deliveryDTOs = deliveryGroups.stream().map(g -> {
+            Map<String, Object> dto = new HashMap<>();
+            dto.put("id", g.getId());
+            dto.put("groupCode", g.getGroupCode());
+            dto.put("sourceCity", g.getSourceCity());
+            dto.put("destinationCity", g.getTargetCity());
+            dto.put("status", g.getStatus().name());
+            dto.put("currentMembers", g.getCurrentMembers());
+            dto.put("createdAt", g.getCreatedAt());
+            dto.put("updatedAt", g.getUpdatedAt());
+            dto.put("pickupCompletedAt", g.getPickupCompletedAt());
+            dto.put("deliveryCompletedAt", g.getDeliveryCompletedAt());
+
+            // Calculate total group value from parcels
+            List<Parcel> parcels = parcelRepository.findByGroupShipmentId(g.getId());
+            java.math.BigDecimal totalValue = parcels.stream()
+                    .map(p -> p.getFinalPrice() != null ? p.getFinalPrice() : java.math.BigDecimal.ZERO)
+                    .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
+
+            // Agent earnings: 10% of total value
+            java.math.BigDecimal earnings = totalValue.multiply(new java.math.BigDecimal("0.10"))
+                    .setScale(2, java.math.RoundingMode.HALF_UP);
+
+            dto.put("totalGroupValue", totalValue);
+            dto.put("pickupAgentEarnings", earnings);
+            dto.put("deliveryAgentEarnings", earnings);
+
+            return dto;
+        }).collect(java.util.stream.Collectors.toList());
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("pickupGroups", pickupDTOs);
+        result.put("deliveryGroups", deliveryDTOs);
+        result.put("pickupCount", pickupDTOs.size());
+        result.put("deliveryCount", deliveryDTOs.size());
+
+        log.info("Agent {} has {} pickup groups and {} delivery groups",
+                agentId, pickupDTOs.size(), deliveryDTOs.size());
+
+        return result;
+    }
+
+    /**
+     * Update agent's current location for live tracking
+     */
+    @Transactional
+    public void updateAgentLocation(User currentUser, Double latitude, Double longitude, Long groupShipmentId) {
+        DeliveryAgent agent = agentRepository.findByUser(currentUser)
+                .orElseThrow(() -> new ResourceNotFoundException("Agent profile not found"));
+
+        // Update agent's current location
+        agent.setCurrentLatitude(java.math.BigDecimal.valueOf(latitude));
+        agent.setCurrentLongitude(java.math.BigDecimal.valueOf(longitude));
+        agent.setLocationUpdatedAt(java.time.LocalDateTime.now());
+        agentRepository.save(agent);
+
+        // If groupShipmentId is provided, update the group's agent location too
+        if (groupShipmentId != null) {
+            groupShipmentRepository.findById(groupShipmentId).ifPresent(group -> {
+                // Check if this agent is pickup or delivery agent and update accordingly
+                if (agent.equals(group.getPickupAgent())) {
+                    group.setPickupAgentLatitude(latitude);
+                    group.setPickupAgentLongitude(longitude);
+                } else if (agent.equals(group.getDeliveryAgent())) {
+                    group.setDeliveryAgentLatitude(latitude);
+                    group.setDeliveryAgentLongitude(longitude);
+                }
+                groupShipmentRepository.save(group);
+            });
+        }
+
+        log.info("Agent {} location updated: [{},{}]", agent.getFullName(), latitude, longitude);
+    }
+
+    /**
+     * Verify pickup OTP and mark parcel as picked up
+     */
+    @Transactional
+    public void verifyPickupOtp(User currentUser, Long parcelId, Long groupShipmentId, String otp, String photoUrl) {
+        DeliveryAgent agent = agentRepository.findByUser(currentUser)
+                .orElseThrow(() -> new ResourceNotFoundException("Agent profile not found"));
+
+        Parcel parcel = parcelRepository.findById(parcelId)
+                .orElseThrow(() -> new ResourceNotFoundException("Parcel not found"));
+
+        // Verify this agent is assigned to the group
+        GroupShipment group = groupShipmentRepository.findById(groupShipmentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Group shipment not found"));
+
+        if (group.getPickupAgent() == null || !group.getPickupAgent().getId().equals(agent.getId())) {
+            throw new IllegalArgumentException("You are not assigned as pickup agent for this group");
+        }
+
+        // Verify the parcel belongs to this group
+        if (parcel.getGroupShipmentId() == null || !parcel.getGroupShipmentId().equals(groupShipmentId)) {
+            throw new IllegalArgumentException("Parcel does not belong to this group");
+        }
+
+        // Verify OTP
+        String storedOtp = parcel.getPickupOtp();
+        if (storedOtp == null || storedOtp.isEmpty()) {
+            throw new IllegalArgumentException("No OTP set for this parcel. Please contact support.");
+        }
+        if (!otp.equals(storedOtp)) {
+            throw new IllegalArgumentException("Invalid OTP");
+        }
+
+        // Update parcel status to PICKED_UP
+        parcel.setStatus(ParcelStatus.PICKED_UP);
+        parcel.setPickedUpAt(java.time.LocalDateTime.now());
+        if (photoUrl != null) {
+            parcel.setPickupPhotoUrl(photoUrl);
+        }
+        parcelRepository.save(parcel);
+
+        log.info("Agent {} picked up parcel {} with OTP verification", agent.getFullName(), parcel.getTrackingNumber());
+    }
+
+    /**
+     * Verify delivery OTP and mark parcel as delivered
+     */
+    @Transactional
+    public void verifyDeliveryOtp(User currentUser, Long parcelId, Long groupShipmentId, String otp, String photoUrl) {
+        DeliveryAgent agent = agentRepository.findByUser(currentUser)
+                .orElseThrow(() -> new ResourceNotFoundException("Agent profile not found"));
+
+        Parcel parcel = parcelRepository.findById(parcelId)
+                .orElseThrow(() -> new ResourceNotFoundException("Parcel not found"));
+
+        // Verify this agent is assigned to the group as delivery agent
+        GroupShipment group = groupShipmentRepository.findById(groupShipmentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Group shipment not found"));
+
+        if (group.getDeliveryAgent() == null || !group.getDeliveryAgent().getId().equals(agent.getId())) {
+            throw new IllegalArgumentException("You are not assigned as delivery agent for this group");
+        }
+
+        // Verify the parcel belongs to this group
+        if (parcel.getGroupShipmentId() == null || !parcel.getGroupShipmentId().equals(groupShipmentId)) {
+            throw new IllegalArgumentException("Parcel does not belong to this group");
+        }
+
+        // Verify OTP
+        String storedOtp = parcel.getDeliveryOtp();
+        if (storedOtp == null || storedOtp.isEmpty()) {
+            throw new IllegalArgumentException("No delivery OTP set for this parcel. Please contact support.");
+        }
+        if (!otp.equals(storedOtp)) {
+            throw new IllegalArgumentException("Invalid OTP");
+        }
+
+        // Update parcel status to DELIVERED
+        parcel.setStatus(ParcelStatus.DELIVERED);
+        parcel.setDeliveredAt(java.time.LocalDateTime.now());
+        if (photoUrl != null) {
+            parcel.setDeliveryPhotoUrl(photoUrl);
+        }
+        parcelRepository.save(parcel);
+
+        // Update agent's current orders count (reduce active orders)
+        agent.setCurrentOrdersCount(Math.max(0, agent.getCurrentOrdersCount() - 1));
+        agentRepository.save(agent);
+
+        // Check if all parcels in group are delivered
+        List<Parcel> groupParcels = parcelRepository.findByGroupShipmentId(groupShipmentId);
+        boolean allDelivered = groupParcels.stream()
+                .allMatch(p -> p.getStatus() == ParcelStatus.DELIVERED);
+
+        if (allDelivered) {
+            group.setStatus(GroupStatus.COMPLETED);
+            groupShipmentRepository.save(group);
+
+            // Update agent total deliveries - one group = one delivery
+            agent.setTotalDeliveries(agent.getTotalDeliveries() + 1);
+            agentRepository.save(agent);
+
+            // Update company total deliveries - one group = one delivery
+            CompanyAdmin company = parcel.getCompany();
+            company.setTotalDeliveries(company.getTotalDeliveries() + 1);
+            companyRepository.save(company);
+
+            log.info("All parcels delivered - Group {} marked as COMPLETED", groupShipmentId);
+        }
+
+        log.info("Agent {} delivered parcel {} with OTP verification", agent.getFullName(), parcel.getTrackingNumber());
+    }
+
+    /**
+     * Confirm warehouse arrival - updates all parcels in group to AT_WAREHOUSE
+     * status
+     */
+    @Transactional
+    public void confirmWarehouseArrival(User currentUser, Long groupShipmentId, String photoUrl) {
+        // Get agent
+        DeliveryAgent agent = agentRepository.findByUser(currentUser)
+                .orElseThrow(() -> new IllegalArgumentException("Agent not found"));
+
+        // Get group shipment
+        GroupShipment group = groupShipmentRepository.findById(groupShipmentId)
+                .orElseThrow(() -> new IllegalArgumentException("Group shipment not found"));
+
+        // Verify agent is assigned to this group as pickup agent
+        if (group.getPickupAgent() == null || !group.getPickupAgent().getId().equals(agent.getId())) {
+            throw new IllegalArgumentException("You are not assigned as the pickup agent for this group");
+        }
+
+        // Get all parcels in this group
+        List<Parcel> parcels = parcelRepository.findByGroupShipmentId(groupShipmentId);
+        if (parcels.isEmpty()) {
+            throw new IllegalArgumentException("No parcels found in this group");
+        }
+
+        // Check all parcels are picked up
+        boolean allPickedUp = parcels.stream().allMatch(p -> p.getStatus() == ParcelStatus.PICKED_UP ||
+                p.getStatus() == ParcelStatus.IN_TRANSIT ||
+                p.getStatus() == ParcelStatus.IN_TRANSIT_TO_WAREHOUSE);
+        if (!allPickedUp) {
+            throw new IllegalArgumentException("Not all parcels have been picked up yet");
+        }
+
+        // Update all parcels to AT_WAREHOUSE
+        java.time.LocalDateTime now = java.time.LocalDateTime.now();
+        for (Parcel parcel : parcels) {
+            parcel.setStatus(ParcelStatus.AT_WAREHOUSE);
+            parcel.setWarehouseArrivedAt(now);
+            parcelRepository.save(parcel);
+        }
+
+        // Update group status to PICKUP_COMPLETE (all parcels at warehouse)
+        group.setStatus(GroupStatus.PICKUP_COMPLETE);
+        group.setPickupCompletedAt(now); // Set completion timestamp for date filtering
+
+        // Store photo URL on the group shipment if provided
+        if (photoUrl != null) {
+            group.setWarehouseArrivalPhotoUrl(photoUrl);
+        }
+        groupShipmentRepository.save(group);
+
+        log.info("Agent {} confirmed warehouse arrival for group {} with {} parcels",
+                agent.getFullName(), group.getGroupCode(), parcels.size());
     }
 
     // ==========================================
@@ -516,10 +829,35 @@ public class AgentService {
 
     /**
      * Map DeliveryAgent entity to full DTO
+     * Calculates totalDeliveries and totalRatings dynamically from actual records
      */
     public AgentDTO mapToDTO(DeliveryAgent agent) {
-        // Get total ratings count for this agent
-        Long ratingsCount = ratingRepository.countByAgentId(agent.getId());
+        Long agentId = agent.getId();
+
+        // Calculate total deliveries dynamically:
+        // 1. Regular parcels delivered by this agent (not in a group)
+        long regularDeliveries = parcelRepository.countByAgentIdAndStatusAndGroupShipmentIdIsNull(
+                agentId, ParcelStatus.DELIVERED);
+
+        // 2. Completed group shipments where agent was pickup or delivery agent
+        long completedPickupGroups = groupShipmentRepository.countCompletedByPickupAgentId(agentId);
+        long completedDeliveryGroups = groupShipmentRepository.countCompletedByDeliveryAgentId(agentId);
+
+        // If same agent did both pickup and delivery for same groups, don't double
+        // count
+        // Use distinct group IDs
+        long completedGroupsAsPickup = completedPickupGroups;
+        long completedGroupsAsDelivery = completedDeliveryGroups;
+
+        // Total deliveries = regular + unique group deliveries
+        // Note: when same agent does both roles in same group, count as 1 not 2
+        long totalDeliveriesCount = regularDeliveries + completedGroupsAsPickup + completedGroupsAsDelivery;
+
+        // Get total ratings count for this agent (unique ratings where agent is either
+        // delivery or pickup)
+        Long totalRatingsCount = ratingRepository.countUniqueRatingsByAgentId(agentId);
+        if (totalRatingsCount == null)
+            totalRatingsCount = 0L;
 
         return AgentDTO.builder()
                 .id(agent.getId())
@@ -541,9 +879,9 @@ public class AgentService {
                 .currentLongitude(agent.getCurrentLongitude())
                 .locationUpdatedAt(agent.getLocationUpdatedAt())
                 .ratingAvg(agent.getRatingAvg())
-                .totalDeliveries(agent.getTotalDeliveries())
+                .totalDeliveries((int) totalDeliveriesCount)
                 .currentOrdersCount(agent.getCurrentOrdersCount())
-                .totalRatings(ratingsCount != null ? ratingsCount : 0L) // Fetch from ratings repository
+                .totalRatings(totalRatingsCount)
                 // **NEW: Document URLs**
                 .profilePhotoUrl(agent.getProfilePhotoUrl())
                 .licenseDocumentUrl(agent.getLicenseDocumentUrl())

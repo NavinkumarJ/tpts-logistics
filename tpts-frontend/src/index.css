@@ -24,4 +24,169 @@
   .card {
     @apply rounded-xl border border-gray-200 bg-white shadow-sm;
   }
+
+  /* Dark theme variants for dashboard pages */
+  .dark-theme .input {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    border-color: rgba(255, 255, 255, 0.2) !important;
+    color: white !important;
+  }
+
+  .dark-theme .input::placeholder {
+    color: rgba(255, 255, 255, 0.4) !important;
+  }
+
+  /* Keep dark theme on focus */
+  .dark-theme .input:focus {
+    background-color: rgba(255, 255, 255, 0.15) !important;
+    color: white !important;
+    border-color: rgb(99, 102, 241) !important;
+  }
+
+  /* Text selection styling in dark theme */
+  .dark-theme .input::selection {
+    background-color: rgba(99, 102, 241, 0.5) !important;
+    color: white !important;
+  }
+
+  .dark-theme .input::-moz-selection {
+    background-color: rgba(99, 102, 241, 0.5) !important;
+    color: white !important;
+  }
+
+  /* Override browser autofill styling in dark theme */
+  .dark-theme .input:-webkit-autofill,
+  .dark-theme .input:-webkit-autofill:hover,
+  .dark-theme .input:-webkit-autofill:focus,
+  .dark-theme .input:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0 30px rgba(79, 70, 229, 0.3) inset !important;
+    -webkit-text-fill-color: white !important;
+    transition: background-color 5000s ease-in-out 0s;
+    caret-color: white !important;
+  }
+
+  /* Select dropdown options should be readable */
+  .dark-theme .input option {
+    background-color: #ffffff !important;
+    color: #1f2937 !important;
+  }
+
+  /* Select element text color fix */
+  .dark-theme select.input {
+    color: white !important;
+  }
+
+  /* Force light content utility - use inside dark-theme to show light backgrounds with dark text */
+  .light-content,
+  .dark-theme .light-content {
+    background-color: #ffffff !important;
+    color: #111827 !important;
+  }
+
+  .light-content *,
+  .dark-theme .light-content * {
+    color: inherit;
+  }
+
+  .light-content .text-dark,
+  .dark-theme .light-content .text-dark {
+    color: #111827 !important;
+  }
+
+  .light-content .text-muted,
+  .dark-theme .light-content .text-muted {
+    color: #6b7280 !important;
+  }
+
+  .light-content .text-primary,
+  .dark-theme .light-content .text-primary {
+    color: #2563eb !important;
+  }
+
+  .light-content .text-success,
+  .dark-theme .light-content .text-success {
+    color: #16a34a !important;
+  }
+
+  .light-content .text-warning,
+  .dark-theme .light-content .text-warning {
+    color: #d97706 !important;
+  }
+
+  .light-content .text-danger,
+  .dark-theme .light-content .text-danger {
+    color: #dc2626 !important;
+  }
+
+  .dark-theme .card {
+    @apply bg-white/10 backdrop-blur-xl border-white/20;
+  }
+
+  .dark-theme .btn-outline {
+    @apply border-white/20 text-white hover:bg-white/10;
+  }
+
+  /* Dark text overrides for dashboard */
+  .dark-theme .text-gray-900,
+  .dark-theme .text-gray-800 {
+    color: rgba(255, 255, 255, 0.95);
+  }
+
+  .dark-theme .text-gray-700 {
+    color: rgba(255, 255, 255, 0.80);
+  }
+
+  .dark-theme .text-gray-600 {
+    color: rgba(255, 255, 255, 0.70);
+  }
+
+  .dark-theme .text-gray-500 {
+    color: rgba(255, 255, 255, 0.60);
+  }
+
+  .dark-theme .text-gray-400 {
+    color: rgba(255, 255, 255, 0.50);
+  }
+
+  /* Dark background overrides */
+  .dark-theme .bg-white {
+    background-color: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(16px);
+  }
+
+  .dark-theme .bg-gray-50,
+  .dark-theme .bg-gray-100 {
+    background-color: rgba(255, 255, 255, 0.05);
+  }
+
+  .dark-theme .bg-gray-200 {
+    background-color: rgba(255, 255, 255, 0.10);
+  }
+
+  /* Border overrides */
+  .dark-theme .border-gray-200,
+  .dark-theme .border-gray-300 {
+    border-color: rgba(255, 255, 255, 0.20);
+  }
+
+  .dark-theme .border-gray-100 {
+    border-color: rgba(255, 255, 255, 0.10);
+  }
+
+  .dark-theme .divide-gray-200> :not([hidden])~ :not([hidden]) {
+    border-color: rgba(255, 255, 255, 0.10);
+  }
+
+  /* Hover states */
+  .dark-theme .hover\:bg-gray-50:hover,
+  .dark-theme .hover\:bg-gray-100:hover {
+    background-color: rgba(255, 255, 255, 0.10);
+  }
+
+  /* Shadow adjustments */
+  .dark-theme .shadow-sm,
+  .dark-theme .shadow-md,
+  .dark-theme .shadow-lg {
+    box-shadow: 0 4px 20px -5px rgba(0, 0, 0, 0.3);
+  }
 }

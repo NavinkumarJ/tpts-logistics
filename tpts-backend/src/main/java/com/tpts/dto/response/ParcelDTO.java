@@ -67,6 +67,15 @@ public class ParcelDTO {
     private BigDecimal taxAmount; // GST amount
     private BigDecimal totalAmount; // Total including GST
 
+    // Balance Payment (for partial groups with pro-rated discount)
+    private BigDecimal balanceAmount;
+    private Boolean balancePaid;
+    private String balancePaymentMethod;
+    private LocalDateTime balancePaidAt;
+    private String balanceCashPhotoUrl;
+    private BigDecimal originalDiscountPercentage;
+    private BigDecimal effectiveDiscountPercentage;
+
     // Status
     private ParcelStatus status;
     private PaymentStatus paymentStatus;
@@ -77,7 +86,6 @@ public class ParcelDTO {
     // Proof of delivery
     private String pickupPhotoUrl;
     private String deliveryPhotoUrl;
-    private String signatureUrl;
     private String deliveryNotes;
 
     // Timestamps
@@ -93,6 +101,9 @@ public class ParcelDTO {
 
     // Rating status
     private Boolean hasRated;
+    private Boolean hasRatedPickupAgent;
+    private Boolean hasRatedDeliveryAgent;
+    private Boolean hasRatedCompany;
 
     // Agent details for tracking
     private String agentPhone;

@@ -71,6 +71,41 @@ public class GroupShipment {
     private String targetPincode;
 
     // ==========================================
+    // Warehouse Information (Two-Agent Model)
+    // ==========================================
+
+    @Column(name = "warehouse_address", columnDefinition = "TEXT")
+    private String warehouseAddress;
+
+    @Column(name = "warehouse_city", length = 100)
+    private String warehouseCity;
+
+    @Column(name = "warehouse_pincode", length = 10)
+    private String warehousePincode;
+
+    @Column(name = "warehouse_latitude", precision = 10, scale = 8)
+    private BigDecimal warehouseLatitude;
+
+    @Column(name = "warehouse_longitude", precision = 11, scale = 8)
+    private BigDecimal warehouseLongitude;
+
+    @Column(name = "warehouse_arrival_photo_url", length = 500)
+    private String warehouseArrivalPhotoUrl;
+
+    // Agent live location tracking
+    @Column(name = "pickup_agent_latitude")
+    private Double pickupAgentLatitude;
+
+    @Column(name = "pickup_agent_longitude")
+    private Double pickupAgentLongitude;
+
+    @Column(name = "delivery_agent_latitude")
+    private Double deliveryAgentLatitude;
+
+    @Column(name = "delivery_agent_longitude")
+    private Double deliveryAgentLongitude;
+
+    // ==========================================
     // Group Configuration
     // ==========================================
 
@@ -83,6 +118,14 @@ public class GroupShipment {
 
     @Column(name = "discount_percentage", precision = 5, scale = 2, nullable = false)
     private BigDecimal discountPercentage; // 20-40%
+
+    // Effective discount after pro-rating (for partial groups)
+    @Column(name = "effective_discount_percentage", precision = 5, scale = 2)
+    private BigDecimal effectiveDiscountPercentage;
+
+    // Fill percentage when deadline was reached
+    @Column(name = "fill_percentage", precision = 5, scale = 2)
+    private BigDecimal fillPercentage;
 
     // Group deadline
     @Column(nullable = false)

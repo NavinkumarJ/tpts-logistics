@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   FaHome, FaTruck, FaHistory, FaWallet, FaCog, FaBell,
-  FaStar, FaSignOutAlt, FaUser, FaClipboardList
+  FaStar, FaSignOutAlt, FaUser, FaUsers
 } from "react-icons/fa";
 import { getUser, logout } from "../../utils/auth";
+import { getCurrentAgent } from "../../services/agentService";
 import LogoutConfirmModal from "../common/LogoutConfirmModal";
 
 export default function AgentSidebar() {
@@ -12,11 +13,26 @@ export default function AgentSidebar() {
   const navigate = useNavigate();
   const user = getUser();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [agentData, setAgentData] = useState({ companyName: null });
+
+  useEffect(() => {
+    const fetchAgentData = async () => {
+      try {
+        const agent = await getCurrentAgent();
+        setAgentData({
+          companyName: agent?.companyName || null
+        });
+      } catch (error) {
+        console.error("Failed to fetch agent data:", error);
+      }
+    };
+    fetchAgentData();
+  }, []);
 
   const menuItems = [
     { label: "Dashboard", icon: FaHome, path: "/agent/dashboard" },
-    { label: "Active Deliveries", icon: FaTruck, path: "/agent/deliveries", primary: true },
-    { label: "Delivery Requests", icon: FaClipboardList, path: "/agent/requests" },
+    { label: "Active Deliveries", icon: FaTruck, path: "/agent/deliveries" },
+    { label: "Group Orders", icon: FaUsers, path: "/agent/group-orders" },
     { label: "Delivery History", icon: FaHistory, path: "/agent/history" },
     { label: "Earnings", icon: FaWallet, path: "/agent/earnings" },
     { label: "Ratings", icon: FaStar, path: "/agent/ratings" },
@@ -24,8 +40,8 @@ export default function AgentSidebar() {
     { label: "Settings", icon: FaCog, path: "/agent/settings" },
   ];
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     navigate("/login");
   };
 
@@ -34,11 +50,16 @@ export default function AgentSidebar() {
       <aside className="fixed left-0 top-0 h-screen w-64 bg-gradient-to-b from-slate-800 to-slate-900 text-white shadow-2xl z-50 flex flex-col">
         {/* Logo */}
         <div className="p-6 border-b border-slate-700">
-          <Link to="/" className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-orange-600 text-white font-bold text-lg shadow-lg">
-              T
+          <Link to="/" className="flex items-center gap-3 group">
+            <img
+              src="/logo.png"
+              alt="TPTS Logo"
+              className="h-12 w-auto object-contain transition-all duration-200 group-hover:brightness-125 group-hover:scale-105"
+            />
+            <div className="flex flex-col">
+              <span className="text-lg font-bold text-white leading-tight">TPTS</span>
+              <span className="text-xs text-indigo-400 font-medium">Agent Portal</span>
             </div>
-            <span className="text-xl font-bold">TPTS Agent</span>
           </Link>
         </div>
 
@@ -49,16 +70,16 @@ export default function AgentSidebar() {
               <img
                 src={user.profileImageUrl || user.profilePhotoUrl}
                 alt={user?.fullName}
-                className="h-12 w-12 rounded-full object-cover border-2 border-orange-500"
+                className="h-12 w-12 rounded-full object-cover border-2 border-indigo-500"
               />
             ) : (
-              <div className="h-12 w-12 rounded-full bg-orange-600 flex items-center justify-center text-lg font-bold">
+              <div className="h-12 w-12 rounded-full bg-indigo-600 flex items-center justify-center text-lg font-bold">
                 {user?.fullName?.charAt(0) || "A"}
               </div>
             )}
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold truncate">{user?.fullName}</p>
-              <p className="text-xs text-slate-400 truncate">{user?.email}</p>
+              <p className="text-xs text-indigo-400 font-medium">{agentData.companyName || "Delivery Agent"}</p>
             </div>
           </div>
           <Link
@@ -74,16 +95,14 @@ export default function AgentSidebar() {
         <nav className="flex-1 overflow-y-auto py-4 px-3">
           <div className="space-y-1">
             {menuItems.map((item, idx) => {
-              const isActive = location.pathname === item.path;
+              const isActive = location.pathname === item.path || location.pathname.startsWith(item.path + "/");
               return (
                 <Link
                   key={idx}
                   to={item.path}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition ${item.primary
-                    ? "bg-orange-600 hover:bg-orange-700 text-white shadow-lg"
-                    : isActive
-                      ? "bg-slate-700 text-white"
-                      : "text-slate-300 hover:bg-slate-700 hover:text-white"
+                  className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition ${isActive
+                    ? "bg-indigo-600 text-white shadow-lg"
+                    : "text-slate-300 hover:bg-slate-700 hover:text-white"
                     }`}
                 >
                   <item.icon className="text-base" />

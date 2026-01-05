@@ -7,13 +7,15 @@ import {
     assignPickupAgent,
     assignDeliveryAgent,
     completeGroupPickup,
-    completeGroupDelivery
+    completeGroupDelivery,
+    reopenGroup,
+    closeGroupEarly
 } from "../../services/companyService";
 import { logout } from "../../utils/auth";
 import toast from "react-hot-toast";
 import {
     FaBox, FaArrowLeft, FaTruck, FaUsers, FaCheckCircle, FaStar,
-    FaMapMarkerAlt, FaClock, FaPercent, FaTimes, FaUserTie
+    FaMapMarkerAlt, FaClock, FaPercent, FaTimes, FaUserTie, FaRoute, FaRupeeSign, FaImage
 } from "react-icons/fa";
 
 const STATUS_CONFIG = {
@@ -89,6 +91,35 @@ export default function GroupDetailPage() {
         }
     };
 
+    const handleReopenGroup = async () => {
+        if (!window.confirm("Reopen this group? All members will be notified that they can now cancel if they wish.")) return;
+        setActionLoading(true);
+        try {
+            await reopenGroup(groupId);
+            toast.success("Group reopened - members notified!");
+            fetchGroupData();
+        } catch (err) {
+            toast.error(err.response?.data?.message || "Failed to reopen group");
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
+    const handleCloseGroupEarly = async () => {
+        const minMembers = Math.ceil(group.targetMembers / 2);
+        if (!window.confirm(`Close this group early with ${group.currentMembers}/${group.targetMembers} members and proceed? This will allow you to assign agents and start delivery.`)) return;
+        setActionLoading(true);
+        try {
+            await closeGroupEarly(groupId);
+            toast.success("Group closed! You can now assign agents.");
+            fetchGroupData();
+        } catch (err) {
+            toast.error(err.response?.data?.message || "Failed to close group");
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
     const handleAssignAgent = async (agentId) => {
         setActionLoading(true);
         try {
@@ -148,7 +179,68 @@ export default function GroupDetailPage() {
                         {group.sourceCity} → {group.targetCity}
                     </p>
                 </div>
+                {/* Reopen Group Button - Show only when FULL */}
+                {group.status === "FULL" && (
+                    <button
+                        onClick={handleReopenGroup}
+                        disabled={actionLoading}
+                        className="bg-amber-500 text-white px-4 py-2 rounded-lg hover:bg-amber-600 transition disabled:opacity-50 flex items-center gap-2"
+                    >
+                        🔓 Reopen Group
+                    </button>
+                )}
+                {/* Close Group Early Button - Show when OPEN and 50%+ members */}
+                {group.status === "OPEN" && group.currentMembers >= Math.ceil(group.targetMembers / 2) && (
+                    <button
+                        onClick={handleCloseGroupEarly}
+                        disabled={actionLoading}
+                        className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition disabled:opacity-50 flex items-center gap-2"
+                    >
+                        ✅ Close & Proceed ({group.currentMembers}/{group.targetMembers})
+                    </button>
+                )}
             </div>
+
+            {/* Tracking Button - Show when in progress or completed */}
+            {(group.status === "PICKUP_IN_PROGRESS" || group.status === "DELIVERY_IN_PROGRESS" || group.status === "FULL" || group.status === "PICKUP_COMPLETE" || group.status === "COMPLETED") && (
+                <div className={`bg-gradient-to-r ${group.status === "COMPLETED" ? "from-green-50 to-emerald-50 border-green-200" : "from-blue-50 to-indigo-50 border-blue-200"} border rounded-xl p-4`}>
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className={`w-10 h-10 ${group.status === "COMPLETED" ? "bg-green-500" : "bg-blue-500"} rounded-lg flex items-center justify-center`}>
+                                {group.status === "COMPLETED" ? <FaCheckCircle className="text-white" /> : <FaRoute className="text-white" />}
+                            </div>
+                            <div>
+                                <p className={`font-medium ${group.status === "COMPLETED" ? "text-green-900" : "text-blue-900"}`}>
+                                    {group.status === "COMPLETED" ? "All deliveries completed" :
+                                        group.status === "PICKUP_IN_PROGRESS" ? "Agent 1 collecting parcels" :
+                                            group.status === "DELIVERY_IN_PROGRESS" ? "Agent 2 delivering parcels" :
+                                                "Group ready for processing"}
+                                </p>
+                                <p className={`text-sm ${group.status === "COMPLETED" ? "text-green-600" : "text-blue-600"}`}>
+                                    {group.status === "COMPLETED" ? "Shipment delivered successfully" : "View live tracking and status updates"}
+                                </p>
+                            </div>
+                        </div>
+                        {group.status === "COMPLETED" ? (
+                            <Link
+                                to={`/company/shipments/${groupId}/tracking`}
+                                className="bg-green-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-green-700 transition"
+                            >
+                                <FaCheckCircle />
+                                View Summary
+                            </Link>
+                        ) : (
+                            <Link
+                                to={`/company/shipments/${groupId}/tracking`}
+                                className="btn-primary flex items-center gap-2"
+                            >
+                                <FaRoute />
+                                Track on Map
+                            </Link>
+                        )}
+                    </div>
+                </div>
+            )}
 
             {/* Progress & Stats */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -189,8 +281,20 @@ export default function GroupDetailPage() {
                             <FaClock className="text-xl text-orange-600" />
                         </div>
                         <div>
-                            <p className="text-2xl font-bold text-gray-900">{group.deadlineHours}h</p>
-                            <p className="text-xs text-gray-500">Deadline</p>
+                            <p className="text-2xl font-bold text-gray-900">
+                                {group.timeRemainingMinutes !== null && group.timeRemainingMinutes >= 0
+                                    ? group.timeRemainingMinutes >= 60
+                                        ? `${Math.floor(group.timeRemainingMinutes / 60)}h`
+                                        : `${group.timeRemainingMinutes}m`
+                                    : group.deadline
+                                        ? new Date(group.deadline).toLocaleDateString()
+                                        : "—"}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                                {group.timeRemainingMinutes !== null && group.timeRemainingMinutes >= 0
+                                    ? "Time Left"
+                                    : "Deadline"}
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -208,27 +312,85 @@ export default function GroupDetailPage() {
                 </div>
             </div>
 
+            {/* Total Group Amount & Agent Earnings */}
+            <div className="bg-gradient-to-r from-slate-800/90 to-indigo-900/90 border border-indigo-500/30 rounded-xl p-5 shadow-lg">
+                <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                    <FaRupeeSign className="text-indigo-400" />
+                    Group Financial Summary
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                    {/* Total Group Value */}
+                    <div className="bg-indigo-500/20 backdrop-blur-sm rounded-lg p-4 border border-indigo-400/30">
+                        <p className="text-sm text-indigo-200 mb-1 font-medium">Total Group Value</p>
+                        <p className="text-2xl font-bold text-indigo-300">
+                            ₹{parcels.reduce((sum, p) => sum + parseFloat(p.finalPrice || p.basePrice || 0), 0).toFixed(2)}
+                        </p>
+                        <p className="text-xs text-indigo-300/70 mt-1">Sum of all {parcels.length} parcels</p>
+                    </div>
+
+                    {/* Company Earnings (70%) */}
+                    <div className="bg-blue-500/20 backdrop-blur-sm rounded-lg p-4 border border-blue-400/30">
+                        <p className="text-sm text-blue-200 mb-1 font-medium">Company Share (70%)</p>
+                        <p className="text-2xl font-bold text-blue-300">
+                            ₹{(parcels.reduce((sum, p) => sum + parseFloat(p.finalPrice || p.basePrice || 0), 0) * 0.70).toFixed(2)}
+                        </p>
+                        <p className="text-xs text-blue-300/70 mt-1">Your company earnings</p>
+                    </div>
+
+                    {/* Pickup Agent Earnings (10%) */}
+                    <div className="bg-orange-500/20 backdrop-blur-sm rounded-lg p-4 border border-orange-400/30">
+                        <p className="text-sm text-orange-200 mb-1 font-medium">Pickup Agent (10%)</p>
+                        <p className="text-2xl font-bold text-orange-300">
+                            ₹{(parcels.reduce((sum, p) => sum + parseFloat(p.finalPrice || p.basePrice || 0), 0) * 0.10).toFixed(2)}
+                        </p>
+                        <p className="text-xs text-orange-300/70 mt-1">
+                            {group.pickupAgentName ? `For ${group.pickupAgentName}` : "Not assigned yet"}
+                        </p>
+                    </div>
+
+                    {/* Delivery Agent Earnings (10%) */}
+                    <div className="bg-green-500/20 backdrop-blur-sm rounded-lg p-4 border border-green-400/30">
+                        <p className="text-sm text-green-200 mb-1 font-medium">Delivery Agent (10%)</p>
+                        <p className="text-2xl font-bold text-green-300">
+                            ₹{(parcels.reduce((sum, p) => sum + parseFloat(p.finalPrice || p.basePrice || 0), 0) * 0.10).toFixed(2)}
+                        </p>
+                        <p className="text-xs text-green-300/70 mt-1">
+                            {group.deliveryAgentName ? `For ${group.deliveryAgentName}` : "Not assigned yet"}
+                        </p>
+                    </div>
+
+                    {/* Platform Fee (10%) */}
+                    <div className="bg-purple-500/20 backdrop-blur-sm rounded-lg p-4 border border-purple-400/30">
+                        <p className="text-sm text-purple-200 mb-1 font-medium">Platform Fee (10%)</p>
+                        <p className="text-2xl font-bold text-purple-300">
+                            ₹{(parcels.reduce((sum, p) => sum + parseFloat(p.finalPrice || p.basePrice || 0), 0) * 0.10).toFixed(2)}
+                        </p>
+                        <p className="text-xs text-purple-300/70 mt-1">TPTS service charge</p>
+                    </div>
+                </div>
+            </div>
+
             {/* Agent Assignments & Actions */}
-            <div className="bg-white rounded-xl p-6 shadow-md border border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                    <FaTruck className="text-indigo-500" /> Agent Assignments
+            <div className="bg-gradient-to-r from-slate-800/90 to-slate-900/90 rounded-xl p-6 shadow-lg border border-slate-600/30">
+                <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                    <FaTruck className="text-indigo-400" /> Agent Assignments
                 </h3>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Pickup Agent */}
-                    <div className="bg-green-50 rounded-xl p-5 border border-green-200">
-                        <h4 className="font-medium text-green-800 mb-3">📦 Pickup Agent</h4>
+                    <div className="bg-green-500/20 backdrop-blur-sm rounded-xl p-5 border border-green-400/30">
+                        <h4 className="font-medium text-green-300 mb-3">📦 Pickup Agent</h4>
                         {group.pickupAgentName ? (
                             <div className="flex items-center gap-3">
                                 <div className="w-10 h-10 bg-green-600 rounded-full flex items-center justify-center text-white font-bold">
                                     {group.pickupAgentName.charAt(0)}
                                 </div>
                                 <div>
-                                    <p className="font-semibold text-gray-900">{group.pickupAgentName}</p>
-                                    <p className="text-xs text-gray-500">Assigned</p>
+                                    <p className="font-semibold text-white">{group.pickupAgentName}</p>
+                                    <p className="text-xs text-green-300/70">Assigned</p>
                                 </div>
                             </div>
-                        ) : (
+                        ) : group.status !== "CANCELLED" && (
                             <button
                                 onClick={() => setShowAssignModal("pickup")}
                                 disabled={group.status === "OPEN" || group.status === "COMPLETED"}
@@ -249,19 +411,19 @@ export default function GroupDetailPage() {
                     </div>
 
                     {/* Delivery Agent */}
-                    <div className="bg-blue-50 rounded-xl p-5 border border-blue-200">
-                        <h4 className="font-medium text-blue-800 mb-3">🏠 Delivery Agent</h4>
+                    <div className="bg-blue-500/20 backdrop-blur-sm rounded-xl p-5 border border-blue-400/30">
+                        <h4 className="font-medium text-blue-300 mb-3">🏠 Delivery Agent</h4>
                         {group.deliveryAgentName ? (
                             <div className="flex items-center gap-3">
                                 <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold">
                                     {group.deliveryAgentName.charAt(0)}
                                 </div>
                                 <div>
-                                    <p className="font-semibold text-gray-900">{group.deliveryAgentName}</p>
-                                    <p className="text-xs text-gray-500">Assigned</p>
+                                    <p className="font-semibold text-white">{group.deliveryAgentName}</p>
+                                    <p className="text-xs text-blue-300/70">Assigned</p>
                                 </div>
                             </div>
-                        ) : (
+                        ) : group.status !== "CANCELLED" && (
                             <button
                                 onClick={() => setShowAssignModal("delivery")}
                                 disabled={group.status !== "PICKUP_COMPLETE"}
@@ -314,7 +476,7 @@ export default function GroupDetailPage() {
                                             {parcel.status?.replace(/_/g, " ")}
                                         </span>
                                         <p className="text-sm font-medium text-gray-900 mt-1">
-                                            ₹{parcel.amount}
+                                            ₹{(parcel.finalPrice || parcel.totalAmount || 0).toFixed(2)}
                                         </p>
                                     </div>
                                 </div>
@@ -324,6 +486,73 @@ export default function GroupDetailPage() {
                 )}
             </div>
 
+            {/* Proof Photos Section - Show when any parcel has photos */}
+            {parcels.some(p => p.pickupPhotoUrl || p.deliveryPhotoUrl) && (
+                <div className="bg-white rounded-xl p-6 shadow-md border border-gray-200">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                        <FaImage className="text-purple-500" /> Proof Photos
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {parcels.filter(p => p.pickupPhotoUrl || p.deliveryPhotoUrl).map((parcel) => (
+                            <div key={parcel.id} className="bg-gray-50 rounded-lg border border-gray-200 overflow-hidden">
+                                <div className="p-3 bg-gray-100 border-b">
+                                    <p className="font-medium text-gray-900 text-sm">{parcel.trackingNumber}</p>
+                                    <p className="text-xs text-gray-500">{parcel.deliveryName}</p>
+                                </div>
+                                <div className="p-3 grid grid-cols-2 gap-3">
+                                    {/* Pickup Photo */}
+                                    <div className="space-y-1">
+                                        <p className="text-xs font-medium text-gray-500 uppercase">Pickup</p>
+                                        {parcel.pickupPhotoUrl ? (
+                                            <div
+                                                className="relative cursor-pointer group"
+                                                onClick={() => window.open(parcel.pickupPhotoUrl, '_blank')}
+                                            >
+                                                <img
+                                                    src={parcel.pickupPhotoUrl}
+                                                    alt="Pickup proof"
+                                                    className="w-full h-20 object-cover rounded border-2 border-orange-200 group-hover:opacity-80 transition"
+                                                />
+                                                <div className="absolute bottom-1 left-1 bg-orange-500 text-white text-[10px] px-1.5 py-0.5 rounded">
+                                                    📦
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="w-full h-20 bg-gray-100 rounded border border-dashed border-gray-300 flex items-center justify-center">
+                                                <span className="text-gray-400 text-xs">No photo</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                    {/* Delivery Photo */}
+                                    <div className="space-y-1">
+                                        <p className="text-xs font-medium text-gray-500 uppercase">Delivery</p>
+                                        {parcel.deliveryPhotoUrl ? (
+                                            <div
+                                                className="relative cursor-pointer group"
+                                                onClick={() => window.open(parcel.deliveryPhotoUrl, '_blank')}
+                                            >
+                                                <img
+                                                    src={parcel.deliveryPhotoUrl}
+                                                    alt="Delivery proof"
+                                                    className="w-full h-20 object-cover rounded border-2 border-green-200 group-hover:opacity-80 transition"
+                                                />
+                                                <div className="absolute bottom-1 left-1 bg-green-500 text-white text-[10px] px-1.5 py-0.5 rounded">
+                                                    ✅
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="w-full h-20 bg-gray-100 rounded border border-dashed border-gray-300 flex items-center justify-center">
+                                                <span className="text-gray-400 text-xs">{parcel.status === "DELIVERED" ? 'No photo' : 'Pending'}</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
             {/* Assign Agent Modal */}
             {showAssignModal && (
                 <AssignAgentModal
@@ -331,6 +560,7 @@ export default function GroupDetailPage() {
                     onClose={() => setShowAssignModal(null)}
                     onAssign={handleAssignAgent}
                     loading={actionLoading}
+                    groupData={group}
                 />
             )}
         </div>
@@ -338,7 +568,7 @@ export default function GroupDetailPage() {
 }
 
 // Agent Assignment Modal Component
-function AssignAgentModal({ type, onClose, onAssign, loading }) {
+function AssignAgentModal({ type, onClose, onAssign, loading, groupData }) {
     const [agents, setAgents] = useState([]);
     const [loadingAgents, setLoadingAgents] = useState(true);
     const [selectedAgentId, setSelectedAgentId] = useState(null);
@@ -351,7 +581,22 @@ function AssignAgentModal({ type, onClose, onAssign, loading }) {
         setLoadingAgents(true);
         try {
             const data = await getAvailableAgents();
-            setAgents(data || []);
+            // Sort agents by best match score
+            const targetPincode = type === "pickup" ? groupData?.pickupPincode : groupData?.deliveryPincode;
+            const sortedAgents = (data || []).sort((a, b) => {
+                // Calculate score: rating * 10 + deliveries/10 - activeOrders * 2
+                // Add pincode match bonus
+                const getPincodeScore = (agent) => {
+                    if (!targetPincode || !agent.pincode) return 0;
+                    const targetPrefix = targetPincode.substring(0, 3);
+                    const agentPrefix = agent.pincode?.substring(0, 3) || "";
+                    return agentPrefix === targetPrefix ? 50 : 0; // Bonus for same area
+                };
+                const scoreA = (a.rating || 0) * 10 + (a.totalDeliveries || 0) / 10 - (a.activeOrders || 0) * 2 + getPincodeScore(a);
+                const scoreB = (b.rating || 0) * 10 + (b.totalDeliveries || 0) / 10 - (b.activeOrders || 0) * 2 + getPincodeScore(b);
+                return scoreB - scoreA;
+            });
+            setAgents(sortedAgents);
         } catch (err) {
             toast.error("Failed to load agents");
         } finally {
@@ -359,9 +604,11 @@ function AssignAgentModal({ type, onClose, onAssign, loading }) {
         }
     };
 
+    const bestMatchId = agents.length > 0 ? agents[0].id : null;
+
     return (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl w-full max-w-lg max-h-[80vh] overflow-hidden shadow-2xl">
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+            <div className="bg-gradient-to-b from-slate-800 to-slate-900 rounded-2xl w-full max-w-lg max-h-[80vh] overflow-hidden shadow-2xl border border-slate-600/30">
                 <div className={`${type === "pickup" ? "bg-gradient-to-r from-green-600 to-emerald-600" : "bg-gradient-to-r from-blue-600 to-indigo-600"} text-white px-6 py-4 flex items-center justify-between`}>
                     <div>
                         <h2 className="text-lg font-semibold">
@@ -377,50 +624,72 @@ function AssignAgentModal({ type, onClose, onAssign, loading }) {
                 <div className="p-6 overflow-y-auto max-h-[400px]">
                     {loadingAgents ? (
                         <div className="text-center py-8">
-                            <div className="inline-block h-6 w-6 animate-spin rounded-full border-4 border-indigo-600 border-t-transparent"></div>
+                            <div className="inline-block h-6 w-6 animate-spin rounded-full border-4 border-indigo-400 border-t-transparent"></div>
                         </div>
                     ) : agents.length === 0 ? (
                         <div className="text-center py-8">
-                            <FaUserTie className="text-4xl text-gray-300 mx-auto mb-3" />
-                            <p className="text-gray-600">No available agents</p>
+                            <FaUserTie className="text-4xl text-slate-500 mx-auto mb-3" />
+                            <p className="text-slate-400">No available agents</p>
                         </div>
                     ) : (
                         <div className="space-y-3">
-                            {agents.map((agent) => (
-                                <div
-                                    key={agent.id}
-                                    onClick={() => setSelectedAgentId(agent.id)}
-                                    className={`p-4 rounded-xl border-2 cursor-pointer transition ${selectedAgentId === agent.id
-                                        ? (type === "pickup" ? "border-green-500 bg-green-50" : "border-blue-500 bg-blue-50")
-                                        : "border-gray-200 hover:border-gray-300"
-                                        }`}
-                                >
-                                    <div className="flex items-center gap-3">
-                                        <div className={`w-12 h-12 ${type === "pickup" ? "bg-green-500" : "bg-blue-500"} rounded-full flex items-center justify-center text-white font-bold text-lg`}>
-                                            {agent.name?.charAt(0) || "A"}
-                                        </div>
-                                        <div className="flex-1">
-                                            <p className="font-semibold text-gray-900">{agent.name}</p>
-                                            <div className="flex items-center gap-3 text-sm text-gray-500">
-                                                <span className="flex items-center gap-1">
-                                                    <FaStar className="text-yellow-400" />
-                                                    {agent.rating?.toFixed(1) || "N/A"}
-                                                </span>
-                                                <span>{agent.vehicleType}</span>
+                            {agents.map((agent) => {
+                                const isBest = agent.id === bestMatchId;
+                                const isSelected = selectedAgentId === agent.id;
+                                return (
+                                    <div
+                                        key={agent.id}
+                                        onClick={() => setSelectedAgentId(agent.id)}
+                                        className={`p-4 rounded-xl border-2 cursor-pointer transition ${isSelected
+                                            ? (type === "pickup" ? "border-green-500 bg-green-500/20" : "border-blue-500 bg-blue-500/20")
+                                            : isBest
+                                                ? "border-yellow-400 bg-yellow-500/20 hover:border-yellow-500"
+                                                : "border-slate-600 bg-slate-700/50 hover:border-slate-500"
+                                            }`}
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <div className={`w-12 h-12 ${isSelected
+                                                ? (type === "pickup" ? "bg-green-500" : "bg-blue-500")
+                                                : isBest ? "bg-yellow-500" : "bg-slate-500"
+                                                } rounded-full flex items-center justify-center text-white font-bold text-lg`}>
+                                                {(agent.fullName || agent.name)?.substring(0, 2).toUpperCase() || "A"}
                                             </div>
+                                            <div className="flex-1">
+                                                <div className="flex items-center gap-2">
+                                                    <p className="font-semibold text-white">{agent.fullName || agent.name || "Agent"}</p>
+                                                    {isBest && (
+                                                        <span className="text-xs bg-yellow-500/30 text-yellow-300 px-2 py-0.5 rounded-full font-bold border border-yellow-400/50">
+                                                            BEST MATCH
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <div className="flex items-center gap-3 text-sm text-slate-300 mt-0.5">
+                                                    <span className="flex items-center gap-1">
+                                                        <FaStar className="text-yellow-400" />
+                                                        {agent.rating?.toFixed(1) || "5.0"}
+                                                    </span>
+                                                    <span>{agent.totalDeliveries || 0} deliveries</span>
+                                                    <span className={agent.activeOrders === 0 ? "text-green-400" : "text-orange-400"}>
+                                                        {agent.activeOrders || 0} active
+                                                    </span>
+                                                </div>
+                                                <p className="text-xs text-slate-400 mt-0.5">
+                                                    {agent.vehicleType} • {agent.phone || "N/A"}
+                                                </p>
+                                            </div>
+                                            {isSelected && (
+                                                <FaCheckCircle className={type === "pickup" ? "text-green-400" : "text-blue-400"} />
+                                            )}
                                         </div>
-                                        {selectedAgentId === agent.id && (
-                                            <FaCheckCircle className={type === "pickup" ? "text-green-600" : "text-blue-600"} />
-                                        )}
                                     </div>
-                                </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     )}
                 </div>
 
-                <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex gap-3 justify-end">
-                    <button onClick={onClose} className="btn-outline">Cancel</button>
+                <div className="px-6 py-4 bg-slate-900/80 border-t border-slate-600/30 flex gap-3 justify-end">
+                    <button onClick={onClose} className="px-4 py-2 rounded-lg border border-slate-500 text-slate-300 hover:bg-slate-700 transition">Cancel</button>
                     <button
                         onClick={() => onAssign(selectedAgentId)}
                         disabled={!selectedAgentId || loading}

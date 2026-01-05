@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { getCompanyRatings, getUnrespondedRatings, respondToRating, flagRating } from "../../services/ratingService";
+import { getCompanyRatings } from "../../services/ratingService";
 import { logout } from "../../utils/auth";
 import toast from "react-hot-toast";
-import { FaStar, FaReply, FaFlag, FaUser, FaFilter, FaComment, FaSync, FaTruck, FaCalendar, FaThumbsUp, FaThumbsDown } from "react-icons/fa";
+import { FaStar, FaComment, FaSync, FaTruck, FaCalendar, FaThumbsUp, FaThumbsDown, FaBuilding, FaUserTie } from "react-icons/fa";
 import Pagination from "../../components/common/Pagination";
 
 const ITEMS_PER_PAGE = 8;
@@ -13,9 +13,7 @@ export default function CompanyRatingsPage() {
     const [ratings, setRatings] = useState([]);
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState("all");
-    const [selectedRating, setSelectedRating] = useState(null);
-    const [responseText, setResponseText] = useState("");
-    const [submitting, setSubmitting] = useState(false);
+    const [activeTab, setActiveTab] = useState("company"); // 'company' or 'agents'
     const [currentPage, setCurrentPage] = useState(1);
 
     useEffect(() => {
@@ -23,10 +21,10 @@ export default function CompanyRatingsPage() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    // Reset page when filter changes
+    // Reset page when filter or tab changes
     useEffect(() => {
         setCurrentPage(1);
-    }, [filter]);
+    }, [filter, activeTab]);
 
     const fetchRatings = async () => {
         setLoading(true);
@@ -45,11 +43,55 @@ export default function CompanyRatingsPage() {
         }
     };
 
-    const filteredRatings = ratings.filter(rating => {
+    // Separate ratings based on tab
+    // Company ratings: has companyRating value
+    const companyRatings = ratings.filter(r => r.companyRating != null);
+
+    // Agent ratings: expand to show pickup and delivery as separate items
+    // Each rating can generate up to 2 items (one for pickup, one for delivery)
+    const agentRatings = [];
+    ratings.forEach(r => {
+        // Add pickup agent rating if exists
+        if (r.pickupAgentRating != null) {
+            agentRatings.push({
+                ...r,
+                _displayType: 'pickup',
+                _ratingValue: r.pickupAgentRating,
+                _reviewText: r.pickupAgentReview,
+                _agentName: r.pickupAgentName,
+                _uniqueKey: `${r.id}-pickup`
+            });
+        }
+        // Add delivery agent rating if exists
+        if (r.agentRating != null) {
+            agentRatings.push({
+                ...r,
+                _displayType: 'delivery',
+                _ratingValue: r.agentRating,
+                _reviewText: r.agentReview,
+                _agentName: r.agentName,
+                _uniqueKey: `${r.id}-delivery`
+            });
+        }
+    });
+
+    // Sort by date (most recent first)
+    agentRatings.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+    // Get ratings for current tab
+    const currentTabRatings = activeTab === "company" ? companyRatings : agentRatings;
+
+    const filteredRatings = currentTabRatings.filter(rating => {
+        let ratingValue;
+        if (activeTab === "company") {
+            ratingValue = rating.companyRating;
+        } else {
+            // For agents, use the pre-calculated display value
+            ratingValue = rating._ratingValue;
+        }
         if (filter === "all") return true;
-        if (filter === "unresponded") return !rating.companyResponse;
-        if (filter === "positive") return rating.companyRating >= 4;
-        if (filter === "negative") return rating.companyRating <= 2;
+        if (filter === "positive") return ratingValue >= 4;
+        if (filter === "negative") return ratingValue <= 2;
         return true;
     });
 
@@ -60,35 +102,7 @@ export default function CompanyRatingsPage() {
         currentPage * ITEMS_PER_PAGE
     );
 
-    const handleRespond = async () => {
-        if (!selectedRating || !responseText.trim()) return;
 
-        setSubmitting(true);
-        try {
-            await respondToRating(selectedRating.id, { response: responseText });
-            toast.success("Response added successfully");
-            setSelectedRating(null);
-            setResponseText("");
-            fetchRatings();
-        } catch (err) {
-            toast.error(err.response?.data?.message || "Failed to add response");
-        } finally {
-            setSubmitting(false);
-        }
-    };
-
-    const handleFlag = async (ratingId) => {
-        const reason = prompt("Enter reason for flagging this review:");
-        if (!reason) return;
-
-        try {
-            await flagRating(ratingId, reason);
-            toast.success("Rating flagged for review");
-            fetchRatings();
-        } catch (err) {
-            toast.error(err.response?.data?.message || "Failed to flag rating");
-        }
-    };
 
     const renderStars = (rating, size = "text-base") => {
         return (
@@ -103,22 +117,35 @@ export default function CompanyRatingsPage() {
         );
     };
 
-    // Calculate stats
-    const stats = {
-        total: ratings.length,
-        avgRating: ratings.length > 0
-            ? (ratings.reduce((sum, r) => sum + (r.companyRating || 0), 0) / ratings.length).toFixed(1)
-            : "0.0",
-        unresponded: ratings.filter(r => !r.companyResponse).length,
-        positive: ratings.filter(r => r.companyRating >= 4).length,
-        negative: ratings.filter(r => r.companyRating <= 2).length,
+    // Calculate stats for the active tab
+    const getStats = () => {
+        const tabRatings = activeTab === "company" ? companyRatings : agentRatings;
+
+        // For agents, use the pre-calculated _ratingValue; for company use companyRating
+        const getRatingValue = (r) => {
+            if (activeTab === "company") return r.companyRating;
+            return r._ratingValue; // Already set for expanded agent ratings
+        };
+
+        const validRatings = tabRatings.filter(r => getRatingValue(r) != null);
+
+        return {
+            total: validRatings.length,
+            avgRating: validRatings.length > 0
+                ? (validRatings.reduce((sum, r) => sum + getRatingValue(r), 0) / validRatings.length).toFixed(1)
+                : "0.0",
+            positive: validRatings.filter(r => getRatingValue(r) >= 4).length,
+            negative: validRatings.filter(r => getRatingValue(r) <= 2).length,
+        };
     };
+
+    const stats = getStats();
 
     if (loading && ratings.length === 0) {
         return (
             <div className="text-center py-12">
-                <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-primary-600 border-t-transparent"></div>
-                <p className="mt-3 text-sm text-gray-600">Loading ratings...</p>
+                <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-indigo-500 border-t-transparent"></div>
+                <p className="mt-3 text-sm text-white/60">Loading ratings...</p>
             </div>
         );
     }
@@ -128,20 +155,52 @@ export default function CompanyRatingsPage() {
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold text-gray-900">Customer Ratings</h1>
-                    <p className="text-sm text-gray-500 mt-1">View and respond to customer feedback</p>
+                    <h1 className="text-3xl font-bold text-white">Ratings & Reviews</h1>
+                    <p className="text-sm text-white/60 mt-1">View ratings for your company and agents</p>
                 </div>
                 <button
                     onClick={fetchRatings}
                     disabled={loading}
-                    className="btn-outline flex items-center gap-2 self-start"
+                    className="px-4 py-2 bg-white/10 border border-white/20 rounded-xl text-white hover:bg-white/20 transition flex items-center gap-2 self-start"
                 >
                     <FaSync className={loading ? "animate-spin" : ""} /> Refresh
                 </button>
             </div>
 
+            {/* Tabs */}
+            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-1.5 inline-flex gap-1 border border-white/20">
+                <button
+                    onClick={() => setActiveTab("company")}
+                    className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium transition-all ${activeTab === "company"
+                        ? "bg-indigo-600 text-white shadow-md"
+                        : "text-white/70 hover:bg-white/10"
+                        }`}
+                >
+                    <FaBuilding />
+                    Company Ratings
+                    <span className={`px-2 py-0.5 rounded-full text-xs ${activeTab === "company" ? "bg-white/20" : "bg-white/10"
+                        }`}>
+                        {companyRatings.length}
+                    </span>
+                </button>
+                <button
+                    onClick={() => setActiveTab("agents")}
+                    className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium transition-all ${activeTab === "agents"
+                        ? "bg-indigo-600 text-white shadow-md"
+                        : "text-white/70 hover:bg-white/10"
+                        }`}
+                >
+                    <FaUserTie />
+                    Agent Ratings
+                    <span className={`px-2 py-0.5 rounded-full text-xs ${activeTab === "agents" ? "bg-white/20" : "bg-white/10"
+                        }`}>
+                        {agentRatings.length}
+                    </span>
+                </button>
+            </div>
+
             {/* Stats Cards */}
-            <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="bg-gradient-to-br from-yellow-400 to-yellow-500 rounded-xl p-5 text-white shadow-lg">
                     <div className="flex items-center gap-2 mb-2">
                         <FaStar className="text-2xl" />
@@ -156,14 +215,6 @@ export default function CompanyRatingsPage() {
                     color="indigo"
                     active={filter === "all"}
                     onClick={() => setFilter("all")}
-                />
-                <StatCard
-                    label="Needs Response"
-                    value={stats.unresponded}
-                    icon={FaReply}
-                    color="orange"
-                    active={filter === "unresponded"}
-                    onClick={() => setFilter("unresponded")}
                 />
                 <StatCard
                     label="Positive (4-5★)"
@@ -185,23 +236,29 @@ export default function CompanyRatingsPage() {
 
             {/* Ratings List */}
             {paginatedRatings.length === 0 ? (
-                <div className="bg-white rounded-xl p-12 shadow-md border border-gray-200 text-center">
-                    <FaStar className="text-5xl text-gray-300 mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">No Reviews Found</h3>
-                    <p className="text-sm text-gray-500">
-                        {filter !== "all" ? "No reviews match this filter" : "No customer reviews yet"}
+                <div className="bg-white/10 backdrop-blur-xl rounded-xl p-12 border border-white/20 text-center">
+                    <FaStar className="text-5xl text-white/30 mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold text-white mb-2">No Reviews Found</h3>
+                    <p className="text-sm text-white/50">
+                        {filter !== "all" ? "No reviews match this filter" : `No ${activeTab === "company" ? "company" : "agent"} reviews yet`}
                     </p>
                 </div>
             ) : (
                 <div className="space-y-4">
                     {paginatedRatings.map((rating) => (
-                        <RatingCard
-                            key={rating.id}
-                            rating={rating}
-                            renderStars={renderStars}
-                            onRespond={() => setSelectedRating(rating)}
-                            onFlag={() => handleFlag(rating.id)}
-                        />
+                        activeTab === "company" ? (
+                            <CompanyRatingCard
+                                key={rating.id}
+                                rating={rating}
+                                renderStars={renderStars}
+                            />
+                        ) : (
+                            <AgentRatingCard
+                                key={rating._uniqueKey || rating.id}
+                                rating={rating}
+                                renderStars={renderStars}
+                            />
+                        )
                     ))}
 
                     {/* Pagination */}
@@ -215,156 +272,171 @@ export default function CompanyRatingsPage() {
                 </div>
             )}
 
-            {/* Response Modal */}
-            {selectedRating && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-xl p-6 max-w-lg w-full shadow-xl">
-                        <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                            <FaComment className="text-primary-600" /> Respond to Review
-                        </h3>
-
-                        <div className="mb-4 p-4 bg-gray-50 rounded-lg">
-                            <div className="flex items-center gap-2 mb-2">
-                                {renderStars(selectedRating.companyRating)}
-                                <span className="text-sm text-gray-500">by {selectedRating.customerName}</span>
-                            </div>
-                            {selectedRating.reviewText && (
-                                <p className="text-sm text-gray-700 italic">"{selectedRating.reviewText}"</p>
-                            )}
-                        </div>
-
-                        <textarea
-                            value={responseText}
-                            onChange={(e) => setResponseText(e.target.value)}
-                            placeholder="Write a professional response to this review..."
-                            rows={4}
-                            className="input mb-4"
-                        />
-
-                        <div className="flex gap-3">
-                            <button
-                                onClick={() => {
-                                    setSelectedRating(null);
-                                    setResponseText("");
-                                }}
-                                className="btn-outline flex-1"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                onClick={handleRespond}
-                                disabled={!responseText.trim() || submitting}
-                                className="btn-primary flex-1"
-                            >
-                                {submitting ? "Sending..." : "Send Response"}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
         </div>
     );
 }
 
 function StatCard({ label, value, icon: Icon, color, active, onClick }) {
     const colors = {
-        indigo: { bg: "bg-indigo-50", text: "text-indigo-600", activeBg: "bg-indigo-100", border: "border-indigo-200" },
-        orange: { bg: "bg-orange-50", text: "text-orange-600", activeBg: "bg-orange-100", border: "border-orange-200" },
-        green: { bg: "bg-green-50", text: "text-green-600", activeBg: "bg-green-100", border: "border-green-200" },
-        red: { bg: "bg-red-50", text: "text-red-600", activeBg: "bg-red-100", border: "border-red-200" },
+        indigo: { bg: "bg-indigo-500/20", text: "text-indigo-400", activeBg: "bg-indigo-500/30", border: "border-indigo-500/30" },
+        orange: { bg: "bg-orange-500/20", text: "text-orange-400", activeBg: "bg-orange-500/30", border: "border-orange-500/30" },
+        green: { bg: "bg-green-500/20", text: "text-green-400", activeBg: "bg-green-500/30", border: "border-green-500/30" },
+        red: { bg: "bg-red-500/20", text: "text-red-400", activeBg: "bg-red-500/30", border: "border-red-500/30" },
     };
     const c = colors[color];
 
     return (
         <button
             onClick={onClick}
-            className={`rounded-xl p-4 text-center transition cursor-pointer border-2 ${active ? `${c.activeBg} ${c.border} ring-2 ring-offset-1 ring-primary-500` : `bg-white border-gray-200 hover:shadow-md`
+            className={`rounded-xl p-4 text-center transition cursor-pointer border-2 backdrop-blur-sm ${active ? `${c.activeBg} ${c.border} ring-2 ring-offset-1 ring-offset-transparent ring-indigo-500` : `bg-white/10 border-white/20 hover:bg-white/15`
                 }`}
         >
             <Icon className={`text-xl ${c.text} mx-auto mb-2`} />
-            <p className={`text-2xl font-bold ${active ? c.text : "text-gray-900"}`}>{value}</p>
-            <p className="text-xs text-gray-500">{label}</p>
+            <p className={`text-2xl font-bold ${active ? c.text : "text-white"}`}>{value}</p>
+            <p className="text-xs text-white/60">{label}</p>
         </button>
     );
 }
 
-function RatingCard({ rating, renderStars, onRespond, onFlag }) {
+function CompanyRatingCard({ rating, renderStars }) {
     const isPositive = rating.companyRating >= 4;
     const isNegative = rating.companyRating <= 2;
 
     return (
-        <div className={`bg-white rounded-xl shadow-md border overflow-hidden transition hover:shadow-lg ${isNegative ? "border-l-4 border-l-red-500" :
-                isPositive ? "border-l-4 border-l-green-500" :
-                    "border-gray-200"
+        <div className={`bg-white/10 backdrop-blur-xl rounded-xl border overflow-hidden transition hover:bg-white/15 ${isNegative ? "border-l-4 border-l-red-500 border-white/20" :
+            isPositive ? "border-l-4 border-l-green-500 border-white/20" :
+                "border-white/20"
             }`}>
             <div className="p-5">
-                <div className="flex flex-col lg:flex-row lg:items-start gap-4">
-                    {/* Main Content */}
-                    <div className="flex-1">
-                        {/* Customer Header */}
-                        <div className="flex items-center gap-3 mb-3">
-                            <div className={`w-12 h-12 rounded-full flex items-center justify-center text-white font-bold ${isPositive ? "bg-green-500" : isNegative ? "bg-red-500" : "bg-gray-400"
-                                }`}>
-                                {rating.customerName?.charAt(0) || "C"}
-                            </div>
-                            <div>
-                                <p className="font-semibold text-gray-900">{rating.customerName || "Customer"}</p>
-                                <div className="flex items-center gap-2 mt-0.5">
-                                    {renderStars(rating.companyRating)}
-                                    <span className="text-xs text-gray-400 flex items-center gap-1">
-                                        <FaCalendar />
-                                        {new Date(rating.createdAt).toLocaleDateString("en-IN", {
-                                            day: 'numeric', month: 'short', year: 'numeric'
-                                        })}
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Review Text */}
-                        {rating.reviewText && (
-                            <div className="bg-gray-50 rounded-lg p-4 mb-3">
-                                <p className="text-gray-700 italic">"{rating.reviewText}"</p>
-                            </div>
-                        )}
-
-                        {/* Parcel Info */}
-                        <div className="flex flex-wrap gap-4 text-xs text-gray-500">
-                            <span className="flex items-center gap-1">
-                                <FaTruck className="text-gray-400" />
-                                {rating.trackingNumber}
+                {/* Customer Header */}
+                <div className="flex items-center gap-3 mb-3">
+                    <div className={`w-12 h-12 rounded-full flex items-center justify-center text-white font-bold ${isPositive ? "bg-green-500" : isNegative ? "bg-red-500" : "bg-gray-500"
+                        }`}>
+                        {rating.customerName?.charAt(0) || "C"}
+                    </div>
+                    <div>
+                        <p className="font-semibold text-white">{rating.customerName || "Customer"}</p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                            {renderStars(rating.companyRating)}
+                            <span className="text-xs text-white/50 flex items-center gap-1">
+                                <FaCalendar />
+                                {new Date(rating.createdAt).toLocaleDateString("en-IN", {
+                                    day: 'numeric', month: 'short', year: 'numeric'
+                                })}
                             </span>
-                            {rating.agentName && (
-                                <span>Agent: <strong>{rating.agentName}</strong></span>
-                            )}
                         </div>
+                    </div>
+                </div>
 
-                        {/* Company Response */}
-                        {rating.companyResponse && (
-                            <div className="mt-4 pl-4 border-l-3 border-primary-400 bg-primary-50 p-3 rounded-r-lg">
-                                <p className="text-xs text-primary-600 font-semibold mb-1">Your Response:</p>
-                                <p className="text-sm text-gray-700">{rating.companyResponse}</p>
+                {/* Company Review Text */}
+                {rating.companyReview && (
+                    <div className="bg-white/5 rounded-lg p-4 mb-3 border border-white/10">
+                        <p className="text-white/80 italic">"{rating.companyReview}"</p>
+                    </div>
+                )}
+
+                {/* Parcel Info */}
+                <div className="flex flex-wrap gap-4 text-xs text-white/50">
+                    <span className="flex items-center gap-1">
+                        <FaTruck className="text-white/40" />
+                        {rating.trackingNumber}
+                    </span>
+                    {rating.agentName && (
+                        <span>Delivered by: <strong className="text-white/70">{rating.agentName}</strong></span>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function AgentRatingCard({ rating, renderStars }) {
+    // Use pre-calculated properties from expanded rating item
+    const isPickupRating = rating._displayType === 'pickup';
+
+    // Get the appropriate rating value and agent info from expanded properties
+    const agentRatingValue = rating._ratingValue;
+    const agentReviewText = rating._reviewText;
+    const agentDisplayName = rating._agentName;
+    const agentType = isPickupRating ? "Pickup" : "Delivery";
+    const badgeColor = isPickupRating ? "orange" : "blue";
+
+    const isPositive = agentRatingValue >= 4;
+    const isNegative = agentRatingValue <= 2;
+
+    return (
+        <div className={`bg-white/10 backdrop-blur-xl rounded-xl border overflow-hidden transition hover:bg-white/15 ${isNegative ? "border-l-4 border-l-red-500 border-white/20" :
+            isPositive ? "border-l-4 border-l-green-500 border-white/20" :
+                "border-white/20"
+            }`}>
+            <div className="p-5">
+                {/* Agent Badge */}
+                <div className="mb-3">
+                    <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium ${badgeColor === "orange"
+                        ? "bg-orange-500/20 text-orange-300 border border-orange-500/30"
+                        : "bg-blue-500/20 text-blue-300 border border-blue-500/30"}`}>
+                        <FaUserTie />
+                        {agentType} Agent: {agentDisplayName || "Agent"}
+                    </span>
+                </div>
+
+                {/* Customer Header */}
+                <div className="flex items-center gap-3 mb-3">
+                    <div className={`w-12 h-12 rounded-full flex items-center justify-center text-white font-bold ${isPositive ? "bg-green-500" : isNegative ? "bg-red-500" : "bg-gray-500"
+                        }`}>
+                        {rating.customerName?.charAt(0) || "C"}
+                    </div>
+                    <div>
+                        <p className="font-semibold text-white">Rated by: {rating.customerName || "Customer"}</p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                            {renderStars(agentRatingValue)}
+                            <span className="text-xs text-white/50 flex items-center gap-1">
+                                <FaCalendar />
+                                {new Date(rating.createdAt).toLocaleDateString("en-IN", {
+                                    day: 'numeric', month: 'short', year: 'numeric'
+                                })}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Agent Review Text */}
+                {agentReviewText && (
+                    <div className="bg-white/5 rounded-lg p-4 mb-3 border border-white/10">
+                        <p className="text-white/80 italic">"{agentReviewText}"</p>
+                    </div>
+                )}
+
+                {/* Rating Breakdown */}
+                {(rating.agentPunctualityRating || rating.agentBehaviorRating || rating.agentHandlingRating) && (
+                    <div className="flex flex-wrap gap-3 mb-3">
+                        {rating.agentPunctualityRating && (
+                            <div className="bg-purple-500/20 px-3 py-1.5 rounded-lg border border-purple-500/30">
+                                <span className="text-xs text-purple-300 font-medium">Punctuality: </span>
+                                <span className="text-sm font-bold text-purple-200">{rating.agentPunctualityRating}★</span>
+                            </div>
+                        )}
+                        {rating.agentBehaviorRating && (
+                            <div className="bg-blue-500/20 px-3 py-1.5 rounded-lg border border-blue-500/30">
+                                <span className="text-xs text-blue-300 font-medium">Behavior: </span>
+                                <span className="text-sm font-bold text-blue-200">{rating.agentBehaviorRating}★</span>
+                            </div>
+                        )}
+                        {rating.agentHandlingRating && (
+                            <div className="bg-green-500/20 px-3 py-1.5 rounded-lg border border-green-500/30">
+                                <span className="text-xs text-green-300 font-medium">Handling: </span>
+                                <span className="text-sm font-bold text-green-200">{rating.agentHandlingRating}★</span>
                             </div>
                         )}
                     </div>
+                )}
 
-                    {/* Actions */}
-                    <div className="flex flex-col gap-2 lg:w-32">
-                        {!rating.companyResponse && (
-                            <button
-                                onClick={onRespond}
-                                className="btn-primary text-sm px-4 py-2 flex items-center justify-center gap-2"
-                            >
-                                <FaReply /> Respond
-                            </button>
-                        )}
-                        <button
-                            onClick={onFlag}
-                            className="btn-outline text-sm px-4 py-2 flex items-center justify-center gap-2 text-red-600 border-red-200 hover:bg-red-50"
-                        >
-                            <FaFlag /> Flag
-                        </button>
-                    </div>
+                {/* Parcel Info */}
+                <div className="flex flex-wrap gap-4 text-xs text-white/50">
+                    <span className="flex items-center gap-1">
+                        <FaTruck className="text-white/40" />
+                        {rating.trackingNumber}
+                    </span>
                 </div>
             </div>
         </div>

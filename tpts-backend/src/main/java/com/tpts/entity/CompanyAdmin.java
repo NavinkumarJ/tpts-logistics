@@ -80,6 +80,14 @@ public class CompanyAdmin {
     @Builder.Default
     private Boolean isApproved = false;
 
+    // Rejection Status
+    @Column(name = "is_rejected", nullable = false)
+    @Builder.Default
+    private Boolean isRejected = false;
+
+    @Column(name = "rejection_reason", length = 500)
+    private String rejectionReason;
+
     // Hiring Management
     @Column(name = "is_hiring", nullable = false)
     @Builder.Default

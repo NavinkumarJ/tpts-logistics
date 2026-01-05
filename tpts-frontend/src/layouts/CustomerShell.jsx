@@ -4,13 +4,13 @@ import Sidebar from "../components/dashboard/Sidebar";
 
 export default function CustomerShell() {
   const user = getUser();
-  
+
   if (!user || user.userType !== "CUSTOMER") {
     return <Navigate to="/login" replace />;
   }
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="dark-theme flex min-h-screen bg-gradient-to-br from-slate-900 via-primary-900 to-indigo-900">
       <Sidebar />
       <main className="flex-1 ml-64 p-8">
         <div className="max-w-7xl mx-auto">

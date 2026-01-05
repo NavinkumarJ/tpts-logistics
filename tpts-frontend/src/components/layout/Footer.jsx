@@ -8,11 +8,12 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {/* Company Info */}
           <div>
-            <Link to="/" className="inline-flex items-center gap-2 mb-4">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-600 text-white font-bold text-lg shadow-lg">
-                T
-              </div>
-              <span className="text-xl font-bold text-white">TPTS</span>
+            <Link to="/" className="inline-flex items-center gap-2 mb-4 group">
+              <img
+                src="/logo.png"
+                alt="TPTS Logo"
+                className="h-16 w-auto object-contain transition-all duration-200 group-hover:brightness-125 group-hover:scale-105"
+              />
             </Link>
             <p className="text-sm text-gray-400 mt-4">
               Trail Parcel Tracking System - India's first group shipment platform with real-time tracking and transparent pricing.

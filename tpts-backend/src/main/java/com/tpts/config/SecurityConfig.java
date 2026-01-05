@@ -91,6 +91,9 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // Public endpoints - No authentication required
                         .requestMatchers("/", "/health").permitAll()
+                        // Logout requires authentication to record the user
+                        .requestMatchers(HttpMethod.POST, "/api/auth/logout").authenticated()
+                        // Other auth endpoints are public
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/public/**").permitAll()
                         .requestMatchers("/api/upload/**").permitAll()

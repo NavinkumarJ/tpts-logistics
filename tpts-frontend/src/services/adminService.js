@@ -19,6 +19,15 @@ export const getAdminProfile = async () => {
     return response.data.data;
 };
 
+export const updateAdminProfilePhoto = async (formData) => {
+    const response = await apiClient.post("/super-admin/profile/photo", formData, {
+        headers: {
+            "Content-Type": "multipart/form-data"
+        }
+    });
+    return response.data.data;
+};
+
 export const getDashboard = async () => {
     const response = await apiClient.get("/super-admin/dashboard");
     return response.data.data;
@@ -49,6 +58,11 @@ export const getPendingCompanies = async () => {
 
 export const getApprovedCompanies = async () => {
     const response = await apiClient.get("/super-admin/companies/approved");
+    return response.data.data;
+};
+
+export const getRejectedCompanies = async () => {
+    const response = await apiClient.get("/super-admin/companies/rejected");
     return response.data.data;
 };
 
@@ -165,5 +179,14 @@ export const getAdminLogs = async (type = null, limit = 50, search = null) => {
     if (type && type !== "all") params.type = type;
     if (search) params.search = search;
     const response = await apiClient.get("/super-admin/logs", { params });
+    return response.data.data;
+};
+
+// ==========================================
+// Login Activity Logs
+// ==========================================
+
+export const getLoginActivity = async (page = 0, size = 50) => {
+    const response = await apiClient.get("/super-admin/login-activity", { params: { page, size } });
     return response.data.data;
 };

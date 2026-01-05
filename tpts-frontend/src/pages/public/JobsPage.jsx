@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import { FaBriefcase, FaMapMarkerAlt, FaGraduationCap, FaMoneyBillWave, FaSort, FaArrowLeft, FaSpinner, FaExclamationTriangle } from "react-icons/fa";
 import apiClient from "../../utils/api";
 import JobCard from "../../components/jobs/JobCard";
 import ApplyModal from "../../components/jobs/ApplyModal";
@@ -43,68 +45,145 @@ export default function JobsPage() {
   const applyFilters = () => {
     let filtered = [...jobs];
 
-    // City filter
+    // City filter - match companyCity or serviceCities
     if (cityFilter !== "all") {
-      filtered = filtered.filter((job) => job.city === cityFilter);
-    }
-
-    // Experience filter
-    if (experienceFilter !== "all") {
-      // This would need backend support or custom logic
-    }
-
-    // Salary filter
-    if (salaryFilter !== "all") {
-      const [min, max] = salaryFilter.split("-").map(Number);
       filtered = filtered.filter((job) => {
-        const avgSalary = (job.salaryRangeMin + job.salaryRangeMax) / 2;
-        if (max) return avgSalary >= min && avgSalary <= max;
-        return avgSalary >= min;
+        if (job.companyCity && job.companyCity.toLowerCase() === cityFilter.toLowerCase()) {
+          return true;
+        }
+        // Also check serviceCities for matches (handle JSON array or comma-separated)
+        if (job.serviceCities) {
+          try {
+            const parsed = JSON.parse(job.serviceCities);
+            if (Array.isArray(parsed)) {
+              return parsed.some(c => String(c).toLowerCase() === cityFilter.toLowerCase());
+            }
+          } catch {
+            // Fallback to string matching
+            return job.serviceCities.toLowerCase().includes(cityFilter.toLowerCase());
+          }
+        }
+        return false;
+      });
+    }
+
+    // Experience filter - Note: Backend doesn't provide experience requirement per job
+    // This is a placeholder for future implementation
+    if (experienceFilter !== "all") {
+      // Experience filtering would require backend support
+      // For now, don't filter if this is selected
+    }
+
+    // Salary filter - Check if job's salary range overlaps with filter range
+    if (salaryFilter !== "all") {
+      const [filterMin, filterMax] = salaryFilter.split("-").map(Number);
+      filtered = filtered.filter((job) => {
+        const jobMin = job.salaryRangeMin || 0;
+        const jobMax = job.salaryRangeMax || 999999;
+
+        // Check if ranges overlap
+        if (filterMax) {
+          // Range has both min and max (e.g., 15000-25000)
+          return jobMax >= filterMin && jobMin <= filterMax;
+        } else {
+          // Open-ended range (e.g., 35000+ for "Above ₹35,000")
+          return jobMax >= filterMin;
+        }
       });
     }
 
     // Sort
-    if (sortBy === "salary-high") {
-      filtered.sort((a, b) => b.salaryRangeMax - a.salaryRangeMax);
+    if (sortBy === "newest") {
+      // Keep default order (newest first from backend)
+    } else if (sortBy === "salary-high") {
+      filtered.sort((a, b) => (b.salaryRangeMax || 0) - (a.salaryRangeMax || 0));
     } else if (sortBy === "salary-low") {
-      filtered.sort((a, b) => a.salaryRangeMin - b.salaryRangeMin);
+      filtered.sort((a, b) => (a.salaryRangeMin || 0) - (b.salaryRangeMin || 0));
     } else if (sortBy === "rating") {
-      filtered.sort((a, b) => (b.ratingAvg || 0) - (a.ratingAvg || 0));
+      filtered.sort((a, b) => (parseFloat(b.companyRating) || 0) - (parseFloat(a.companyRating) || 0));
     } else if (sortBy === "openings") {
-      filtered.sort((a, b) => b.openPositions - a.openPositions);
+      filtered.sort((a, b) => (b.openPositions || 0) - (a.openPositions || 0));
     }
 
     setFilteredJobs(filtered);
   };
 
-  const cities = ["all", ...new Set(jobs.map((j) => j.city).filter(Boolean))];
+  // Extract all unique cities from companyCity and serviceCities
+  const cities = ["all", ...new Set(
+    jobs.flatMap((j) => {
+      const citiesList = [];
+      if (j.companyCity) citiesList.push(j.companyCity);
+      if (j.serviceCities) {
+        // serviceCities might be a JSON array string or comma-separated
+        try {
+          // Try parsing as JSON array first
+          const parsed = JSON.parse(j.serviceCities);
+          if (Array.isArray(parsed)) {
+            parsed.forEach(c => {
+              const trimmed = String(c).trim();
+              if (trimmed) citiesList.push(trimmed);
+            });
+          }
+        } catch {
+          // Fallback to comma-separated parsing
+          j.serviceCities.split(",").forEach(c => {
+            const trimmed = c.trim();
+            if (trimmed) citiesList.push(trimmed);
+          });
+        }
+      }
+      return citiesList;
+    })
+  ).values()].filter(Boolean);
 
   return (
-    <main className="min-h-screen bg-gray-50 py-6">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        {/* Header */}
+    <main className="min-h-screen bg-gradient-to-br from-slate-900 via-primary-900 to-indigo-900 relative overflow-hidden">
+      {/* Background decorations */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-40 -right-40 w-96 h-96 bg-primary-500/20 rounded-full blur-3xl" />
+        <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-indigo-500/20 rounded-full blur-3xl" />
+      </div>
+
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 relative z-10">
+        {/* Back Button */}
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900">💼 Delivery Agent Jobs</h1>
-          <p className="mt-2 text-sm text-gray-600">
+          <Link
+            to="/"
+            className="inline-flex items-center gap-2 text-white/70 hover:text-white transition-colors group"
+          >
+            <FaArrowLeft className="text-sm group-hover:-translate-x-1 transition-transform" />
+            <span>Back to Home</span>
+          </Link>
+        </div>
+
+        {/* Header */}
+        <div className="mb-8 text-center">
+          <div className="flex items-center justify-center gap-3 mb-4">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center shadow-lg shadow-primary-500/30">
+              <FaBriefcase className="text-2xl text-white" />
+            </div>
+          </div>
+          <h1 className="text-4xl font-bold text-white mb-2">Delivery Agent <span className="text-primary-400">Jobs</span></h1>
+          <p className="text-white/60">
             Join verified courier companies. {jobs.length} companies actively hiring.
           </p>
         </div>
 
         {/* Filters */}
-        <div className="card p-4 mb-6">
+        <div className="bg-white/10 backdrop-blur-xl rounded-2xl border border-white/20 p-6 mb-8">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* City */}
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1.5">
-                📍 City
+              <label className="flex items-center gap-2 text-xs font-medium text-white/80 mb-2">
+                <FaMapMarkerAlt className="text-primary-400" /> City
               </label>
               <select
-                className="input text-sm"
+                className="w-full bg-white/10 border border-white/20 rounded-xl py-2.5 px-4 text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 value={cityFilter}
                 onChange={(e) => setCityFilter(e.target.value)}
               >
                 {cities.map((city) => (
-                  <option key={city} value={city}>
+                  <option key={city} value={city} className="bg-slate-800 text-white">
                     {city === "all" ? "All Cities" : city}
                   </option>
                 ))}
@@ -113,85 +192,86 @@ export default function JobsPage() {
 
             {/* Experience */}
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1.5">
-                🎓 Experience
+              <label className="flex items-center gap-2 text-xs font-medium text-white/80 mb-2">
+                <FaGraduationCap className="text-green-400" /> Experience
               </label>
               <select
-                className="input text-sm"
+                className="w-full bg-white/10 border border-white/20 rounded-xl py-2.5 px-4 text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 value={experienceFilter}
                 onChange={(e) => setExperienceFilter(e.target.value)}
               >
-                <option value="all">All Levels</option>
-                <option value="0-1">0-1 years</option>
-                <option value="1-3">1-3 years</option>
-                <option value="3-5">3-5 years</option>
-                <option value="5+">5+ years</option>
+                <option value="all" className="bg-slate-800">All Levels</option>
+                <option value="0-1" className="bg-slate-800">0-1 years</option>
+                <option value="1-3" className="bg-slate-800">1-3 years</option>
+                <option value="3-5" className="bg-slate-800">3-5 years</option>
+                <option value="5+" className="bg-slate-800">5+ years</option>
               </select>
             </div>
 
             {/* Salary */}
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1.5">
-                💰 Salary Range
+              <label className="flex items-center gap-2 text-xs font-medium text-white/80 mb-2">
+                <FaMoneyBillWave className="text-yellow-400" /> Salary Range
               </label>
               <select
-                className="input text-sm"
+                className="w-full bg-white/10 border border-white/20 rounded-xl py-2.5 px-4 text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 value={salaryFilter}
                 onChange={(e) => setSalaryFilter(e.target.value)}
               >
-                <option value="all">All Ranges</option>
-                <option value="0-15000">Below ₹15,000</option>
-                <option value="15000-25000">₹15,000 - ₹25,000</option>
-                <option value="25000-35000">₹25,000 - ₹35,000</option>
-                <option value="35000-999999">Above ₹35,000</option>
+                <option value="all" className="bg-slate-800">All Ranges</option>
+                <option value="0-15000" className="bg-slate-800">Below ₹15,000</option>
+                <option value="15000-25000" className="bg-slate-800">₹15,000 - ₹25,000</option>
+                <option value="25000-35000" className="bg-slate-800">₹25,000 - ₹35,000</option>
+                <option value="35000-999999" className="bg-slate-800">Above ₹35,000</option>
               </select>
             </div>
 
             {/* Sort */}
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1.5">
-                🔄 Sort By
+              <label className="flex items-center gap-2 text-xs font-medium text-white/80 mb-2">
+                <FaSort className="text-purple-400" /> Sort By
               </label>
               <select
-                className="input text-sm"
+                className="w-full bg-white/10 border border-white/20 rounded-xl py-2.5 px-4 text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
               >
-                <option value="newest">Newest First</option>
-                <option value="salary-high">Salary: High to Low</option>
-                <option value="salary-low">Salary: Low to High</option>
-                <option value="rating">Top Rated</option>
-                <option value="openings">Most Openings</option>
+                <option value="newest" className="bg-slate-800">Newest First</option>
+                <option value="salary-high" className="bg-slate-800">Salary: High to Low</option>
+                <option value="salary-low" className="bg-slate-800">Salary: Low to High</option>
+                <option value="rating" className="bg-slate-800">Top Rated</option>
+                <option value="openings" className="bg-slate-800">Most Openings</option>
               </select>
             </div>
           </div>
         </div>
 
         {/* Results count */}
-        <div className="mb-4">
-          <p className="text-sm text-gray-600">
-            Showing <span className="font-semibold">{filteredJobs.length}</span> job{filteredJobs.length !== 1 && "s"}
+        <div className="mb-6">
+          <p className="text-white/60">
+            Showing <span className="font-semibold text-white">{filteredJobs.length}</span> job{filteredJobs.length !== 1 && "s"}
           </p>
         </div>
 
         {/* Loading / Error */}
         {loading && (
-          <div className="text-center py-12">
-            <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary-600 border-r-transparent"></div>
-            <p className="mt-3 text-sm text-gray-600">Loading jobs...</p>
+          <div className="text-center py-16">
+            <FaSpinner className="inline-block h-8 w-8 animate-spin text-primary-400" />
+            <p className="mt-4 text-white/60">Loading jobs...</p>
           </div>
         )}
 
         {error && (
-          <div className="rounded-md bg-red-50 border border-red-200 p-4">
-            <p className="text-sm text-red-600">⚠️ {error}</p>
+          <div className="rounded-xl bg-red-500/20 backdrop-blur-sm border border-red-400/30 p-4 flex items-start gap-3">
+            <FaExclamationTriangle className="text-red-400 flex-shrink-0 mt-0.5" />
+            <p className="text-red-100">{error}</p>
           </div>
         )}
 
         {/* Job Grid */}
         {!loading && !error && filteredJobs.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-gray-500">No jobs found matching your filters.</p>
+          <div className="text-center py-16">
+            <p className="text-white/60">No jobs found matching your filters.</p>
           </div>
         )}
 

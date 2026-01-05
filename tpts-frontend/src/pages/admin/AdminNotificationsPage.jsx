@@ -5,20 +5,20 @@ import toast from "react-hot-toast";
 import {
     FaBell, FaCheckCircle, FaBuilding, FaExclamationTriangle, FaInfoCircle,
     FaCheck, FaChevronLeft, FaChevronRight, FaTruck, FaCreditCard,
-    FaCheckDouble, FaFilter, FaClock, FaEye
+    FaCheckDouble, FaFilter, FaClock, FaEye, FaSync
 } from "react-icons/fa";
 import { getAdminNotifications, markNotificationRead } from "../../services/adminService";
 
 const TYPE_CONFIG = {
-    COMPANY: { icon: FaBuilding, color: "bg-purple-100 text-purple-600", borderColor: "border-l-purple-500", bgHover: "hover:bg-purple-50" },
-    ALERT: { icon: FaExclamationTriangle, color: "bg-red-100 text-red-600", borderColor: "border-l-red-500", bgHover: "hover:bg-red-50" },
-    MODERATION: { icon: FaExclamationTriangle, color: "bg-orange-100 text-orange-600", borderColor: "border-l-orange-500", bgHover: "hover:bg-orange-50" },
-    INFO: { icon: FaInfoCircle, color: "bg-blue-100 text-blue-600", borderColor: "border-l-blue-500", bgHover: "hover:bg-blue-50" },
-    SUCCESS: { icon: FaCheckCircle, color: "bg-green-100 text-green-600", borderColor: "border-l-green-500", bgHover: "hover:bg-green-50" },
-    PARCEL_CREATED: { icon: FaTruck, color: "bg-indigo-100 text-indigo-600", borderColor: "border-l-indigo-500", bgHover: "hover:bg-indigo-50" },
-    PARCEL_STATUS: { icon: FaTruck, color: "bg-teal-100 text-teal-600", borderColor: "border-l-teal-500", bgHover: "hover:bg-teal-50" },
-    PAYMENT: { icon: FaCreditCard, color: "bg-emerald-100 text-emerald-600", borderColor: "border-l-emerald-500", bgHover: "hover:bg-emerald-50" },
-    SYSTEM_ALERT: { icon: FaBell, color: "bg-gray-100 text-gray-600", borderColor: "border-l-gray-400", bgHover: "hover:bg-gray-50" },
+    COMPANY: { icon: FaBuilding, color: "bg-purple-500/20 text-purple-400", borderColor: "border-l-purple-500", bgHover: "hover:bg-purple-500/10" },
+    ALERT: { icon: FaExclamationTriangle, color: "bg-red-500/20 text-red-400", borderColor: "border-l-red-500", bgHover: "hover:bg-red-500/10" },
+    MODERATION: { icon: FaExclamationTriangle, color: "bg-orange-500/20 text-orange-400", borderColor: "border-l-orange-500", bgHover: "hover:bg-orange-500/10" },
+    INFO: { icon: FaInfoCircle, color: "bg-blue-500/20 text-blue-400", borderColor: "border-l-blue-500", bgHover: "hover:bg-blue-500/10" },
+    SUCCESS: { icon: FaCheckCircle, color: "bg-green-500/20 text-green-400", borderColor: "border-l-green-500", bgHover: "hover:bg-green-500/10" },
+    PARCEL_CREATED: { icon: FaTruck, color: "bg-indigo-500/20 text-indigo-400", borderColor: "border-l-indigo-500", bgHover: "hover:bg-indigo-500/10" },
+    PARCEL_STATUS: { icon: FaTruck, color: "bg-teal-500/20 text-teal-400", borderColor: "border-l-teal-500", bgHover: "hover:bg-teal-500/10" },
+    PAYMENT: { icon: FaCreditCard, color: "bg-emerald-500/20 text-emerald-400", borderColor: "border-l-emerald-500", bgHover: "hover:bg-emerald-500/10" },
+    SYSTEM_ALERT: { icon: FaBell, color: "bg-white/20 text-white/60", borderColor: "border-l-white/40", bgHover: "hover:bg-white/10" },
 };
 
 const ITEMS_PER_PAGE = 15;
@@ -147,8 +147,8 @@ export default function AdminNotificationsPage() {
     if (loading) {
         return (
             <div className="text-center py-12">
-                <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-slate-600 border-t-transparent"></div>
-                <p className="mt-3 text-sm text-gray-600">Loading notifications...</p>
+                <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-indigo-400 border-t-transparent"></div>
+                <p className="mt-3 text-sm text-white/60">Loading notifications...</p>
             </div>
         );
     }
@@ -156,15 +156,15 @@ export default function AdminNotificationsPage() {
     return (
         <div className="space-y-6">
             {/* Header with Stats */}
-            <div className="bg-gradient-to-r from-slate-700 to-slate-800 rounded-xl p-6 text-white shadow-lg">
+            <div className="bg-white/10 backdrop-blur-xl rounded-xl p-6 border border-white/20">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                     <div className="flex items-center gap-4">
-                        <div className="w-14 h-14 bg-white/10 rounded-xl flex items-center justify-center">
-                            <FaBell className="text-2xl" />
+                        <div className="w-14 h-14 bg-indigo-500/20 rounded-xl flex items-center justify-center">
+                            <FaBell className="text-2xl text-indigo-400" />
                         </div>
                         <div>
-                            <h1 className="text-2xl font-bold">Notifications</h1>
-                            <p className="text-sm text-slate-300 mt-0.5">
+                            <h1 className="text-2xl font-bold text-white">Notifications</h1>
+                            <p className="text-sm text-white/50 mt-0.5">
                                 {unreadCount > 0
                                     ? `${unreadCount} unread notification${unreadCount > 1 ? 's' : ''}`
                                     : "All caught up! No unread notifications."}
@@ -174,20 +174,28 @@ export default function AdminNotificationsPage() {
                     <div className="flex items-center gap-3">
                         {/* Stats badges */}
                         <div className="flex gap-2">
-                            <span className="px-3 py-1.5 bg-white/10 rounded-full text-sm">
+                            <span className="px-3 py-1.5 bg-white/10 rounded-full text-sm text-white/70 border border-white/10">
                                 <FaEye className="inline mr-1.5" />{totalCount - unreadCount} read
                             </span>
                             {unreadCount > 0 && (
-                                <span className="px-3 py-1.5 bg-blue-500 rounded-full text-sm font-medium animate-pulse">
+                                <span className="px-3 py-1.5 bg-blue-500 rounded-full text-sm font-medium text-white animate-pulse">
                                     {unreadCount} new
                                 </span>
                             )}
                         </div>
+                        <button
+                            onClick={fetchNotifications}
+                            disabled={loading}
+                            className="px-4 py-2 bg-white/10 border border-white/20 text-white rounded-lg text-sm font-medium hover:bg-white/20 transition flex items-center gap-2 disabled:opacity-50"
+                        >
+                            <FaSync className={loading ? "animate-spin" : ""} />
+                            Refresh
+                        </button>
                         {unreadCount > 0 && (
                             <button
                                 onClick={handleMarkAllRead}
                                 disabled={markingAll}
-                                className="px-4 py-2 bg-white text-slate-800 rounded-lg text-sm font-medium hover:bg-gray-100 transition flex items-center gap-2 disabled:opacity-50"
+                                className="px-4 py-2 bg-white/10 border border-white/20 text-white rounded-lg text-sm font-medium hover:bg-white/20 transition flex items-center gap-2 disabled:opacity-50"
                             >
                                 <FaCheckDouble className={markingAll ? "animate-pulse" : ""} />
                                 {markingAll ? "Marking..." : "Mark all read"}
@@ -198,9 +206,9 @@ export default function AdminNotificationsPage() {
             </div>
 
             {/* Filters */}
-            <div className="bg-white rounded-xl p-4 shadow-md border border-gray-200">
+            <div className="bg-white/10 backdrop-blur-xl rounded-xl p-4 border border-white/20">
                 <div className="flex items-center gap-3">
-                    <FaFilter className="text-gray-400" />
+                    <FaFilter className="text-white/40" />
                     <div className="flex gap-2">
                         {[
                             { key: "all", label: "All", count: totalCount },
@@ -210,12 +218,12 @@ export default function AdminNotificationsPage() {
                                 key={f.key}
                                 onClick={() => setFilter(f.key)}
                                 className={`px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2 ${filter === f.key
-                                        ? "bg-slate-700 text-white shadow-md"
-                                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                                    ? "bg-indigo-600 text-white"
+                                    : "bg-white/10 text-white/70 hover:bg-white/20 border border-white/20"
                                     }`}
                             >
                                 {f.label}
-                                <span className={`px-1.5 py-0.5 rounded text-xs ${filter === f.key ? "bg-white/20" : "bg-gray-200"
+                                <span className={`px-1.5 py-0.5 rounded text-xs ${filter === f.key ? "bg-white/20" : "bg-white/10"
                                     }`}>
                                     {f.count}
                                 </span>
@@ -227,12 +235,12 @@ export default function AdminNotificationsPage() {
 
             {/* Notifications List */}
             {filteredNotifications.length === 0 ? (
-                <div className="bg-white rounded-xl p-12 shadow-md border border-gray-200 text-center">
-                    <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <FaBell className="text-3xl text-gray-300" />
+                <div className="bg-white/10 backdrop-blur-xl rounded-xl p-12 border border-white/20 text-center">
+                    <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <FaBell className="text-3xl text-white/30" />
                     </div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">No Notifications</h3>
-                    <p className="text-sm text-gray-500">
+                    <h3 className="text-lg font-semibold text-white mb-2">No Notifications</h3>
+                    <p className="text-sm text-white/50">
                         {filter === "unread" ? "You're all caught up! No unread notifications." : "No notifications yet."}
                     </p>
                 </div>
@@ -242,9 +250,9 @@ export default function AdminNotificationsPage() {
                         <div key={dateKey}>
                             {/* Date Header */}
                             <div className="flex items-center gap-2 mb-3">
-                                <FaClock className="text-gray-400 text-xs" />
-                                <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">{dateKey}</span>
-                                <div className="flex-1 h-px bg-gray-200"></div>
+                                <FaClock className="text-white/40 text-xs" />
+                                <span className="text-xs font-medium text-white/50 uppercase tracking-wider">{dateKey}</span>
+                                <div className="flex-1 h-px bg-white/10"></div>
                             </div>
 
                             {/* Notifications for this date */}
@@ -256,31 +264,31 @@ export default function AdminNotificationsPage() {
                                     return (
                                         <div
                                             key={notification.id}
-                                            className={`bg-white rounded-xl p-4 shadow-sm border border-gray-200 border-l-4 ${config.borderColor} ${config.bgHover} transition-all ${!notification.isRead ? "ring-1 ring-blue-100" : ""
+                                            className={`bg-white/10 backdrop-blur-xl rounded-xl p-4 border border-white/20 border-l-4 ${config.borderColor} ${config.bgHover} transition-all ${!notification.isRead ? "ring-1 ring-blue-500/30" : ""
                                                 }`}
                                         >
                                             <div className="flex items-start gap-3">
-                                                <div className={`w-10 h-10 rounded-full ${config.color} flex items-center justify-center flex-shrink-0 shadow-sm`}>
+                                                <div className={`w-10 h-10 rounded-full ${config.color} flex items-center justify-center flex-shrink-0`}>
                                                     <TypeIcon className="text-sm" />
                                                 </div>
                                                 <div className="flex-1 min-w-0">
                                                     <div className="flex items-start justify-between gap-3">
                                                         <div className="flex-1">
-                                                            <p className={`text-sm ${!notification.isRead ? "font-semibold text-gray-900" : "font-medium text-gray-700"}`}>
+                                                            <p className={`text-sm ${!notification.isRead ? "font-semibold text-white" : "font-medium text-white/80"}`}>
                                                                 {notification.title}
                                                             </p>
-                                                            <p className="text-sm text-gray-600 mt-1 line-clamp-2">{notification.message}</p>
+                                                            <p className="text-sm text-white/60 mt-1 line-clamp-2">{notification.message}</p>
                                                         </div>
                                                         {!notification.isRead && (
                                                             <span className="w-2.5 h-2.5 rounded-full bg-blue-500 flex-shrink-0 mt-1.5 animate-pulse"></span>
                                                         )}
                                                     </div>
                                                     <div className="flex items-center justify-between mt-3">
-                                                        <span className="text-xs text-gray-400">{formatTime(notification.timestamp)}</span>
+                                                        <span className="text-xs text-white/40">{formatTime(notification.timestamp)}</span>
                                                         {!notification.isRead && (
                                                             <button
                                                                 onClick={() => handleMarkRead(notification.id)}
-                                                                className="text-xs text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1 hover:underline"
+                                                                className="text-xs text-indigo-400 hover:text-indigo-300 font-medium flex items-center gap-1 hover:underline"
                                                             >
                                                                 <FaCheck className="text-[10px]" /> Mark as read
                                                             </button>
@@ -299,23 +307,23 @@ export default function AdminNotificationsPage() {
 
             {/* Pagination */}
             {totalPages > 1 && (
-                <div className="bg-white rounded-xl p-4 shadow-md border border-gray-200">
+                <div className="bg-white/10 backdrop-blur-xl rounded-xl p-4 border border-white/20">
                     <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                        <p className="text-sm text-gray-600">
-                            Showing <span className="font-medium">{startIndex + 1}</span> - <span className="font-medium">{Math.min(startIndex + ITEMS_PER_PAGE, filteredNotifications.length)}</span> of <span className="font-medium">{filteredNotifications.length}</span>
+                        <p className="text-sm text-white/60">
+                            Showing <span className="font-medium text-white">{startIndex + 1}</span> - <span className="font-medium text-white">{Math.min(startIndex + ITEMS_PER_PAGE, filteredNotifications.length)}</span> of <span className="font-medium text-white">{filteredNotifications.length}</span>
                         </p>
                         <div className="flex items-center gap-1">
                             <button
                                 onClick={() => setCurrentPage(1)}
                                 disabled={currentPage === 1}
-                                className="px-2 py-1.5 rounded text-xs font-medium transition disabled:opacity-50 disabled:cursor-not-allowed bg-gray-100 text-gray-700 hover:bg-gray-200"
+                                className="px-2 py-1.5 rounded text-xs font-medium transition disabled:opacity-50 disabled:cursor-not-allowed bg-white/10 text-white/70 hover:bg-white/20 border border-white/20"
                             >
                                 First
                             </button>
                             <button
                                 onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                                 disabled={currentPage === 1}
-                                className="px-3 py-1.5 rounded-lg text-sm font-medium transition flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed bg-gray-100 text-gray-700 hover:bg-gray-200"
+                                className="px-3 py-1.5 rounded-lg text-sm font-medium transition flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed bg-white/10 text-white/70 hover:bg-white/20 border border-white/20"
                             >
                                 <FaChevronLeft className="text-xs" /> Prev
                             </button>
@@ -337,8 +345,8 @@ export default function AdminNotificationsPage() {
                                             key={pageNum}
                                             onClick={() => setCurrentPage(pageNum)}
                                             className={`w-8 h-8 rounded text-sm font-medium transition ${currentPage === pageNum
-                                                    ? "bg-slate-700 text-white"
-                                                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                                                ? "bg-indigo-600 text-white"
+                                                : "bg-white/10 text-white/70 hover:bg-white/20 border border-white/20"
                                                 }`}
                                         >
                                             {pageNum}
@@ -350,14 +358,14 @@ export default function AdminNotificationsPage() {
                             <button
                                 onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                                 disabled={currentPage === totalPages}
-                                className="px-3 py-1.5 rounded-lg text-sm font-medium transition flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed bg-gray-100 text-gray-700 hover:bg-gray-200"
+                                className="px-3 py-1.5 rounded-lg text-sm font-medium transition flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed bg-white/10 text-white/70 hover:bg-white/20 border border-white/20"
                             >
                                 Next <FaChevronRight className="text-xs" />
                             </button>
                             <button
                                 onClick={() => setCurrentPage(totalPages)}
                                 disabled={currentPage === totalPages}
-                                className="px-2 py-1.5 rounded text-xs font-medium transition disabled:opacity-50 disabled:cursor-not-allowed bg-gray-100 text-gray-700 hover:bg-gray-200"
+                                className="px-2 py-1.5 rounded text-xs font-medium transition disabled:opacity-50 disabled:cursor-not-allowed bg-white/10 text-white/70 hover:bg-white/20 border border-white/20"
                             >
                                 Last
                             </button>

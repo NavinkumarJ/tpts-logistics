@@ -6,6 +6,7 @@ import StatsCards from "../../components/customer/StatsCards";
 import ActiveShipments from "../../components/customer/ActiveShipments";
 import SavedAddresses from "../../components/customer/SavedAddresses";
 import RecentNotifications from "../../components/customer/RecentNotifications";
+import { FaSync } from "react-icons/fa";
 
 export default function CustomerDashboard() {
   const navigate = useNavigate();
@@ -54,9 +55,9 @@ export default function CustomerDashboard() {
 
   if (error) {
     return (
-      <div className="bg-white rounded-xl p-8 shadow-md text-center">
-        <p className="text-red-600 mb-4">⚠️ {error}</p>
-        <button onClick={handleRefresh} className="btn-primary">
+      <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-8 border border-white/20 text-center">
+        <p className="text-red-400 mb-4">⚠️ {error}</p>
+        <button onClick={handleRefresh} className="px-6 py-3 bg-gradient-to-r from-primary-600 to-primary-500 text-white font-medium rounded-xl hover:from-primary-500 hover:to-primary-400 transition shadow-lg">
           Try Again
         </button>
       </div>
@@ -70,16 +71,16 @@ export default function CustomerDashboard() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-          <p className="text-sm text-gray-500 mt-1">
+          <h1 className="text-3xl font-bold text-white">Dashboard</h1>
+          <p className="text-sm text-white/70 mt-1">
             Welcome back, {customer.fullName}! 👋
           </p>
         </div>
         <button
           onClick={handleRefresh}
-          className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition text-sm font-medium shadow-sm"
+          className="flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl hover:bg-white/20 transition text-sm font-medium text-white shadow-lg"
         >
-          🔄 Refresh
+          <FaSync /> Refresh
         </button>
       </div>
 
@@ -113,17 +114,17 @@ export default function CustomerDashboard() {
 function DashboardSkeleton() {
   return (
     <div className="space-y-8 animate-pulse">
-      <div className="h-12 bg-gray-200 rounded-lg w-1/3"></div>
+      <div className="h-12 bg-white/10 rounded-xl w-1/3"></div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {[...Array(4)].map((_, i) => (
-          <div key={i} className="bg-gray-200 rounded-xl h-36"></div>
+          <div key={i} className="bg-white/10 rounded-2xl h-36"></div>
         ))}
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 bg-gray-200 rounded-xl h-96"></div>
+        <div className="lg:col-span-2 bg-white/10 rounded-2xl h-96"></div>
         <div className="space-y-6">
-          <div className="bg-gray-200 rounded-xl h-48"></div>
-          <div className="bg-gray-200 rounded-xl h-48"></div>
+          <div className="bg-white/10 rounded-2xl h-48"></div>
+          <div className="bg-white/10 rounded-2xl h-48"></div>
         </div>
       </div>
     </div>

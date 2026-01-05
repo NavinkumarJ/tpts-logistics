@@ -44,6 +44,9 @@ public class CompanyDTO {
     // Status
     private Boolean isApproved;
     private Boolean isVerified;
+    private Boolean isActive; // true = active, false = suspended
+    private Boolean isRejected; // Rejection status
+    private String rejectionReason; // Reason for rejection
 
     // Hiring
     private Boolean isHiring;

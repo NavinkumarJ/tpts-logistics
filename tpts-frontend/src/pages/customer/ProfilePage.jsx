@@ -131,8 +131,8 @@ export default function ProfilePage() {
         return (
             <div className="flex items-center justify-center min-h-[400px]">
                 <div className="text-center">
-                    <div className="inline-block h-12 w-12 animate-spin rounded-full border-4 border-primary-600 border-t-transparent"></div>
-                    <p className="mt-4 text-gray-600 font-medium">Loading profile...</p>
+                    <div className="inline-block h-12 w-12 animate-spin rounded-full border-4 border-primary-400 border-t-transparent"></div>
+                    <p className="mt-4 text-white/70 font-medium">Loading profile...</p>
                 </div>
             </div>
         );
@@ -143,23 +143,23 @@ export default function ProfilePage() {
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold text-gray-900">My Profile</h1>
-                    <p className="text-sm text-gray-500 mt-1">Manage your personal information</p>
+                    <h1 className="text-3xl font-bold text-white">My Profile</h1>
+                    <p className="text-sm text-white/60 mt-1">Manage your personal information</p>
                 </div>
                 {!editing && (
-                    <button onClick={() => setEditing(true)} className="btn-outline flex items-center gap-2">
+                    <button onClick={() => setEditing(true)} className="px-4 py-2 bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl text-white hover:bg-white/20 transition flex items-center gap-2">
                         <FaEdit /> Edit Profile
                     </button>
                 )}
             </div>
 
             {/* Profile Card */}
-            <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
+            <div className="bg-white/10 backdrop-blur-xl rounded-2xl border border-white/20 overflow-hidden">
                 {/* Cover & Avatar */}
                 <div className="h-36 bg-gradient-to-r from-primary-600 to-indigo-600 relative">
                     <div className="absolute -bottom-16 left-8">
                         <div className="relative">
-                            <div className="w-32 h-32 rounded-full border-4 border-white bg-gray-200 overflow-hidden shadow-xl">
+                            <div className="w-32 h-32 rounded-full border-4 border-slate-800 bg-slate-700 overflow-hidden shadow-xl">
                                 {customer.profileImageUrl ? (
                                     <img src={customer.profileImageUrl} alt={customer.fullName} className="w-full h-full object-cover" />
                                 ) : (
@@ -168,7 +168,7 @@ export default function ProfilePage() {
                                     </div>
                                 )}
                             </div>
-                            <label className="absolute bottom-1 right-1 w-10 h-10 bg-primary-600 text-white rounded-full flex items-center justify-center cursor-pointer hover:bg-primary-700 transition shadow-lg border-2 border-white">
+                            <label className="absolute bottom-1 right-1 w-10 h-10 bg-primary-600 text-white rounded-full flex items-center justify-center cursor-pointer hover:bg-primary-700 transition shadow-lg border-2 border-slate-800">
                                 {uploadingImage ? (
                                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                                 ) : (
@@ -193,11 +193,11 @@ export default function ProfilePage() {
                     {editing ? (
                         <div className="space-y-5 max-w-lg">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Full Name *</label>
+                                <label className="block text-sm font-medium text-white/80 mb-2">Full Name *</label>
                                 <input
                                     type="text"
                                     name="fullName"
-                                    className="input"
+                                    className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/40 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                                     value={formData.fullName}
                                     onChange={handleChange}
                                     placeholder="Enter your full name"
@@ -205,22 +205,22 @@ export default function ProfilePage() {
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">City</label>
+                                    <label className="block text-sm font-medium text-white/80 mb-2">City</label>
                                     <input
                                         type="text"
                                         name="city"
-                                        className="input"
+                                        className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/40 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                                         value={formData.city}
                                         onChange={handleChange}
                                         placeholder="Enter your city"
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">Pincode</label>
+                                    <label className="block text-sm font-medium text-white/80 mb-2">Pincode</label>
                                     <input
                                         type="text"
                                         name="pincode"
-                                        className="input"
+                                        className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/40 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                                         value={formData.pincode}
                                         onChange={handleChange}
                                         placeholder="6-digit pincode"
@@ -229,16 +229,16 @@ export default function ProfilePage() {
                                 </div>
                             </div>
 
-                            <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
-                                <p className="text-xs text-gray-500 mb-2">These fields cannot be changed:</p>
+                            <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+                                <p className="text-xs text-white/50 mb-2">These fields cannot be changed:</p>
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block text-xs text-gray-500 mb-1">Email</label>
-                                        <p className="text-sm font-medium text-gray-900">{customer.email}</p>
+                                        <label className="block text-xs text-white/50 mb-1">Email</label>
+                                        <p className="text-sm font-medium text-white">{customer.email}</p>
                                     </div>
                                     <div>
-                                        <label className="block text-xs text-gray-500 mb-1">Phone</label>
-                                        <p className="text-sm font-medium text-gray-900">{customer.phone}</p>
+                                        <label className="block text-xs text-white/50 mb-1">Phone</label>
+                                        <p className="text-sm font-medium text-white">{customer.phone}</p>
                                     </div>
                                 </div>
                             </div>
@@ -253,11 +253,11 @@ export default function ProfilePage() {
                                             pincode: customer.pincode || "",
                                         });
                                     }}
-                                    className="btn-outline flex items-center gap-2"
+                                    className="px-4 py-2 bg-white/10 border border-white/20 rounded-xl text-white hover:bg-white/20 transition flex items-center gap-2"
                                 >
                                     <FaTimes /> Cancel
                                 </button>
-                                <button onClick={handleSave} disabled={saving} className="btn-primary flex items-center gap-2">
+                                <button onClick={handleSave} disabled={saving} className="px-6 py-2 bg-gradient-to-r from-primary-600 to-primary-500 text-white font-medium rounded-xl hover:from-primary-500 hover:to-primary-400 transition flex items-center gap-2 shadow-lg">
                                     {saving ? (
                                         <>
                                             <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -272,54 +272,54 @@ export default function ProfilePage() {
                     ) : (
                         <div className="space-y-6">
                             <div>
-                                <h2 className="text-2xl font-bold text-gray-900">{customer.fullName}</h2>
-                                <p className="text-sm text-gray-500 flex items-center gap-1.5 mt-1">
-                                    <FaCalendar className="text-gray-400" />
+                                <h2 className="text-2xl font-bold text-white">{customer.fullName}</h2>
+                                <p className="text-sm text-white/60 flex items-center gap-1.5 mt-1">
+                                    <FaCalendar className="text-white/40" />
                                     Customer since {formatDate(customer.createdAt)}
                                 </p>
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl">
-                                    <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
-                                        <FaEnvelope className="text-blue-600" />
+                                <div className="flex items-center gap-3 p-4 bg-white/5 rounded-xl border border-white/10">
+                                    <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
+                                        <FaEnvelope className="text-blue-400" />
                                     </div>
                                     <div>
-                                        <p className="text-xs text-gray-500">Email</p>
-                                        <p className="font-medium text-gray-900">{customer.email}</p>
+                                        <p className="text-xs text-white/50">Email</p>
+                                        <p className="font-medium text-white">{customer.email}</p>
                                     </div>
                                 </div>
 
-                                <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl">
-                                    <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
-                                        <FaPhone className="text-green-600" />
+                                <div className="flex items-center gap-3 p-4 bg-white/5 rounded-xl border border-white/10">
+                                    <div className="w-10 h-10 rounded-lg bg-green-500/20 flex items-center justify-center">
+                                        <FaPhone className="text-green-400" />
                                     </div>
                                     <div>
-                                        <p className="text-xs text-gray-500">Phone</p>
-                                        <p className="font-medium text-gray-900">{customer.phone}</p>
+                                        <p className="text-xs text-white/50">Phone</p>
+                                        <p className="font-medium text-white">{customer.phone}</p>
                                     </div>
                                 </div>
 
                                 {customer.city && (
-                                    <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl">
-                                        <div className="w-10 h-10 rounded-lg bg-orange-100 flex items-center justify-center">
-                                            <FaMapMarkerAlt className="text-orange-600" />
+                                    <div className="flex items-center gap-3 p-4 bg-white/5 rounded-xl border border-white/10">
+                                        <div className="w-10 h-10 rounded-lg bg-orange-500/20 flex items-center justify-center">
+                                            <FaMapMarkerAlt className="text-orange-400" />
                                         </div>
                                         <div>
-                                            <p className="text-xs text-gray-500">City</p>
-                                            <p className="font-medium text-gray-900">{customer.city}</p>
+                                            <p className="text-xs text-white/50">City</p>
+                                            <p className="font-medium text-white">{customer.city}</p>
                                         </div>
                                     </div>
                                 )}
 
                                 {customer.pincode && (
-                                    <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl">
-                                        <div className="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center">
-                                            <FaHome className="text-purple-600" />
+                                    <div className="flex items-center gap-3 p-4 bg-white/5 rounded-xl border border-white/10">
+                                        <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center">
+                                            <FaHome className="text-purple-400" />
                                         </div>
                                         <div>
-                                            <p className="text-xs text-gray-500">Pincode</p>
-                                            <p className="font-medium text-gray-900">{customer.pincode}</p>
+                                            <p className="text-xs text-white/50">Pincode</p>
+                                            <p className="font-medium text-white">{customer.pincode}</p>
                                         </div>
                                     </div>
                                 )}
@@ -331,33 +331,33 @@ export default function ProfilePage() {
 
             {/* Stats */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="bg-white rounded-xl p-5 shadow-md border border-gray-200 text-center hover:shadow-lg transition">
-                    <div className="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center mx-auto mb-3">
-                        <FaBox className="text-xl text-gray-600" />
+                <div className="bg-white/10 backdrop-blur-xl rounded-xl p-5 border border-white/20 text-center hover:bg-white/15 transition">
+                    <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center mx-auto mb-3">
+                        <FaBox className="text-xl text-white/70" />
                     </div>
-                    <p className="text-2xl font-bold text-gray-900">{customer.totalOrders || 0}</p>
-                    <p className="text-sm text-gray-500">Total Orders</p>
+                    <p className="text-2xl font-bold text-white">{customer.totalOrders || 0}</p>
+                    <p className="text-sm text-white/60">Total Orders</p>
                 </div>
-                <div className="bg-white rounded-xl p-5 shadow-md border border-gray-200 text-center hover:shadow-lg transition">
-                    <div className="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center mx-auto mb-3">
-                        <FaCheckCircle className="text-xl text-green-600" />
+                <div className="bg-white/10 backdrop-blur-xl rounded-xl p-5 border border-white/20 text-center hover:bg-white/15 transition">
+                    <div className="w-12 h-12 rounded-xl bg-green-500/20 flex items-center justify-center mx-auto mb-3">
+                        <FaCheckCircle className="text-xl text-green-400" />
                     </div>
-                    <p className="text-2xl font-bold text-green-600">{customer.completedOrders || 0}</p>
-                    <p className="text-sm text-gray-500">Completed</p>
+                    <p className="text-2xl font-bold text-green-400">{customer.completedOrders || 0}</p>
+                    <p className="text-sm text-white/60">Completed</p>
                 </div>
-                <div className="bg-white rounded-xl p-5 shadow-md border border-gray-200 text-center hover:shadow-lg transition">
-                    <div className="w-12 h-12 rounded-xl bg-orange-100 flex items-center justify-center mx-auto mb-3">
-                        <FaClock className="text-xl text-orange-600" />
+                <div className="bg-white/10 backdrop-blur-xl rounded-xl p-5 border border-white/20 text-center hover:bg-white/15 transition">
+                    <div className="w-12 h-12 rounded-xl bg-orange-500/20 flex items-center justify-center mx-auto mb-3">
+                        <FaClock className="text-xl text-orange-400" />
                     </div>
-                    <p className="text-2xl font-bold text-orange-600">{customer.activeOrders || 0}</p>
-                    <p className="text-sm text-gray-500">Active</p>
+                    <p className="text-2xl font-bold text-orange-400">{customer.activeOrders || 0}</p>
+                    <p className="text-sm text-white/60">Active</p>
                 </div>
-                <div className="bg-white rounded-xl p-5 shadow-md border border-gray-200 text-center hover:shadow-lg transition">
-                    <div className="w-12 h-12 rounded-xl bg-primary-100 flex items-center justify-center mx-auto mb-3">
-                        <FaMapMarkerAlt className="text-xl text-primary-600" />
+                <div className="bg-white/10 backdrop-blur-xl rounded-xl p-5 border border-white/20 text-center hover:bg-white/15 transition">
+                    <div className="w-12 h-12 rounded-xl bg-primary-500/20 flex items-center justify-center mx-auto mb-3">
+                        <FaMapMarkerAlt className="text-xl text-primary-400" />
                     </div>
-                    <p className="text-2xl font-bold text-primary-600">{customer.savedAddressesCount || 0}</p>
-                    <p className="text-sm text-gray-500">Saved Addresses</p>
+                    <p className="text-2xl font-bold text-primary-400">{customer.savedAddressesCount || 0}</p>
+                    <p className="text-sm text-white/60">Saved Addresses</p>
                 </div>
             </div>
         </div>

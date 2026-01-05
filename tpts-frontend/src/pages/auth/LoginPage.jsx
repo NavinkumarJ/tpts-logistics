@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import apiClient from "../../utils/api";
+import { FaUser, FaBiking, FaBuilding, FaCog, FaEnvelope, FaLock, FaArrowLeft, FaCheckCircle, FaExclamationTriangle, FaSpinner, FaEye, FaEyeSlash } from "react-icons/fa";
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -15,6 +16,7 @@ export default function LoginPage() {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   // Clear success message after 5 seconds
   useEffect(() => {
@@ -27,10 +29,10 @@ export default function LoginPage() {
   }, [successMessage]);
 
   const userTypes = [
-    { value: "CUSTOMER", label: "Customer", icon: "👤", desc: "Book and track parcels" },
-    { value: "DELIVERY_AGENT", label: "Delivery Agent", icon: "🚴", desc: "Deliver packages" },
-    { value: "COMPANY_ADMIN", label: "Company Admin", icon: "🏢", desc: "Manage company" },
-    { value: "SUPER_ADMIN", label: "Super Admin", icon: "⚙️", desc: "Platform admin" },
+    { value: "CUSTOMER", label: "Customer", icon: FaUser, desc: "Book and track parcels", color: "from-blue-500 to-blue-600" },
+    { value: "DELIVERY_AGENT", label: "Delivery Agent", icon: FaBiking, desc: "Deliver packages", color: "from-green-500 to-green-600" },
+    { value: "COMPANY_ADMIN", label: "Company Admin", icon: FaBuilding, desc: "Manage company", color: "from-purple-500 to-purple-600" },
+    { value: "SUPER_ADMIN", label: "Super Admin", icon: FaCog, desc: "Platform admin", color: "from-orange-500 to-orange-600" },
   ];
 
   const handleChange = (e) => {
@@ -70,7 +72,7 @@ export default function LoginPage() {
       }
     } catch (err) {
       const errorMsg = err.response?.data?.message;
-      
+
       if (errorMsg?.includes("pending approval")) {
         setError("Your company is pending admin approval. Please wait for verification email.");
       } else if (errorMsg?.includes("verify")) {
@@ -84,131 +86,164 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-indigo-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="w-full max-w-md">
+    <main className="min-h-screen bg-gradient-to-br from-slate-900 via-primary-900 to-indigo-900 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+      {/* Background decorations */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary-500/20 rounded-full blur-3xl" />
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-indigo-500/20 rounded-full blur-3xl" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary-600/10 rounded-full blur-3xl" />
+      </div>
+
+      <div className="w-full max-w-md relative z-10">
         {/* Back Button */}
-        <div className="mb-4">
+        <div className="mb-6">
           <button
             onClick={() => navigate("/")}
-            className="text-sm text-gray-600 hover:text-gray-900 flex items-center gap-1"
+            className="text-sm text-white/70 hover:text-white flex items-center gap-2 transition-colors group"
           >
-            <span>←</span> Back to Home
+            <FaArrowLeft className="text-xs group-hover:-translate-x-1 transition-transform" />
+            <span>Back to Home</span>
           </button>
         </div>
 
         {/* Logo */}
         <div className="text-center mb-8">
-          <Link to="/" className="inline-flex items-center gap-2 mb-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary-600 text-white font-bold text-xl shadow-lg">
-              T
-            </div>
-            <span className="text-2xl font-bold text-gray-900">TPTS</span>
+          <Link to="/" className="inline-flex items-center gap-3 mb-6 group">
+            <img
+              src="/logo.png"
+              alt="TPTS Logo"
+              className="h-24 w-auto object-contain transition-all duration-200 group-hover:brightness-125 group-hover:scale-105"
+            />
           </Link>
-          <h2 className="text-2xl font-bold text-gray-900">Welcome back</h2>
-          <p className="mt-2 text-sm text-gray-600">
+          <h2 className="text-2xl font-bold text-white">Welcome back</h2>
+          <p className="mt-2 text-sm text-white/60">
             Sign in to your account to continue
           </p>
         </div>
 
         {/* Success Message from OTP Verification */}
         {successMessage && (
-          <div className="rounded-md bg-green-50 border border-green-200 p-3 mb-6">
-            <p className="text-sm text-green-600 text-center">✓ {successMessage}</p>
+          <div className="rounded-xl bg-green-500/20 backdrop-blur-sm border border-green-400/30 p-4 mb-6 flex items-center gap-3">
+            <FaCheckCircle className="text-green-400 flex-shrink-0" />
+            <p className="text-sm text-green-100">{successMessage}</p>
           </div>
         )}
 
         {/* Login Card */}
-        <div className="card shadow-xl">
+        <div className="bg-white/10 backdrop-blur-xl rounded-2xl border border-white/20 shadow-2xl">
           <form onSubmit={handleSubmit} className="p-6 sm:p-8 space-y-6">
             {/* User Type Selector */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-3">
-                I am a <span className="text-red-500">*</span>
+              <label className="block text-sm font-medium text-white/90 mb-3">
+                I am a <span className="text-red-400">*</span>
               </label>
               <div className="grid grid-cols-2 gap-3">
-                {userTypes.map((type) => (
-                  <label
-                    key={type.value}
-                    className={`relative flex flex-col items-center p-3 rounded-lg border-2 cursor-pointer transition ${
-                      formData.userType === type.value
-                        ? "border-primary-600 bg-primary-50"
-                        : "border-gray-200 hover:border-gray-300 bg-white"
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="userType"
-                      value={type.value}
-                      checked={formData.userType === type.value}
-                      onChange={handleChange}
-                      className="sr-only"
-                    />
-                    <span className="text-2xl mb-1">{type.icon}</span>
-                    <span className="text-xs font-semibold text-gray-900 text-center">
-                      {type.label}
-                    </span>
-                    <span className="text-[10px] text-gray-500 text-center mt-0.5">
-                      {type.desc}
-                    </span>
-                    {formData.userType === type.value && (
-                      <div className="absolute top-2 right-2 h-4 w-4 rounded-full bg-primary-600 text-white flex items-center justify-center text-xs">
-                        ✓
+                {userTypes.map((type) => {
+                  const IconComponent = type.icon;
+                  const isSelected = formData.userType === type.value;
+                  return (
+                    <label
+                      key={type.value}
+                      className={`relative flex flex-col items-center p-4 rounded-xl cursor-pointer transition-all duration-200 ${isSelected
+                        ? "bg-white shadow-lg scale-[1.02]"
+                        : "bg-white/5 hover:bg-white/10 border border-white/10"
+                        }`}
+                    >
+                      <input
+                        type="radio"
+                        name="userType"
+                        value={type.value}
+                        checked={isSelected}
+                        onChange={handleChange}
+                        className="sr-only"
+                      />
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-2 ${isSelected
+                        ? `bg-gradient-to-br ${type.color} text-white shadow-lg`
+                        : "bg-white/10 text-white/60"
+                        }`}>
+                        <IconComponent className="text-lg" />
                       </div>
-                    )}
-                  </label>
-                ))}
+                      <span className={`text-xs font-semibold text-center ${isSelected ? "text-gray-900" : "text-white"}`}>
+                        {type.label}
+                      </span>
+                      <span className={`text-[10px] text-center mt-0.5 ${isSelected ? "text-gray-500" : "text-white/50"}`}>
+                        {type.desc}
+                      </span>
+                      {isSelected && (
+                        <div className="absolute top-2 right-2 h-5 w-5 rounded-full bg-primary-600 text-white flex items-center justify-center shadow-md">
+                          <FaCheckCircle className="text-[10px]" />
+                        </div>
+                      )}
+                    </label>
+                  );
+                })}
               </div>
             </div>
 
             {/* Email */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                Email Address <span className="text-red-500">*</span>
+              <label className="block text-sm font-medium text-white/90 mb-2">
+                Email Address <span className="text-red-400">*</span>
               </label>
-              <input
-                type="email"
-                name="email"
-                required
-                autoComplete="email"
-                className="input"
-                placeholder="you@example.com"
-                value={formData.email}
-                onChange={handleChange}
-              />
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <FaEnvelope className="text-primary-400" />
+                </div>
+                <input
+                  type="email"
+                  name="email"
+                  required
+                  autoComplete="email"
+                  className="w-full bg-white/10 border border-white/20 rounded-xl py-3 pl-11 pr-4 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                  placeholder="you@example.com"
+                  value={formData.email}
+                  onChange={handleChange}
+                />
+              </div>
             </div>
 
             {/* Password */}
             <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="block text-sm font-medium text-gray-700">
-                  Password <span className="text-red-500">*</span>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-sm font-medium text-white/90">
+                  Password <span className="text-red-400">*</span>
                 </label>
                 <Link
                   to="/forgot-password"
-                  className="text-xs font-medium text-primary-600 hover:text-primary-700"
+                  className="text-sm font-bold text-cyan-400 hover:text-cyan-300 transition-colors"
                 >
                   Forgot password?
                 </Link>
               </div>
-              <input
-                type="password"
-                name="password"
-                required
-                autoComplete="current-password"
-                className="input"
-                placeholder="••••••••"
-                value={formData.password}
-                onChange={handleChange}
-              />
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <FaLock className="text-primary-400" />
+                </div>
+                <input
+                  type={showPassword ? "text" : "password"}
+                  name="password"
+                  required
+                  autoComplete="current-password"
+                  className="w-full bg-white/10 border border-white/20 rounded-xl py-3 pl-11 pr-12 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                  placeholder="••••••••"
+                  value={formData.password}
+                  onChange={handleChange}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-primary-400 hover:text-primary-300 transition-colors"
+                >
+                  {showPassword ? <FaEyeSlash /> : <FaEye />}
+                </button>
+              </div>
             </div>
 
             {/* Error Message */}
             {error && (
-              <div className="rounded-md bg-red-50 border border-red-200 p-3">
-                <p className="text-sm text-red-600 flex items-start gap-2">
-                  <span className="flex-shrink-0">⚠️</span>
-                  <span>{error}</span>
-                </p>
+              <div className="rounded-xl bg-red-500/20 backdrop-blur-sm border border-red-400/30 p-4 flex items-start gap-3">
+                <FaExclamationTriangle className="text-red-400 flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-red-100">{error}</p>
               </div>
             )}
 
@@ -216,11 +251,11 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="btn-primary w-full py-3 text-base disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-gradient-to-r from-primary-600 to-primary-500 hover:from-primary-500 hover:to-primary-400 text-white font-semibold py-3.5 px-4 rounded-xl shadow-lg shadow-primary-500/30 hover:shadow-primary-500/50 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-primary-500/30"
             >
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
-                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                  <FaSpinner className="animate-spin" />
                   Signing in...
                 </span>
               ) : (
@@ -228,58 +263,33 @@ export default function LoginPage() {
               )}
             </button>
 
-            {/* Divider */}
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-200" />
-              </div>
-              <div className="relative flex justify-center text-xs">
-                <span className="bg-white px-2 text-gray-500">
-                  Don't have an account?
-                </span>
-              </div>
-            </div>
-
             {/* Register Link */}
-            <Link
-              to="/register"
-              className="btn-outline w-full py-3 text-base text-center"
-            >
-              Create New Account
-            </Link>
+            <div className="flex justify-center items-center gap-1 pt-2">
+              <span className="text-sm text-white">
+                Don't have an account?
+              </span>
+              <Link
+                to="/register"
+                className="text-sm text-cyan-400 hover:text-cyan-300 font-bold transition-colors"
+              >
+                Register here
+              </Link>
+            </div>
           </form>
         </div>
 
         {/* Footer Links */}
         <div className="mt-6 text-center">
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-white/40">
             By signing in, you agree to our{" "}
-            <Link to="/terms" className="text-primary-600 hover:underline">
+            <Link to="/terms" className="text-primary-400 hover:text-primary-300 hover:underline">
               Terms of Service
             </Link>{" "}
             and{" "}
-            <Link to="/privacy" className="text-primary-600 hover:underline">
+            <Link to="/privacy" className="text-primary-400 hover:text-primary-300 hover:underline">
               Privacy Policy
             </Link>
           </p>
-        </div>
-
-        {/* Demo Credentials */}
-        <div className="mt-6 card p-4 bg-amber-50 border border-amber-200">
-          <p className="text-xs font-semibold text-amber-900 mb-2">
-            🔐 Demo Credentials (for testing):
-          </p>
-          <div className="space-y-1 text-xs text-amber-800">
-            <p>
-              <strong>Customer:</strong> customer@demo.com / password123
-            </p>
-            <p>
-              <strong>Agent:</strong> agent@demo.com / password123
-            </p>
-            <p>
-              <strong>Company:</strong> company@demo.com / password123
-            </p>
-          </div>
         </div>
       </div>
     </main>

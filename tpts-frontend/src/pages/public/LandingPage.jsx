@@ -1,34 +1,83 @@
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { FaTruck, FaUsers, FaMoneyBillWave, FaMapMarkerAlt, FaShieldAlt, FaLeaf, FaBriefcase, FaChartLine, FaClock } from 'react-icons/fa';
+import { FaTruck, FaUsers, FaMoneyBillWave, FaMapMarkerAlt, FaBriefcase, FaChartLine, FaBox, FaRoute, FaShieldAlt, FaBuilding, FaCreditCard, FaStar, FaCheck } from 'react-icons/fa';
+import apiClient from "../../utils/api";
 
 export default function LandingPage() {
+  const [stats, setStats] = useState({
+    totalCompanies: 0,
+    totalDeliveries: 0,
+    totalCustomers: 0,
+    citiesCovered: 0,
+  });
+  const [activeTab, setActiveTab] = useState(0);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const response = await apiClient.get("/public/stats");
+        if (response.data?.data) {
+          setStats(response.data.data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch stats:", error);
+      }
+    };
+    fetchStats();
+  }, []);
+
+  // Auto-cycle tabs every 4 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setActiveTab(prev => (prev + 1) % 3);
+    }, 4000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const formatNumber = (num) => {
+    if (num >= 1000) {
+      return (num / 1000).toFixed(num >= 10000 ? 0 : 1) + "K+";
+    }
+    return num > 0 ? num + "+" : "0";
+  };
+
   return (
-    <main className="min-h-screen">
+    <main className="min-h-screen bg-gradient-to-br from-slate-900 via-primary-900 to-indigo-900">
+      {/* Background decorations */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-40 -right-40 w-96 h-96 bg-primary-500/20 rounded-full blur-3xl" />
+        <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-indigo-500/20 rounded-full blur-3xl" />
+        <div className="absolute top-1/2 left-1/3 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl" />
+      </div>
+
       {/* Hero Section */}
-      <section className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-16 lg:py-20">
+      <section className="relative z-10 py-16 lg:py-24">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="grid gap-10 lg:grid-cols-2 items-center">
             {/* Left content */}
             <div>
-              <p className="mb-3 inline-flex items-center rounded-full bg-slate-800 px-3 py-1 text-xs font-medium text-sky-300 border border-sky-400/20">
+              <p className="mb-4 inline-flex items-center rounded-full bg-primary-500/20 backdrop-blur-sm px-4 py-2 text-sm font-medium text-white border border-primary-400/50">
                 💰 Save up to 40% with group shipments
               </p>
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-tight">
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-tight text-white">
                 Ship Smarter, <br />
-                <span className="text-sky-300">Save More</span>
+                <span className="text-primary-400">Save More</span>
               </h1>
-              <p className="mt-6 text-base sm:text-lg text-slate-300 max-w-xl">
+              <p className="mt-6 text-lg text-white/70 max-w-xl">
                 Join verified courier companies, group your shipments, and cut
                 delivery costs while enjoying real-time tracking and secure
                 payments.
               </p>
               <div className="mt-8 flex flex-wrap items-center gap-4">
-                <Link to="/register" className="btn-primary text-base px-6 py-3">
+                <Link
+                  to="/register"
+                  className="bg-gradient-to-r from-primary-600 to-primary-500 hover:from-primary-500 hover:to-primary-400 text-white font-semibold px-8 py-3.5 rounded-xl shadow-lg shadow-primary-500/30 hover:shadow-primary-500/50 transition-all duration-200"
+                >
                   Get Started →
                 </Link>
                 <Link
                   to="/track"
-                  className="inline-flex items-center justify-center rounded-md border-2 border-slate-500 px-6 py-3 text-base font-semibold text-white hover:bg-slate-800 transition"
+                  className="inline-flex items-center justify-center rounded-xl border-2 border-white/30 px-8 py-3.5 font-semibold text-white hover:bg-white/10 transition-all"
                 >
                   Track Shipment
                 </Link>
@@ -36,135 +85,327 @@ export default function LandingPage() {
 
               {/* Stats */}
               <div className="mt-12 grid grid-cols-3 gap-6">
-                <div>
-                  <p className="text-2xl font-bold text-white">45+</p>
-                  <p className="text-sm text-slate-400">Courier Companies</p>
+                <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
+                  <p className="text-2xl font-bold text-white">{formatNumber(stats.totalCompanies)}</p>
+                  <p className="text-sm text-white/60">Courier Companies</p>
                 </div>
-                <div>
-                  <p className="text-2xl font-bold text-white">10K+</p>
-                  <p className="text-sm text-slate-400">Deliveries</p>
+                <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
+                  <p className="text-2xl font-bold text-white">{formatNumber(stats.totalDeliveries)}</p>
+                  <p className="text-sm text-white/60">Deliveries</p>
                 </div>
-                <div>
-                  <p className="text-2xl font-bold text-white">15+</p>
-                  <p className="text-sm text-slate-400">Cities Covered</p>
+                <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
+                  <p className="text-2xl font-bold text-white">{formatNumber(stats.citiesCovered)}</p>
+                  <p className="text-sm text-white/60">Cities Covered</p>
                 </div>
               </div>
             </div>
 
-            {/* Right: Quick Track Card */}
-            <div className="card bg-white text-slate-900 shadow-2xl max-w-md mx-auto lg:mx-0 w-full">
-              <div className="border-b border-gray-200 px-5 py-4">
-                <p className="text-base font-semibold flex items-center gap-2">
-                  📍 Track your shipment
-                </p>
-                <p className="text-xs text-gray-500 mt-1">
-                  No login required. Enter tracking number and phone last 4 digits.
-                </p>
+            {/* Right: Animated Feature Showcase */}
+            <div className="relative max-w-md mx-auto lg:ml-auto w-full">
+              {/* Animated background effects */}
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 bg-gradient-to-r from-primary-500/30 via-indigo-500/20 to-purple-500/30 blur-[80px] rounded-full animate-spin-slow"></div>
+
+              {/* Floating particles */}
+              <div className="absolute top-4 right-8 w-2 h-2 bg-primary-400 rounded-full animate-float-1"></div>
+              <div className="absolute bottom-12 left-4 w-1.5 h-1.5 bg-purple-400 rounded-full animate-float-2"></div>
+              <div className="absolute top-1/3 right-4 w-1 h-1 bg-green-400 rounded-full animate-float-3"></div>
+
+              {/* Showcase Card - Dark glassmorphic */}
+              <div className="relative bg-white/10 backdrop-blur-xl rounded-2xl border border-white/20 overflow-hidden">
+                {/* Animated top border */}
+                <div className="h-1.5 bg-gradient-to-r from-primary-500 via-purple-500 to-pink-500 animate-gradient-x"></div>
+
+                {/* Tab Navigation */}
+                <div className="flex bg-white/5 border-b border-white/10">
+                  {[
+                    { label: 'Live Demo', icon: '🎯' },
+                    { label: 'Smart Savings', icon: '💎' },
+                    { label: 'Why Us', icon: '🏆' },
+                  ].map((tab, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => setActiveTab(idx)}
+                      className={`flex-1 py-3.5 text-xs font-semibold transition-all duration-300 flex items-center justify-center gap-2 relative
+                        ${activeTab === idx
+                          ? 'text-white bg-white/10'
+                          : 'text-white/50 hover:text-white/70'}`}
+                    >
+                      <span className={`text-base transition-transform duration-300 ${activeTab === idx ? 'scale-125' : ''}`}>{tab.icon}</span>
+                      <span className="hidden sm:inline">{tab.label}</span>
+                      {activeTab === idx && <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-12 h-0.5 bg-gradient-to-r from-primary-500 to-purple-500 rounded-full"></div>}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Tab Content */}
+                <div className="p-5 min-h-[260px] relative overflow-hidden">
+
+                  {/* Tab 0: Live Tracking Demo */}
+                  <div className={`transition-all duration-500 ${activeTab === 0 ? 'opacity-100 translate-y-0' : 'opacity-0 absolute inset-0 p-5 -translate-y-4 pointer-events-none'}`}>
+                    {/* Animated tracking visualization */}
+                    <div className="relative bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl p-4 mb-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-lg bg-primary-500/30 flex items-center justify-center animate-pulse-glow">
+                            <span className="text-lg">📦</span>
+                          </div>
+                          <div>
+                            <p className="text-xs text-white font-medium">Your Package</p>
+                            <p className="text-[10px] text-white/60">TRK-847291</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-green-500/20 border border-green-500/40">
+                          <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-ping"></span>
+                          <span className="text-[10px] text-green-400 font-medium">In Transit</span>
+                        </div>
+                      </div>
+
+                      {/* Animated route */}
+                      <div className="relative h-3 bg-slate-700 rounded-full overflow-hidden">
+                        <div className="absolute inset-y-0 left-0 bg-gradient-to-r from-primary-500 via-indigo-500 to-purple-500 rounded-full animate-progress" style={{ width: '70%' }}></div>
+                        <div className="absolute top-1/2 -translate-y-1/2 animate-truck-move" style={{ left: '65%' }}>
+                          <div className="w-6 h-6 -mt-1.5 bg-white rounded-lg shadow-lg flex items-center justify-center text-sm">
+                            🚚
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex justify-between mt-2 text-[10px] text-white/60">
+                        <span>Mumbai</span>
+                        <span className="text-primary-400 font-medium">70% Complete</span>
+                        <span>Delhi</span>
+                      </div>
+                    </div>
+
+                    {/* Feature highlights */}
+                    <div className="grid grid-cols-3 gap-2">
+                      {[
+                        { icon: '🛰️', label: 'Real-time GPS' },
+                        { icon: '🔐', label: 'OTP Secure' },
+                        { icon: '📸', label: 'Photo Proof' },
+                      ].map((f, idx) => (
+                        <div
+                          key={idx}
+                          className="bg-white/10 rounded-xl p-3 text-center border border-white/20 hover:bg-white/15 hover:border-primary-400/50 transition-all cursor-pointer group"
+                        >
+                          <span className="text-xl group-hover:scale-110 inline-block transition-transform">{f.icon}</span>
+                          <p className="text-[10px] text-white/60 mt-1">{f.label}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Tab 1: Smart Savings */}
+                  <div className={`transition-all duration-500 ${activeTab === 1 ? 'opacity-100 translate-y-0' : 'opacity-0 absolute inset-0 p-5 translate-y-4 pointer-events-none'}`}>
+                    {/* Animated savings counter */}
+                    <div className="text-center mb-5">
+                      <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-green-500/20 to-emerald-500/20 border border-green-500/30 mb-3">
+                        <span className="text-xl animate-bounce-slow">💰</span>
+                        <span className="text-xl font-bold text-green-400 animate-count">₹80</span>
+                        <span className="text-xs text-green-400/80">saved per order</span>
+                      </div>
+                    </div>
+
+                    {/* Visual comparison with animation */}
+                    <div className="relative">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="bg-white/5 rounded-xl p-4 text-center border border-white/10 relative">
+                          <div className="absolute -top-2 left-1/2 -translate-x-1/2 bg-white/30 text-white/70 text-[8px] px-2 py-0.5 rounded-full">SOLO</div>
+                          <div className="text-3xl mb-2 opacity-50">📦</div>
+                          <p className="text-white/40 text-sm line-through">₹200</p>
+                        </div>
+                        <div className="bg-gradient-to-br from-green-500/20 to-emerald-500/20 rounded-xl p-4 text-center border-2 border-green-500/40 relative animate-glow-green">
+                          <div className="absolute -top-2 left-1/2 -translate-x-1/2 bg-green-500 text-white text-[8px] px-2 py-0.5 rounded-full font-bold shadow-lg shadow-green-500/50">GROUP</div>
+                          <div className="text-3xl mb-2 flex justify-center gap-0">
+                            <span className="animate-box-1">📦</span>
+                            <span className="animate-box-2">📦</span>
+                            <span className="animate-box-3">📦</span>
+                          </div>
+                          <p className="text-green-400 text-lg font-bold">₹120</p>
+                        </div>
+                      </div>
+
+                      {/* Connecting arrow */}
+                      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-2xl text-white/40 animate-pulse">→</div>
+                    </div>
+
+                    <p className="text-center text-xs text-white/50 mt-4 flex items-center justify-center gap-1">
+                      <span className="animate-spin-slow">🔄</span> Same route, shared vehicle, lower cost
+                    </p>
+                  </div>
+
+                  {/* Tab 2: Platform Experience */}
+                  <div className={`transition-all duration-500 ${activeTab === 2 ? 'opacity-100 translate-y-0' : 'opacity-0 absolute inset-0 p-5 translate-y-4 pointer-events-none'}`}>
+                    {/* User journey highlights */}
+                    <div className="space-y-2.5">
+                      {[
+                        { icon: '🎯', title: 'Choose Your Way', desc: 'Regular order or Group Buy savings', delay: 0 },
+                        { icon: '💳', title: 'Pay Securely', desc: 'UPI, Cards, Net Banking via Razorpay', delay: 0.1 },
+                        { icon: '📱', title: 'Track Live', desc: 'GPS tracking, OTP, photo proof', delay: 0.2 },
+                      ].map((item, idx) => (
+                        <div
+                          key={idx}
+                          className="flex items-center gap-3 bg-white/5 rounded-xl p-2.5 border border-white/10 hover:bg-white/10 hover:border-primary-400/30 transition-all cursor-pointer group"
+                          style={{ animation: activeTab === 2 ? `slideIn 0.4s ease-out ${item.delay}s both` : 'none' }}
+                        >
+                          <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center text-base group-hover:scale-110 transition-transform shadow-sm">
+                            {item.icon}
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-white">{item.title}</p>
+                            <p className="text-[10px] text-white/50">{item.desc}</p>
+                          </div>
+                          <span className="text-white/40 group-hover:text-primary-400 transition-colors">→</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Trust badges */}
+                    <div className="flex justify-center gap-2 mt-4">
+                      {['🔒 Secure', '⚡ Fast', '⭐ Rated'].map((badge, idx) => (
+                        <span key={idx} className="text-[10px] text-white/60 px-2 py-1 bg-white/10 rounded-full border border-white/10">
+                          {badge}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex justify-center gap-2 pb-4 bg-transparent">
+                  {[0, 1, 2].map(idx => (
+                    <button
+                      key={idx}
+                      onClick={() => setActiveTab(idx)}
+                      className={`rounded-full transition-all duration-300 ${activeTab === idx
+                        ? 'w-8 h-2 bg-gradient-to-r from-primary-500 to-purple-500'
+                        : 'w-2 h-2 bg-white/30 hover:bg-white/50'
+                        }`}
+                    />
+                  ))}
+                </div>
               </div>
-              <form className="px-5 py-5 space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                    Tracking Number
-                  </label>
-                  <input
-                    type="text"
-                    className="input"
-                    placeholder="TRK123456"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                    Phone (Last 4 digits)
-                  </label>
-                  <input
-                    type="text"
-                    className="input"
-                    placeholder="XXXX"
-                    maxLength={4}
-                  />
-                </div>
-                <Link to="/track" className="btn-primary w-full block text-center">
-                  🔍 Track Now
-                </Link>
-                <p className="text-xs text-gray-500 text-center pt-2">
-                  💡 For live map tracking, <Link to="/login" className="text-primary-600 font-medium hover:underline">login to your account</Link>
-                </p>
-              </form>
+
+              {/* Enhanced CSS animations */}
+              <style>{`
+                @keyframes spin-slow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+                .animate-spin-slow { animation: spin-slow 20s linear infinite; }
+                
+                @keyframes float-1 { 0%, 100% { transform: translateY(0) translateX(0); } 50% { transform: translateY(-15px) translateX(5px); } }
+                @keyframes float-2 { 0%, 100% { transform: translateY(0) translateX(0); } 50% { transform: translateY(-10px) translateX(-5px); } }
+                @keyframes float-3 { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+                .animate-float-1 { animation: float-1 4s ease-in-out infinite; }
+                .animate-float-2 { animation: float-2 5s ease-in-out infinite 0.5s; }
+                .animate-float-3 { animation: float-3 3s ease-in-out infinite 1s; }
+                
+                @keyframes gradient-x { 0%, 100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+                .animate-gradient-x { background-size: 200% 200%; animation: gradient-x 3s ease infinite; }
+                
+                @keyframes pulse-glow { 0%, 100% { box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.4); } 50% { box-shadow: 0 0 15px 2px rgba(56, 189, 248, 0.3); } }
+                .animate-pulse-glow { animation: pulse-glow 2s ease-in-out infinite; }
+                
+                @keyframes progress { 0% { width: 0%; } 100% { width: 70%; } }
+                .animate-progress { animation: progress 2s ease-out; }
+                
+                @keyframes truck-move { 0%, 100% { transform: translateY(-50%) translateX(0); } 50% { transform: translateY(-50%) translateX(5px); } }
+                .animate-truck-move { animation: truck-move 1s ease-in-out infinite; }
+                
+                @keyframes bounce-slow { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+                .animate-bounce-slow { animation: bounce-slow 2s ease-in-out infinite; }
+                
+                @keyframes count { 0% { opacity: 0; transform: scale(0.5); } 50% { transform: scale(1.2); } 100% { opacity: 1; transform: scale(1); } }
+                .animate-count { animation: count 0.6s ease-out; }
+                
+                @keyframes glow-green { 0%, 100% { box-shadow: 0 0 10px rgba(34, 197, 94, 0.2); } 50% { box-shadow: 0 0 25px rgba(34, 197, 94, 0.4); } }
+                .animate-glow-green { animation: glow-green 2s ease-in-out infinite; }
+                
+                @keyframes box-1 { 0%, 100% { transform: translateY(0); } 25% { transform: translateY(-3px); } }
+                @keyframes box-2 { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+                @keyframes box-3 { 0%, 100% { transform: translateY(0); } 75% { transform: translateY(-3px); } }
+                .animate-box-1 { animation: box-1 1.5s ease-in-out infinite; }
+                .animate-box-2 { animation: box-2 1.5s ease-in-out infinite; }
+                .animate-box-3 { animation: box-3 1.5s ease-in-out infinite; }
+                
+                @keyframes slideIn { 0% { opacity: 0; transform: translateX(-20px); } 100% { opacity: 1; transform: translateX(0); } }
+                @keyframes popIn { 0% { opacity: 0; transform: scale(0.8); } 100% { opacity: 1; transform: scale(1); } }
+              `}</style>
             </div>
           </div>
         </div>
       </section>
 
       {/* Why Choose TPTS */}
-      <section className="bg-white py-16">
+      <section className="relative z-10 py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="text-center">
-            <h2 className="text-3xl font-bold tracking-tight text-gray-900">
-              Why choose <span className="text-primary-600">TPTS</span>?
+            <h2 className="text-3xl font-bold tracking-tight text-white">
+              Why choose <span className="text-primary-400">TPTS</span>?
             </h2>
-            <p className="mt-3 text-base text-gray-600">
+            <p className="mt-3 text-base text-white/60">
               Built for customers, courier companies, and delivery agents.
             </p>
           </div>
 
-          <div className="mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {[
               {
-                icon: "📦",
+                icon: FaBox,
                 title: "Group Buy Savings",
                 desc: "Join group shipments and save up to 40% on delivery costs.",
-                color: "bg-primary-50 text-primary-600",
+                gradient: "from-primary-500 to-primary-600",
               },
               {
-                icon: "📍",
+                icon: FaMapMarkerAlt,
                 title: "Live Tracking",
                 desc: "Real-time updates, OTP verification, and proof-of-delivery photos.",
-                color: "bg-indigo-50 text-indigo-600",
+                gradient: "from-indigo-500 to-indigo-600",
               },
               {
-                icon: "🌱",
-                title: "Eco-Friendly Routes",
-                desc: "Smarter routing reduces trips and carbon footprint.",
-                color: "bg-emerald-50 text-emerald-600",
+                icon: FaRoute,
+                title: "Optimized Routes",
+                desc: "Smart routing for faster deliveries and efficient logistics.",
+                gradient: "from-emerald-500 to-emerald-600",
               },
               {
-                icon: "🏢",
+                icon: FaBuilding,
                 title: "Multiple Companies",
-                desc: "Choose from 45+ verified local courier companies with transparent pricing.",
-                color: "bg-purple-50 text-purple-600",
+                desc: `Choose from ${stats.totalCompanies || "multiple"} verified courier companies with transparent pricing.`,
+                gradient: "from-purple-500 to-purple-600",
               },
               {
-                icon: "💳",
+                icon: FaCreditCard,
                 title: "Secure Payments",
                 desc: "Razorpay integration with UPI, cards, and wallet support.",
-                color: "bg-blue-50 text-blue-600",
+                gradient: "from-blue-500 to-blue-600",
               },
               {
-                icon: "🔒",
-                title: "Insured Deliveries",
-                desc: "All parcels are insured and protected throughout the journey.",
-                color: "bg-orange-50 text-orange-600",
+                icon: FaStar,
+                title: "Ratings & Reviews",
+                desc: "Rate agents and companies. Choose based on real customer feedback.",
+                gradient: "from-orange-500 to-orange-600",
               },
-            ].map((feature, idx) => (
-              <div key={idx} className="card p-6 hover:shadow-lg transition">
-                <div className={`mb-4 flex h-12 w-12 items-center justify-center rounded-lg text-2xl ${feature.color}`}>
-                  {feature.icon}
+            ].map((feature, idx) => {
+              const IconComponent = feature.icon;
+              return (
+                <div key={idx} className="bg-white/10 backdrop-blur-xl p-6 rounded-2xl border border-white/20 hover:bg-white/15 hover:scale-[1.02] transition-all duration-300 group">
+                  <div className={`mb-4 w-14 h-14 rounded-xl bg-gradient-to-br ${feature.gradient} flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform`}>
+                    <IconComponent className="text-2xl text-white" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-white">{feature.title}</h3>
+                  <p className="mt-2 text-sm text-white/60">{feature.desc}</p>
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900">{feature.title}</h3>
-                <p className="mt-2 text-sm text-gray-600">{feature.desc}</p>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </section>
 
       {/* How It Works */}
-      <section className="bg-gradient-to-br from-primary-50 to-indigo-50 py-16">
+      <section className="relative z-10 py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <h2 className="text-center text-3xl font-bold tracking-tight text-gray-900 mb-3">
+          <h2 className="text-center text-3xl font-bold tracking-tight text-white mb-3">
             How it works
           </h2>
-          <p className="text-center text-gray-600 mb-12">Simple, fast, and transparent</p>
+          <p className="text-center text-white/60 mb-12">Simple, fast, and transparent</p>
 
           <ol className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {[
@@ -173,15 +414,15 @@ export default function LandingPage() {
               { num: 3, title: "Track", desc: "Follow every step with live GPS tracking.", icon: "📍" },
               { num: 4, title: "Receive", desc: "Delivered with OTP verification and photo proof.", icon: "✅" },
             ].map((step) => (
-              <li key={step.num} className="bg-white rounded-lg p-6 shadow-md hover:shadow-lg transition text-center">
+              <li key={step.num} className="bg-white/10 backdrop-blur-xl rounded-2xl p-6 border border-white/20 text-center hover:bg-white/15 transition-all group">
                 <div className="flex justify-center mb-4">
-                  <span className="flex h-14 w-14 items-center justify-center rounded-full bg-primary-600 text-white text-xl font-bold shadow-lg">
+                  <span className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-primary-500 to-primary-600 text-white text-xl font-bold shadow-lg shadow-primary-500/30 group-hover:scale-110 transition-transform">
                     {step.num}
                   </span>
                 </div>
                 <div className="text-3xl mb-3">{step.icon}</div>
-                <p className="text-lg font-semibold text-gray-900">{step.title}</p>
-                <p className="mt-2 text-sm text-gray-600">{step.desc}</p>
+                <p className="text-lg font-semibold text-white">{step.title}</p>
+                <p className="mt-2 text-sm text-white/60">{step.desc}</p>
               </li>
             ))}
           </ol>
@@ -189,127 +430,99 @@ export default function LandingPage() {
       </section>
 
       {/* Benefits for Different Users */}
-      <section className="bg-white py-16">
+      <section className="relative z-10 py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <h2 className="text-center text-3xl font-bold tracking-tight text-gray-900 mb-12">
+          <h2 className="text-center text-3xl font-bold tracking-tight text-white mb-12">
             Who benefits from TPTS?
           </h2>
 
-          <div className="grid gap-8 lg:grid-cols-3">
+          <div className="grid gap-6 lg:grid-cols-3">
             {/* For Customers */}
-            <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-8 shadow-md hover:shadow-xl transition">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="bg-blue-600 text-white p-3 rounded-lg">
-                  <FaUsers size={24} />
+            <div className="bg-gradient-to-br from-blue-500/20 to-blue-600/10 backdrop-blur-xl rounded-2xl p-8 border border-blue-400/30 hover:border-blue-400/50 transition-all">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/30">
+                  <FaUsers className="text-2xl text-white" />
                 </div>
-                <h3 className="text-2xl font-bold text-gray-900">For Customers</h3>
+                <h3 className="text-2xl font-bold text-white">For Customers</h3>
               </div>
               <ul className="space-y-3">
-                <li className="flex items-start gap-2">
-                  <span className="text-blue-600 mt-1">✓</span>
-                  <span className="text-gray-700"><strong>Save up to 40%</strong> with group buy shipments</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-blue-600 mt-1">✓</span>
-                  <span className="text-gray-700"><strong>45+ local companies</strong> to choose from with transparent rates</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-blue-600 mt-1">✓</span>
-                  <span className="text-gray-700"><strong>Real-time GPS tracking</strong> of your parcels</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-blue-600 mt-1">✓</span>
-                  <span className="text-gray-700"><strong>Secure payments</strong> via Razorpay (UPI, Cards, Wallet)</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-blue-600 mt-1">✓</span>
-                  <span className="text-gray-700"><strong>OTP verification</strong> and photo proof of delivery</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-blue-600 mt-1">✓</span>
-                  <span className="text-gray-700"><strong>Insurance coverage</strong> on all shipments</span>
-                </li>
+                {[
+                  { text: "Save up to 40%", sub: "with group buy shipments" },
+                  { text: "Multiple companies", sub: "to choose from with transparent rates" },
+                  { text: "Real-time GPS tracking", sub: "of your parcels" },
+                  { text: "Secure payments", sub: "via Razorpay (UPI, Cards, Net Banking)" },
+                  { text: "OTP verification", sub: "and photo proof of delivery" },
+                  { text: "Rate and review", sub: "agents and companies" },
+                ].map((item, idx) => (
+                  <li key={idx} className="flex items-start gap-3">
+                    <span className="w-5 h-5 rounded-full bg-blue-500/30 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <FaCheck className="text-blue-400 text-xs" />
+                    </span>
+                    <span className="text-white/80"><strong className="text-white">{item.text}</strong> {item.sub}</span>
+                  </li>
+                ))}
               </ul>
-              <Link to="/register" className="mt-6 btn-primary w-full block text-center">
+              <Link to="/register" className="mt-6 block w-full text-center py-3 px-4 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 text-white font-semibold shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 transition-all">
                 Start Shipping
               </Link>
             </div>
 
             {/* For Company Admins */}
-            <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-8 shadow-md hover:shadow-xl transition">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="bg-purple-600 text-white p-3 rounded-lg">
-                  <FaBriefcase size={24} />
+            <div className="bg-gradient-to-br from-purple-500/20 to-purple-600/10 backdrop-blur-xl rounded-2xl p-8 border border-purple-400/30 hover:border-purple-400/50 transition-all">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-14 h-14 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg shadow-purple-500/30">
+                  <FaBriefcase className="text-2xl text-white" />
                 </div>
-                <h3 className="text-2xl font-bold text-gray-900">For Companies</h3>
+                <h3 className="text-2xl font-bold text-white">For Companies</h3>
               </div>
               <ul className="space-y-3">
-                <li className="flex items-start gap-2">
-                  <span className="text-purple-600 mt-1">✓</span>
-                  <span className="text-gray-700"><strong>Reach more customers</strong> across India</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-purple-600 mt-1">✓</span>
-                  <span className="text-gray-700"><strong>Manage agents</strong> and track all deliveries in one dashboard</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-purple-600 mt-1">✓</span>
-                  <span className="text-purple-600 mt-1">✓</span>
-                  <span className="text-gray-700"><strong>Automated payments</strong> and wallet management</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-purple-600 mt-1">✓</span>
-                  <span className="text-gray-700"><strong>Create group shipments</strong> to maximize vehicle capacity</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-purple-600 mt-1">✓</span>
-                  <span className="text-gray-700"><strong>Real-time analytics</strong> on earnings and performance</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-purple-600 mt-1">✓</span>
-                  <span className="text-gray-700"><strong>Post job listings</strong> to hire delivery agents</span>
-                </li>
+                {[
+                  { text: "Reach more customers", sub: "across multiple cities" },
+                  { text: "Manage agents", sub: "and track all deliveries in one dashboard" },
+                  { text: "Track earnings", sub: "and view detailed analytics" },
+                  { text: "Create group shipments", sub: "to maximize vehicle capacity" },
+                  { text: "Real-time analytics", sub: "on earnings and performance" },
+                  { text: "Post job listings", sub: "to hire delivery agents" },
+                ].map((item, idx) => (
+                  <li key={idx} className="flex items-start gap-3">
+                    <span className="w-5 h-5 rounded-full bg-purple-500/30 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <FaCheck className="text-purple-400 text-xs" />
+                    </span>
+                    <span className="text-white/80"><strong className="text-white">{item.text}</strong> {item.sub}</span>
+                  </li>
+                ))}
               </ul>
-              <Link to="/register" className="mt-6 btn-primary bg-purple-600 hover:bg-purple-700 w-full block text-center">
+              <Link to="/register" className="mt-6 block w-full text-center py-3 px-4 rounded-xl bg-gradient-to-r from-purple-500 to-purple-600 text-white font-semibold shadow-lg shadow-purple-500/30 hover:shadow-purple-500/50 transition-all">
                 Register Company
               </Link>
             </div>
 
             {/* For Delivery Agents */}
-            <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-8 shadow-md hover:shadow-xl transition">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="bg-green-600 text-white p-3 rounded-lg">
-                  <FaTruck size={24} />
+            <div className="bg-gradient-to-br from-green-500/20 to-green-600/10 backdrop-blur-xl rounded-2xl p-8 border border-green-400/30 hover:border-green-400/50 transition-all">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-14 h-14 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center shadow-lg shadow-green-500/30">
+                  <FaTruck className="text-2xl text-white" />
                 </div>
-                <h3 className="text-2xl font-bold text-gray-900">For Agents</h3>
+                <h3 className="text-2xl font-bold text-white">For Agents</h3>
               </div>
               <ul className="space-y-3">
-                <li className="flex items-start gap-2">
-                  <span className="text-green-600 mt-1">✓</span>
-                  <span className="text-gray-700"><strong>Earn ₹15K-28K</strong> per month with flexible hours</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-green-600 mt-1">✓</span>
-                  <span className="text-gray-700"><strong>Optimized routes</strong> to complete more deliveries</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-green-600 mt-1">✓</span>
-                  <span className="text-gray-700"><strong>Instant wallet payouts</strong> after delivery confirmation</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-green-600 mt-1">✓</span>
-                  <span className="text-gray-700"><strong>GPS-enabled app</strong> for easy navigation</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-green-600 mt-1">✓</span>
-                  <span className="text-gray-700"><strong>Performance bonuses</strong> and ratings system</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-green-600 mt-1">✓</span>
-                  <span className="text-gray-700"><strong>Work with verified companies</strong> across multiple cities</span>
-                </li>
+                {[
+                  { text: "Earn competitive wages", sub: "with flexible hours" },
+                  { text: "Optimized routes", sub: "to complete more deliveries" },
+                  { text: "Track your earnings", sub: "for each completed delivery" },
+                  { text: "GPS-enabled navigation", sub: "for easy routing" },
+                  { text: "Performance ratings", sub: "and reputation system" },
+                  { text: "Work with verified companies", sub: "across multiple cities" },
+                ].map((item, idx) => (
+                  <li key={idx} className="flex items-start gap-3">
+                    <span className="w-5 h-5 rounded-full bg-green-500/30 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <FaCheck className="text-green-400 text-xs" />
+                    </span>
+                    <span className="text-white/80"><strong className="text-white">{item.text}</strong> {item.sub}</span>
+                  </li>
+                ))}
               </ul>
-              <Link to="/jobs" className="mt-6 btn-primary bg-green-600 hover:bg-green-700 w-full block text-center">
+              <Link to="/jobs" className="mt-6 block w-full text-center py-3 px-4 rounded-xl bg-gradient-to-r from-green-500 to-green-600 text-white font-semibold shadow-lg shadow-green-500/30 hover:shadow-green-500/50 transition-all">
                 View Job Openings
               </Link>
             </div>
@@ -318,55 +531,60 @@ export default function LandingPage() {
       </section>
 
       {/* Stats & Trust Section */}
-      <section className="bg-gradient-to-r from-primary-600 to-indigo-600 text-white py-16">
+      <section className="relative z-10 py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <h2 className="text-center text-3xl font-bold mb-12">Trusted by thousands across India</h2>
-          
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 text-center">
-            <div>
-              <FaTruck className="text-5xl mx-auto mb-3 opacity-90" />
-              <p className="text-4xl font-bold">10,000+</p>
-              <p className="text-primary-100 mt-2">Successful Deliveries</p>
-            </div>
-            <div>
-              <FaUsers className="text-5xl mx-auto mb-3 opacity-90" />
-              <p className="text-4xl font-bold">5,000+</p>
-              <p className="text-primary-100 mt-2">Happy Customers</p>
-            </div>
-            <div>
-              <FaBriefcase className="text-5xl mx-auto mb-3 opacity-90" />
-              <p className="text-4xl font-bold">45+</p>
-              <p className="text-primary-100 mt-2">Partner Companies</p>
-            </div>
-            <div>
-              <FaMapMarkerAlt className="text-5xl mx-auto mb-3 opacity-90" />
-              <p className="text-4xl font-bold">15+</p>
-              <p className="text-primary-100 mt-2">Cities Covered</p>
+          <div className="bg-gradient-to-r from-primary-600/90 to-indigo-600/90 backdrop-blur-xl rounded-3xl p-12 border border-white/20">
+            <h2 className="text-center text-3xl font-bold text-white mb-12">Trusted by customers across India</h2>
+
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 text-center">
+              <div>
+                <FaTruck className="text-5xl mx-auto mb-3 text-white/90" />
+                <p className="text-4xl font-bold text-white">{formatNumber(stats.totalDeliveries)}</p>
+                <p className="text-primary-100 mt-2">Successful Deliveries</p>
+              </div>
+              <div>
+                <FaUsers className="text-5xl mx-auto mb-3 text-white/90" />
+                <p className="text-4xl font-bold text-white">{formatNumber(stats.totalCustomers)}</p>
+                <p className="text-primary-100 mt-2">Happy Customers</p>
+              </div>
+              <div>
+                <FaBriefcase className="text-5xl mx-auto mb-3 text-white/90" />
+                <p className="text-4xl font-bold text-white">{formatNumber(stats.totalCompanies)}</p>
+                <p className="text-primary-100 mt-2">Partner Companies</p>
+              </div>
+              <div>
+                <FaMapMarkerAlt className="text-5xl mx-auto mb-3 text-white/90" />
+                <p className="text-4xl font-bold text-white">{formatNumber(stats.citiesCovered)}</p>
+                <p className="text-primary-100 mt-2">Cities Covered</p>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
       {/* CTA Section */}
-      <section className="bg-gray-900 text-white py-16">
+      <section className="relative z-10 py-20 pb-24">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <p className="text-sm font-semibold uppercase tracking-wide text-sky-300 mb-2">
+          <div className="bg-white/10 backdrop-blur-xl rounded-3xl p-12 border border-white/20 text-center">
+            <p className="text-sm font-semibold uppercase tracking-wide text-primary-400 mb-2">
               Ready to ship?
             </p>
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
               Create your free TPTS account today
             </h2>
-            <p className="text-lg text-gray-300 mb-8 max-w-2xl mx-auto">
-              Join thousands of satisfied customers saving money on every shipment
+            <p className="text-lg text-white/60 mb-8 max-w-2xl mx-auto">
+              Join satisfied customers saving money on every shipment
             </p>
             <div className="flex flex-wrap justify-center gap-4">
-              <Link to="/register" className="btn-primary bg-sky-500 hover:bg-sky-600 text-white px-8 py-3 text-lg">
+              <Link
+                to="/register"
+                className="bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-400 hover:to-primary-500 text-white font-semibold px-8 py-3.5 rounded-xl shadow-lg shadow-primary-500/30 hover:shadow-primary-500/50 transition-all"
+              >
                 Create Account →
               </Link>
               <Link
                 to="/jobs"
-                className="btn-outline border-white text-white hover:bg-gray-800 px-8 py-3 text-lg"
+                className="border-2 border-white/30 text-white font-semibold px-8 py-3.5 rounded-xl hover:bg-white/10 transition-all"
               >
                 Become a Delivery Agent
               </Link>

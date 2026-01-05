@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { getCurrentCustomer, getAddresses } from "../../services/customerService";
 import { createParcel, compareCompanyPrices, getOpenGroupsByRoute, confirmParcel, cancelParcel } from "../../services/parcelService";
-import { initiatePayment, verifyPayment, loadRazorpayScript, openRazorpayCheckout } from "../../services/paymentService";
+import { initiatePayment, initiateOrder, verifyPayment, loadRazorpayScript, openRazorpayCheckout } from "../../services/paymentService";
 import { logout } from "../../utils/auth";
 import toast from "react-hot-toast";
 import {
@@ -133,32 +133,39 @@ export default function NewShipmentPage() {
 
     // Step 1 Validation
     const validateStep1 = () => {
+        console.log("validateStep1 checking form data:", formData);
         const required = [
             "pickupName", "pickupPhone", "pickupAddress", "pickupCity", "pickupPincode",
             "deliveryName", "deliveryPhone", "deliveryAddress", "deliveryCity", "deliveryPincode"
         ];
         for (const field of required) {
             if (!formData[field]?.trim()) {
+                console.log("Missing required field:", field, "value:", formData[field]);
                 toast.error(`Please fill in ${field.replace(/([A-Z])/g, ' $1').toLowerCase()}`);
                 return false;
             }
         }
         if (!/^[6-9]\d{9}$/.test(formData.pickupPhone)) {
+            console.log("Invalid pickup phone:", formData.pickupPhone);
             toast.error("Please enter a valid 10-digit pickup phone number");
             return false;
         }
         if (!/^[6-9]\d{9}$/.test(formData.deliveryPhone)) {
+            console.log("Invalid delivery phone:", formData.deliveryPhone);
             toast.error("Please enter a valid 10-digit delivery phone number");
             return false;
         }
         if (!/^[1-9][0-9]{5}$/.test(formData.pickupPincode)) {
+            console.log("Invalid pickup pincode:", formData.pickupPincode);
             toast.error("Please enter a valid 6-digit pickup pincode");
             return false;
         }
         if (!/^[1-9][0-9]{5}$/.test(formData.deliveryPincode)) {
+            console.log("Invalid delivery pincode:", formData.deliveryPincode);
             toast.error("Please enter a valid 6-digit delivery pincode");
             return false;
         }
+        console.log("Validation passed!");
         return true;
     };
 
@@ -177,7 +184,12 @@ export default function NewShipmentPage() {
 
     // Move to Step 2: Fetch companies and groups
     const handleStep1Next = async () => {
-        if (!validateStep1()) return;
+        console.log("handleStep1Next called, validating...");
+        if (!validateStep1()) {
+            console.log("Validation failed");
+            return;
+        }
+        console.log("Validation passed, fetching data...");
 
         setLoading(true);
         try {
@@ -198,20 +210,25 @@ export default function NewShipmentPage() {
             });
 
             // Fetch company prices with distance
+            console.log("Fetching companies for route:", formData.pickupCity, "->", formData.deliveryCity);
             const priceData = await compareCompanyPrices(
                 formData.pickupCity,
                 formData.deliveryCity,
                 parseFloat(formData.weightKg) || 1,
                 Math.round(distanceKm)
             );
+            console.log("Companies fetched:", priceData);
             setCompanies(priceData || []);
 
             // Fetch available groups for this route
             const groupData = await getOpenGroupsByRoute(formData.pickupCity, formData.deliveryCity);
+            console.log("Groups fetched:", groupData);
             setGroups(groupData || []);
 
+            console.log("Moving to step 2");
             setStep(2);
         } catch (err) {
+            console.error("Error in handleStep1Next:", err);
             toast.error(err.response?.data?.message || "Failed to fetch companies");
         } finally {
             setLoading(false);
@@ -240,14 +257,22 @@ export default function NewShipmentPage() {
         setStep(3);
     };
 
-    // Handle Payment - Creates parcel ONLY after successful payment
+    // Handle Payment - Uses payment-first flow: pay first, parcel created after success
     const handlePayment = async () => {
         setLoading(true);
         try {
-            // Step 1: Create parcel first (pending status)
-            const parcelData = {
-                companyId: isGroupBuy ? selectedGroup.company.id : selectedCompany.id,
+            // Step 1: Load Razorpay script first
+            const loaded = await loadRazorpayScript();
+            if (!loaded) {
+                toast.error("Failed to load payment gateway");
+                return;
+            }
+
+            // Step 2: Prepare order data (parcel data included for after payment)
+            const orderData = {
+                companyId: isGroupBuy ? selectedGroup.companyId : selectedCompany.id,
                 groupShipmentId: isGroupBuy ? selectedGroup.id : null,
+                paymentMethod: "UPI",
                 pickupName: formData.pickupName,
                 pickupPhone: formData.pickupPhone,
                 pickupAddress: formData.pickupAddress,
@@ -266,29 +291,17 @@ export default function NewShipmentPage() {
                 deliveryLongitude: formData.deliveryLongitude,
                 packageType: formData.packageType,
                 weightKg: parseFloat(formData.weightKg) || 1,
-                distanceKm: routeInfo.distanceKm, // Send calculated distance to match frontend price
+                distanceKm: routeInfo.distanceKm,
                 dimensions: formData.dimensions,
                 isFragile: formData.isFragile,
                 specialInstructions: formData.specialInstructions,
             };
 
-            console.log("Creating parcel with data:", parcelData);
-            const parcel = await createParcel(parcelData);
-            console.log("Parcel created:", parcel);
-            setCreatedParcel(parcel);
+            console.log("Initiating payment with order data:", orderData);
 
-            // Step 2: Load Razorpay script
-            const loaded = await loadRazorpayScript();
-            if (!loaded) {
-                toast.error("Failed to load payment gateway");
-                return;
-            }
-
-            // Step 3: Initiate payment with Razorpay
-            const paymentData = await initiatePayment({
-                parcelId: parcel.id,
-                paymentMethod: "UPI",
-            });
+            // Step 3: Initiate order (creates Razorpay order, NOT parcel)
+            const paymentData = await initiateOrder(orderData);
+            console.log("Payment order created:", paymentData);
 
             // Step 4: Open Razorpay checkout
             const paymentResponse = await openRazorpayCheckout({
@@ -296,7 +309,7 @@ export default function NewShipmentPage() {
                 amount: paymentData.amount,
                 currency: paymentData.currency || "INR",
                 name: "TPTS Delivery",
-                description: `Payment for ${parcel.trackingNumber}`,
+                description: paymentData.description || `Delivery from ${formData.pickupCity} to ${formData.deliveryCity}`,
                 order_id: paymentData.razorpayOrderId,
                 prefill: {
                     name: customer?.fullName,
@@ -308,30 +321,28 @@ export default function NewShipmentPage() {
                 },
             });
 
-            // Step 5: Verify payment - this confirms parcel and sends notifications
-            await verifyPayment({
+            // Step 5: Verify payment - this creates parcel and confirms it
+            console.log("Verifying payment, parcel will be created now...");
+            const verifyResult = await verifyPayment({
                 razorpayOrderId: paymentResponse.razorpay_order_id,
                 razorpayPaymentId: paymentResponse.razorpay_payment_id,
                 razorpaySignature: paymentResponse.razorpay_signature,
             });
 
-            // Update local parcel state with confirmed status
-            setCreatedParcel({ ...parcel, status: "CONFIRMED" });
+            console.log("Payment verified, parcel created:", verifyResult);
+
+            // Set the created parcel from verify result
+            setCreatedParcel({
+                id: verifyResult.parcelId,
+                trackingNumber: verifyResult.trackingNumber,
+                status: "CONFIRMED",
+            });
 
             setPaymentComplete(true);
             toast.success("Payment successful! Your shipment is confirmed.");
         } catch (err) {
             if (err.message === "Payment cancelled by user") {
-                // User cancelled - delete the pending parcel
-                if (createdParcel?.id) {
-                    try {
-                        await cancelParcel(createdParcel.id, "Payment cancelled by user");
-                        setCreatedParcel(null);
-                        console.log("Pending parcel deleted");
-                    } catch (cancelErr) {
-                        console.log("Could not delete pending parcel:", cancelErr.message);
-                    }
-                }
+                // No parcel was created, just inform user
                 toast("Payment cancelled. You can try again.", { icon: "ℹ️" });
             } else {
                 console.error("Payment error:", err);
@@ -375,7 +386,7 @@ export default function NewShipmentPage() {
     const renderStep1 = () => (
         <div className="space-y-8">
             {/* Pickup Details */}
-            <div className="bg-white rounded-xl p-6 shadow-md border border-gray-200">
+            <div className="bg-white rounded-xl p-6 shadow-md border border-gray-200 overflow-visible relative z-50">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
                     <FaMapMarkerAlt className="text-green-600" /> Pickup Details (Sender)
                 </h3>
@@ -428,7 +439,7 @@ export default function NewShipmentPage() {
             </div>
 
             {/* Delivery Details */}
-            <div className="bg-white rounded-xl p-6 shadow-md border border-gray-200">
+            <div className="bg-white rounded-xl p-6 shadow-md border border-gray-200 overflow-visible relative z-40">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
                     <FaMapMarkerAlt className="text-red-600" /> Delivery Details (Receiver)
                 </h3>
@@ -489,9 +500,16 @@ export default function NewShipmentPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1.5">Package Type</label>
-                        <select name="packageType" className="input" value={formData.packageType} onChange={handleChange}>
+                        <select
+                            name="packageType"
+                            className="input"
+                            value={formData.packageType}
+                            onChange={handleChange}
+                        >
                             {PACKAGE_TYPES.map(type => (
-                                <option key={type.value} value={type.value}>{type.icon} {type.label}</option>
+                                <option key={type.value} value={type.value}>
+                                    {type.icon} {type.label}
+                                </option>
                             ))}
                         </select>
                     </div>
@@ -556,25 +574,48 @@ export default function NewShipmentPage() {
             </div>
 
             {/* Toggle: Regular vs Group Buy */}
-            <div className="bg-white rounded-xl p-4 shadow-md border border-gray-200">
+            <div style={{ backgroundColor: '#ffffff', border: '1px solid #e5e7eb' }} className="rounded-xl p-4 shadow-md">
                 <div className="flex gap-3">
                     <button
                         onClick={() => { setIsGroupBuy(false); setSelectedGroup(null); }}
-                        className={`flex-1 py-3 px-4 rounded-xl font-semibold transition-all ${!isGroupBuy
-                            ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg"
-                            : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                            }`}
+                        style={!isGroupBuy ? {
+                            background: 'linear-gradient(to right, #2563eb, #4f46e5)',
+                            color: '#ffffff',
+                            boxShadow: '0 4px 15px rgba(37, 99, 235, 0.4)'
+                        } : {
+                            backgroundColor: '#f3f4f6',
+                            color: '#374151',
+                            border: '2px solid #e5e7eb'
+                        }}
+                        className="flex-1 py-4 px-6 rounded-xl font-bold text-lg transition-all hover:scale-[1.02] flex items-center justify-center gap-2"
                     >
-                        <FaTruck className="inline mr-2" /> Regular Shipping
+                        <FaTruck className="text-xl" /> Regular Shipping
                     </button>
                     <button
                         onClick={() => { setIsGroupBuy(true); setSelectedCompany(null); }}
-                        className={`flex-1 py-3 px-4 rounded-xl font-semibold transition-all ${isGroupBuy
-                            ? "bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg"
-                            : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                            }`}
+                        style={isGroupBuy ? {
+                            background: 'linear-gradient(to right, #16a34a, #059669)',
+                            color: '#ffffff',
+                            boxShadow: '0 4px 15px rgba(22, 163, 74, 0.4)'
+                        } : {
+                            backgroundColor: '#f3f4f6',
+                            color: '#374151',
+                            border: '2px solid #e5e7eb'
+                        }}
+                        className="flex-1 py-4 px-6 rounded-xl font-bold text-lg transition-all hover:scale-[1.02] flex items-center justify-center gap-2"
                     >
-                        <FaUsers className="inline mr-2" /> Group Buy (Save 20-40%)
+                        <FaUsers className="text-xl" />
+                        <span>Group Buy</span>
+                        <span style={{
+                            backgroundColor: isGroupBuy ? 'rgba(255,255,255,0.25)' : '#dcfce7',
+                            color: isGroupBuy ? 'white' : '#16a34a',
+                            padding: '2px 8px',
+                            borderRadius: '9999px',
+                            fontSize: '12px',
+                            fontWeight: '600'
+                        }}>
+                            Save 20-40%
+                        </span>
                     </button>
                 </div>
             </div>
@@ -583,19 +624,19 @@ export default function NewShipmentPage() {
             {!isGroupBuy && (
                 <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                        <h3 className="text-lg font-bold text-gray-900">
+                        <h3 className="text-lg font-bold text-white">
                             Choose Courier Partner
                         </h3>
-                        <p className="text-sm text-gray-500">
+                        <p className="text-sm text-white/70">
                             {companies.length} companies found
                         </p>
                     </div>
 
                     {companies.length === 0 ? (
-                        <div className="bg-white rounded-2xl p-12 text-center shadow-md border border-gray-200">
-                            <FaTruck className="text-6xl text-gray-300 mx-auto mb-4" />
-                            <p className="text-xl font-semibold text-gray-700">No companies available</p>
-                            <p className="text-gray-500 mt-2">No courier partners serve this route yet.</p>
+                        <div style={{ backgroundColor: '#ffffff', border: '1px solid #e5e7eb' }} className="rounded-2xl p-12 text-center shadow-md">
+                            <FaTruck style={{ color: '#d1d5db' }} className="text-6xl mx-auto mb-4" />
+                            <p style={{ color: '#374151' }} className="text-xl font-semibold">No companies available</p>
+                            <p style={{ color: '#6b7280' }} className="mt-2">No courier partners serve this route yet.</p>
                         </div>
                     ) : (
                         <div className="space-y-4">
@@ -608,19 +649,23 @@ export default function NewShipmentPage() {
                                     <div
                                         key={company.companyId || company.id || index}
                                         onClick={() => setSelectedCompany(company)}
-                                        className={`bg-white rounded-2xl p-5 shadow-md border-2 cursor-pointer transition-all hover:shadow-lg ${isSelected
-                                            ? "border-blue-500 ring-4 ring-blue-100 shadow-lg"
-                                            : "border-gray-200 hover:border-blue-300"
+                                        className={`light-content rounded-2xl p-5 cursor-pointer transition-all hover:shadow-lg ${isSelected ? 'ring-4 ring-blue-200' : ''
                                             }`}
+                                        style={{
+                                            border: isSelected ? '3px solid #2563eb' : '2px solid #e5e7eb',
+                                            boxShadow: isSelected ? '0 0 0 4px rgba(37, 99, 235, 0.15), 0 10px 25px -5px rgba(0, 0, 0, 0.1)' : '0 4px 15px -3px rgba(0, 0, 0, 0.1)'
+                                        }}
                                     >
                                         {/* Header Row */}
                                         <div className="flex items-center justify-between mb-4">
                                             <div className="flex items-center gap-4">
                                                 {/* Company Logo/Icon */}
-                                                <div className={`w-14 h-14 rounded-xl flex items-center justify-center text-white font-bold text-xl ${index === 0 ? "bg-gradient-to-br from-blue-500 to-blue-700" :
-                                                    index === 1 ? "bg-gradient-to-br from-purple-500 to-purple-700" :
-                                                        "bg-gradient-to-br from-gray-500 to-gray-700"
-                                                    }`}>
+                                                <div style={{
+                                                    background: index === 0 ? 'linear-gradient(to bottom right, #3b82f6, #1d4ed8)' :
+                                                        index === 1 ? 'linear-gradient(to bottom right, #8b5cf6, #6d28d9)' :
+                                                            'linear-gradient(to bottom right, #6b7280, #374151)',
+                                                    color: '#ffffff'
+                                                }} className="w-14 h-14 rounded-xl flex items-center justify-center font-bold text-xl">
                                                     {company.companyLogoUrl ? (
                                                         <img src={company.companyLogoUrl} alt="" className="w-full h-full object-cover rounded-xl" />
                                                     ) : (
@@ -628,42 +673,42 @@ export default function NewShipmentPage() {
                                                     )}
                                                 </div>
                                                 <div>
-                                                    <h4 className="text-lg font-bold text-gray-900">{company.companyName}</h4>
+                                                    <h4 className="text-lg font-bold text-dark">{company.companyName}</h4>
                                                     <div className="flex items-center gap-3 text-sm">
-                                                        <span className="flex items-center gap-1 text-yellow-600">
+                                                        <span className="flex items-center gap-1 text-warning font-medium">
                                                             <FaStar /> {company.ratingAvg?.toFixed(1) || "New"}
                                                         </span>
-                                                        <span className="text-gray-400">•</span>
-                                                        <span className="text-gray-500">{company.totalDeliveries || 0} deliveries</span>
+                                                        <span className="text-muted">•</span>
+                                                        <span className="text-muted">{company.totalDeliveries || 0} deliveries</span>
                                                     </div>
                                                 </div>
                                             </div>
 
                                             {/* Price & Selection */}
                                             <div className="text-right">
-                                                <p className="text-3xl font-bold text-blue-600">₹{company.estimatedPrice?.toFixed(0) || "TBD"}</p>
-                                                <p className="text-sm text-gray-500">Est. {routeInfo.etaDays} days</p>
+                                                <p className="text-3xl font-bold text-primary">₹{company.estimatedPrice?.toFixed(0) || "TBD"}</p>
+                                                <p className="text-sm text-muted">Est. {routeInfo.etaDays} days</p>
                                             </div>
                                         </div>
 
                                         {/* Pricing Breakdown */}
-                                        <div className="bg-gray-50 rounded-xl p-4 mt-3">
-                                            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Price Breakdown</p>
+                                        <div className="rounded-xl p-4 mt-3" style={{ backgroundColor: '#f3f4f6' }}>
+                                            <p className="text-xs font-semibold uppercase tracking-wide mb-2 text-muted">Price Breakdown</p>
                                             <div className="grid grid-cols-2 gap-2 text-sm">
                                                 <div className="flex justify-between">
-                                                    <span className="text-gray-600">📏 Distance ({routeInfo.distanceKm} km)</span>
-                                                    <span className="font-medium">₹{distancePrice.toFixed(0)}</span>
+                                                    <span className="text-muted">📏 Distance ({routeInfo.distanceKm} km)</span>
+                                                    <span className="font-medium text-dark">₹{distancePrice.toFixed(0)}</span>
                                                 </div>
                                                 <div className="flex justify-between">
-                                                    <span className="text-gray-600">⚖️ Weight ({formData.weightKg} kg)</span>
-                                                    <span className="font-medium">₹{weightPrice.toFixed(0)}</span>
+                                                    <span className="text-muted">⚖️ Weight ({formData.weightKg} kg)</span>
+                                                    <span className="font-medium text-dark">₹{weightPrice.toFixed(0)}</span>
                                                 </div>
                                             </div>
                                         </div>
 
                                         {/* Selection Indicator */}
                                         {isSelected && (
-                                            <div className="flex items-center justify-center gap-2 mt-4 text-blue-600 font-semibold">
+                                            <div className="flex items-center justify-center gap-2 mt-4 font-semibold text-primary">
                                                 <FaCheckCircle className="text-lg" />
                                                 <span>Selected</span>
                                             </div>
@@ -679,51 +724,75 @@ export default function NewShipmentPage() {
             {/* Group Buy Selection */}
             {isGroupBuy && (
                 <div className="space-y-4">
-                    <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                        <FaUsers className="text-green-600" /> Available Group Shipments
+                    <h3 className="text-lg font-bold flex items-center gap-2 text-white">
+                        <FaUsers className="text-green-400" /> Available Group Shipments
                     </h3>
                     {groups.length === 0 ? (
-                        <div className="bg-white rounded-2xl p-12 text-center shadow-md border border-gray-200">
-                            <FaUsers className="text-6xl text-gray-300 mx-auto mb-4" />
-                            <p className="text-xl font-semibold text-gray-700">No groups available</p>
-                            <p className="text-gray-500 mt-2">Try regular shipping instead.</p>
+                        <div className="light-content rounded-2xl p-12 text-center shadow-md">
+                            <FaUsers className="text-6xl mx-auto mb-4 text-muted" />
+                            <p className="text-xl font-semibold text-dark">No groups available</p>
+                            <p className="mt-2 text-muted">Try regular shipping instead.</p>
                         </div>
                     ) : (
                         <div className="grid gap-4">
-                            {groups.map((group, index) => (
-                                <div
-                                    key={group.id || index}
-                                    onClick={() => setSelectedGroup(group)}
-                                    className={`bg-white rounded-2xl p-5 shadow-md border-2 cursor-pointer transition-all ${selectedGroup?.id === group.id
-                                        ? "border-green-500 ring-4 ring-green-100"
-                                        : "border-gray-200 hover:border-green-300"
-                                        }`}
-                                >
-                                    <div className="flex items-center justify-between mb-3">
-                                        <div>
-                                            <h4 className="text-lg font-bold text-gray-900">{group.company?.companyName}</h4>
-                                            <p className="text-sm text-gray-500">{group.sourceCity} → {group.targetCity}</p>
+                            {groups.map((group, index) => {
+                                const isSelected = selectedGroup?.id === group.id;
+                                return (
+                                    <div
+                                        key={group.id || index}
+                                        onClick={() => setSelectedGroup(group)}
+                                        className={`light-content rounded-2xl p-5 cursor-pointer transition-all hover:shadow-lg ${isSelected ? 'ring-4 ring-green-200' : ''
+                                            }`}
+                                        style={{
+                                            border: isSelected ? '3px solid #16a34a' : '2px solid #e5e7eb',
+                                            boxShadow: isSelected ? '0 0 0 4px rgba(22, 163, 74, 0.15), 0 10px 25px -5px rgba(0, 0, 0, 0.1)' : '0 4px 15px -3px rgba(0, 0, 0, 0.1)'
+                                        }}
+                                    >
+                                        <div className="flex items-center justify-between mb-3">
+                                            <div>
+                                                <h4 className="text-lg font-bold text-dark">{group.companyName || "Company"}</h4>
+                                                <p className="text-sm text-muted">{group.sourceCity} · {group.targetCity}</p>
+                                            </div>
+                                            <div style={{ backgroundColor: '#dcfce7', color: '#15803d' }} className="px-4 py-2 rounded-full font-bold text-lg">
+                                                {group.discountPercentage}% OFF
+                                            </div>
                                         </div>
-                                        <div className="bg-green-100 text-green-700 px-4 py-2 rounded-full font-bold">
-                                            {group.discountPercentage}% OFF
+                                        <div className="flex items-center justify-between text-sm mb-2">
+                                            <span className="flex items-center gap-1 text-muted">
+                                                <FaUsers className="text-primary" /> {group.currentMembers}/{group.targetMembers} members
+                                            </span>
+                                            {group.companyRating && (
+                                                <span className="flex items-center gap-1 font-medium text-warning">
+                                                    ⭐ {parseFloat(group.companyRating).toFixed(1)}
+                                                </span>
+                                            )}
                                         </div>
+                                        <div className="flex items-center justify-between text-sm mb-3">
+                                            <span className="text-muted">
+                                                📅 Deadline: {new Date(group.deadline).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                                            </span>
+                                            <span className="font-medium text-danger">
+                                                ⏰ Closes in {Math.ceil((new Date(group.deadline) - new Date()) / (1000 * 60 * 60))}h
+                                            </span>
+                                        </div>
+                                        <div style={{ backgroundColor: '#e5e7eb' }} className="h-3 rounded-full overflow-hidden">
+                                            <div
+                                                style={{
+                                                    background: 'linear-gradient(to right, #4ade80, #16a34a)',
+                                                    width: `${(group.currentMembers / group.targetMembers) * 100}%`
+                                                }}
+                                                className="h-full transition-all"
+                                            />
+                                        </div>
+                                        {isSelected && (
+                                            <div className="flex items-center justify-center gap-2 mt-4 font-semibold text-success">
+                                                <FaCheckCircle className="text-lg" />
+                                                <span>Selected</span>
+                                            </div>
+                                        )}
                                     </div>
-                                    <div className="flex items-center justify-between text-sm mb-3">
-                                        <span className="text-gray-600">
-                                            👥 {group.currentMembers}/{group.targetMembers} members
-                                        </span>
-                                        <span className="text-orange-600 font-medium">
-                                            ⏰ Closes in {Math.ceil((new Date(group.deadline) - new Date()) / (1000 * 60 * 60))}h
-                                        </span>
-                                    </div>
-                                    <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                                        <div
-                                            className="h-full bg-gradient-to-r from-green-400 to-green-600 transition-all"
-                                            style={{ width: `${(group.currentMembers / group.targetMembers) * 100}%` }}
-                                        />
-                                    </div>
-                                </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     )}
                 </div>
@@ -734,9 +803,16 @@ export default function NewShipmentPage() {
     // Step 3: Payment
     const renderStep3 = () => {
         // Calculate price breakdown from company rates
-        const company = isGroupBuy ? selectedGroup?.company : selectedCompany;
-        const distancePrice = (company?.baseRatePerKm || 10) * routeInfo.distanceKm;
-        const weightPrice = (company?.baseRatePerKg || 50) * parseFloat(formData.weightKg);
+        // For group buy, use rates from the selected group's company
+        const ratePerKm = isGroupBuy
+            ? (selectedGroup?.baseRatePerKm || 10)
+            : (selectedCompany?.baseRatePerKm || 10);
+        const ratePerKg = isGroupBuy
+            ? (selectedGroup?.baseRatePerKg || 50)
+            : (selectedCompany?.baseRatePerKg || 50);
+
+        const distancePrice = ratePerKm * routeInfo.distanceKm;
+        const weightPrice = ratePerKg * parseFloat(formData.weightKg);
         const subtotal = distancePrice + weightPrice;
         const groupDiscount = isGroupBuy ? (subtotal * (selectedGroup?.discountPercentage || 0) / 100) : 0;
         const baseAfterDiscount = subtotal - groupDiscount;
@@ -746,32 +822,32 @@ export default function NewShipmentPage() {
         return (
             <div className="space-y-6">
                 {paymentComplete ? (
-                    <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl p-12 shadow-lg border border-green-200 text-center">
-                        <div className="w-24 h-24 bg-gradient-to-r from-green-400 to-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
-                            <FaCheck className="text-5xl text-white" />
+                    <div className="light-content rounded-2xl p-12 shadow-lg text-center" style={{ border: '2px solid #86efac' }}>
+                        <div className="w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg" style={{ background: 'linear-gradient(to right, #4ade80, #10b981)' }}>
+                            <FaCheck className="text-5xl" style={{ color: '#ffffff' }} />
                         </div>
-                        <h2 className="text-3xl font-bold text-gray-900 mb-2">Payment Successful!</h2>
-                        <p className="text-gray-600 mb-8">Your shipment has been booked and confirmed.</p>
+                        <h2 className="text-3xl font-bold text-dark mb-2">Payment Successful!</h2>
+                        <p className="text-muted mb-8">Your shipment has been booked and confirmed.</p>
 
                         {/* Tracking Number */}
-                        <div className="bg-white rounded-2xl p-6 mb-6 shadow-md">
-                            <p className="text-sm text-gray-500 mb-1">Tracking Number</p>
-                            <p className="text-3xl font-mono font-bold text-primary-600">{createdParcel?.trackingNumber}</p>
+                        <div className="rounded-2xl p-6 mb-6 shadow-md" style={{ backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0' }}>
+                            <p className="text-sm text-muted mb-1">Tracking Number</p>
+                            <p className="text-3xl font-mono font-bold text-primary">{createdParcel?.trackingNumber}</p>
                         </div>
 
                         {/* Receipt Card */}
-                        <div className="bg-white rounded-2xl p-6 mb-6 shadow-md">
-                            <div className="flex items-center justify-between border-b border-gray-100 pb-4 mb-4">
-                                <span className="text-gray-600">Transaction ID</span>
-                                <span className="font-mono text-sm">TXN{Date.now()}</span>
+                        <div className="rounded-2xl p-6 mb-6 shadow-md text-left" style={{ backgroundColor: '#f9fafb', border: '1px solid #e5e7eb' }}>
+                            <div className="flex items-center justify-between pb-4 mb-4" style={{ borderBottom: '1px solid #e5e7eb' }}>
+                                <span className="text-muted">Transaction ID</span>
+                                <span className="font-mono text-sm text-dark">TXN{Date.now()}</span>
                             </div>
-                            <div className="flex items-center justify-between border-b border-gray-100 pb-4 mb-4">
-                                <span className="text-gray-600">Date & Time</span>
-                                <span className="font-medium">{new Date().toLocaleString()}</span>
+                            <div className="flex items-center justify-between pb-4 mb-4" style={{ borderBottom: '1px solid #e5e7eb' }}>
+                                <span className="text-muted">Date & Time</span>
+                                <span className="font-medium text-dark">{new Date().toLocaleString()}</span>
                             </div>
                             <div className="flex items-center justify-between">
-                                <span className="text-gray-600">Amount Paid</span>
-                                <span className="text-2xl font-bold text-green-600">₹{createdParcel?.finalPrice?.toFixed(2) || finalTotal.toFixed(2)}</span>
+                                <span className="text-muted">Amount Paid</span>
+                                <span className="text-2xl font-bold text-success">₹{createdParcel?.finalPrice?.toFixed(2) || finalTotal.toFixed(2)}</span>
                             </div>
                         </div>
 
@@ -779,7 +855,8 @@ export default function NewShipmentPage() {
                         <div className="flex flex-wrap gap-3 justify-center">
                             <button
                                 onClick={() => navigate(`/customer/track/${createdParcel?.trackingNumber}`)}
-                                className="btn-primary py-3 px-6"
+                                className="py-3 px-6 font-semibold rounded-xl shadow-md"
+                                style={{ background: 'linear-gradient(to right, #2563eb, #4f46e5)', color: '#ffffff' }}
                             >
                                 📍 Track Shipment
                             </button>
@@ -807,92 +884,97 @@ export default function NewShipmentPage() {
                                         toast.error("Failed to download receipt");
                                     }
                                 }}
-                                className="btn-outline py-3 px-6"
+                                className="py-3 px-6 font-semibold rounded-xl"
+                                style={{ backgroundColor: '#f3f4f6', color: '#374151', border: '2px solid #e5e7eb' }}
                             >
                                 📥 Download Receipt
                             </button>
                         </div>
 
-                        <p className="text-sm text-gray-500 mt-6">
+                        <p className="text-sm text-muted mt-6">
                             📧 A confirmation email and SMS has been sent to you.
                         </p>
                     </div>
                 ) : (
-                    <div className="bg-white rounded-2xl p-8 shadow-lg border border-gray-200">
-                        <h3 className="text-2xl font-bold text-gray-900 mb-6">Order Summary</h3>
+                    <div className="light-content rounded-2xl p-8 shadow-lg">
+                        <h3 className="text-2xl font-bold text-dark mb-6">Order Summary</h3>
 
                         {/* Route & Company Info */}
-                        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-5 mb-6">
+                        <div style={{ backgroundColor: '#eff6ff' }} className="rounded-xl p-5 mb-6">
                             <div className="flex items-center justify-between mb-4">
                                 <div>
-                                    <p className="text-sm text-gray-500">Route</p>
-                                    <p className="text-lg font-bold">{formData.pickupCity} → {formData.deliveryCity}</p>
+                                    <p className="text-sm text-muted">Route</p>
+                                    <p className="text-lg font-bold text-dark">{formData.pickupCity} → {formData.deliveryCity}</p>
                                 </div>
                                 <div className="text-right">
-                                    <p className="text-sm text-gray-500">Distance</p>
-                                    <p className="text-lg font-bold">{routeInfo.distanceKm} km</p>
+                                    <p className="text-sm text-muted">Distance</p>
+                                    <p className="text-lg font-bold text-dark">{routeInfo.distanceKm} km</p>
                                 </div>
                             </div>
                             <div className="flex items-center justify-between">
                                 <div>
-                                    <p className="text-sm text-gray-500">Courier Partner</p>
-                                    <p className="font-semibold">{company?.companyName}</p>
+                                    <p className="text-sm text-muted">Courier Partner</p>
+                                    <p className="font-semibold text-dark">{isGroupBuy ? selectedGroup?.companyName : selectedCompany?.companyName}</p>
                                 </div>
                                 <div className="text-right">
-                                    <p className="text-sm text-gray-500">Est. Delivery</p>
-                                    <p className="font-semibold">{routeInfo.etaDays} days</p>
+                                    <p className="text-sm text-muted">Est. Delivery</p>
+                                    <p className="font-semibold text-dark">{routeInfo.etaDays} days</p>
                                 </div>
                             </div>
                         </div>
 
                         {/* Package Info */}
-                        <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl mb-6">
-                            <div className="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center">
-                                <FaBox className="text-xl text-primary-600" />
+                        <div className="flex items-center gap-4 p-4 rounded-xl mb-6" style={{ backgroundColor: '#f3f4f6' }}>
+                            <div className="w-12 h-12 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#dbeafe' }}>
+                                <FaBox className="text-xl text-primary" />
                             </div>
                             <div>
-                                <p className="font-semibold">{formData.packageType}</p>
-                                <p className="text-sm text-gray-500">{formData.weightKg} kg {formData.isFragile && "• Fragile"}</p>
+                                <p className="font-semibold text-dark">{formData.packageType}</p>
+                                <p className="text-sm text-muted">{formData.weightKg} kg {formData.isFragile && "• Fragile"}</p>
                             </div>
                         </div>
 
                         {/* Price Breakdown */}
-                        <div className="border-t border-b border-gray-100 py-4 mb-4 space-y-3">
-                            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Price Breakdown</p>
+                        <div className="py-4 mb-4 space-y-3" style={{ borderTop: '1px solid #e5e7eb', borderBottom: '1px solid #e5e7eb' }}>
+                            <p className="text-xs font-semibold uppercase tracking-wide text-muted">Price Breakdown</p>
                             <div className="flex justify-between">
-                                <span className="text-gray-600">📏 Distance Charge ({routeInfo.distanceKm} km × ₹{company?.baseRatePerKm || 10}/km)</span>
-                                <span className="font-medium">₹{distancePrice.toFixed(2)}</span>
+                                <span className="text-muted">📏 Distance Charge ({routeInfo.distanceKm} km × ₹{ratePerKm}/km)</span>
+                                <span className="font-medium text-dark">₹{distancePrice.toFixed(2)}</span>
                             </div>
                             <div className="flex justify-between">
-                                <span className="text-gray-600">⚖️ Weight Charge ({formData.weightKg} kg × ₹{company?.baseRatePerKg || 50}/kg)</span>
-                                <span className="font-medium">₹{weightPrice.toFixed(2)}</span>
+                                <span className="text-muted">⚖️ Weight Charge ({formData.weightKg} kg × ₹{ratePerKg}/kg)</span>
+                                <span className="font-medium text-dark">₹{weightPrice.toFixed(2)}</span>
                             </div>
                             {isGroupBuy && (
-                                <div className="flex justify-between text-green-600">
+                                <div className="flex justify-between text-success">
                                     <span>🎉 Group Discount ({selectedGroup?.discountPercentage}%)</span>
                                     <span className="font-medium">-₹{groupDiscount.toFixed(2)}</span>
                                 </div>
                             )}
-                            <div className="flex justify-between text-gray-600">
+                            <div className="flex justify-between text-muted">
                                 <span>🧾 GST (18%)</span>
-                                <span className="font-medium">₹{gstAmount.toFixed(2)}</span>
+                                <span className="font-medium text-dark">₹{gstAmount.toFixed(2)}</span>
                             </div>
                         </div>
 
                         {/* Total */}
                         <div className="flex justify-between items-center py-4">
                             <div>
-                                <span className="text-xl font-bold text-gray-900">Total Payable</span>
-                                <p className="text-xs text-gray-500">Including all taxes</p>
+                                <span className="text-xl font-bold text-dark">Total Payable</span>
+                                <p className="text-xs text-muted">Including all taxes</p>
                             </div>
-                            <span className="text-3xl font-bold text-primary-600">₹{finalTotal.toFixed(2)}</span>
+                            <span className="text-3xl font-bold text-primary">₹{finalTotal.toFixed(2)}</span>
                         </div>
 
                         {/* Pay Button */}
                         <button
                             onClick={handlePayment}
                             disabled={loading}
-                            className="w-full mt-6 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-lg font-bold rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="w-full mt-6 py-4 text-lg font-bold rounded-xl transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                            style={{
+                                background: 'linear-gradient(to right, #2563eb, #4f46e5)',
+                                color: '#ffffff'
+                            }}
                         >
                             {loading ? (
                                 <span className="flex items-center justify-center gap-2">
@@ -904,9 +986,28 @@ export default function NewShipmentPage() {
                         </button>
 
                         {/* Security Note */}
-                        <div className="flex items-center justify-center gap-2 mt-4 text-sm text-gray-500">
-                            <FaShieldAlt className="text-green-500" />
+                        <div className="flex items-center justify-center gap-2 mt-4 text-sm text-muted">
+                            <FaShieldAlt className="text-success" />
                             <span>100% Secure Payment via Razorpay</span>
+                        </div>
+
+                        {/* Cancel Button - Order is not created yet */}
+                        <div className="mt-6 pt-6" style={{ borderTop: '1px solid #e5e7eb' }}>
+                            <p className="text-xs text-muted text-center mb-3">
+                                Changed your mind? No order has been created yet.
+                            </p>
+                            <button
+                                onClick={() => {
+                                    if (window.confirm("Are you sure you want to cancel? No charges will be made.")) {
+                                        navigate("/customer/dashboard");
+                                    }
+                                }}
+                                disabled={loading}
+                                className="w-full py-3 font-medium rounded-xl transition disabled:opacity-50"
+                                style={{ backgroundColor: '#f3f4f6', color: '#4b5563' }}
+                            >
+                                Cancel & Go Back
+                            </button>
                         </div>
                     </div>
                 )}
@@ -923,7 +1024,7 @@ export default function NewShipmentPage() {
                     <p className="text-sm text-gray-500 mt-1">Book your parcel delivery in 3 easy steps</p>
                 </div>
                 {step > 1 && !paymentComplete && (
-                    <button onClick={() => setStep(step - 1)} className="btn-outline flex items-center gap-2">
+                    <button onClick={() => { setLoading(false); setStep(step - 1); }} className="btn-outline flex items-center gap-2">
                         <FaArrowLeft /> Back
                     </button>
                 )}

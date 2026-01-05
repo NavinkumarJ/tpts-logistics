@@ -86,6 +86,9 @@ public class RatingService {
                 .agentPunctualityRating(request.getAgentPunctualityRating())
                 .agentBehaviorRating(request.getAgentBehaviorRating())
                 .agentHandlingRating(request.getAgentHandlingRating())
+                .hasRatedDeliveryAgent(request.getAgentRating() != null) // Mark delivery agent as rated if rating
+                                                                         // provided
+                .hasRatedCompany(true) // Mark company as rated in final delivery rating
                 .overallRating(request.getOverallRating())
                 .overallReview(request.getOverallReview())
                 .wouldRecommend(request.getWouldRecommend())
@@ -310,20 +313,46 @@ public class RatingService {
     }
 
     /**
-     * Get public ratings for agent
+     * Get public ratings for agent (includes both delivery and pickup agent
+     * ratings)
      */
     public List<RatingDTO> getAgentPublicRatings(Long agentId) {
-        return ratingRepository.findPublicRatingsByAgent(agentId)
-                .stream().map(this::mapToDTO).collect(Collectors.toList());
+        // Get delivery agent ratings
+        List<Rating> deliveryRatings = ratingRepository.findPublicRatingsByAgent(agentId);
+
+        // Get pickup agent ratings
+        List<Rating> pickupRatings = ratingRepository.findPickupAgentRatings(agentId);
+
+        // Combine and sort by createdAt descending
+        List<Rating> allRatings = new java.util.ArrayList<>(deliveryRatings);
+        allRatings.addAll(pickupRatings);
+        allRatings.sort((a, b) -> b.getCreatedAt().compareTo(a.getCreatedAt()));
+
+        // Remove duplicates (same parcel might appear in both if agent was both pickup
+        // and delivery)
+        List<Rating> uniqueRatings = allRatings.stream()
+                .collect(Collectors.toMap(
+                        r -> r.getParcel().getId(),
+                        r -> r,
+                        (existing, duplicate) -> existing // keep first occurrence
+                ))
+                .values()
+                .stream()
+                .sorted((a, b) -> b.getCreatedAt().compareTo(a.getCreatedAt()))
+                .collect(Collectors.toList());
+
+        return uniqueRatings.stream().map(this::mapToDTO).collect(Collectors.toList());
     }
 
     /**
-     * Get company's all ratings (for company admin)
+     * Get company's all ratings (for company admin) - returns ALL ratings including
+     * agent ratings for the company
      */
     public List<RatingDTO> getCompanyAllRatings(User currentUser) {
         CompanyAdmin company = companyRepository.findByUser(currentUser)
                 .orElseThrow(() -> new ResourceNotFoundException("Company profile not found"));
 
+        // Get all ratings for this company (including agent-only ratings)
         return ratingRepository.findByCompanyIdOrderByCreatedAtDesc(company.getId())
                 .stream().map(this::mapToDTO).collect(Collectors.toList());
     }
@@ -377,23 +406,67 @@ public class RatingService {
     }
 
     /**
-     * Get agent rating summary
+     * Get agent rating summary (includes both delivery and pickup agent ratings)
+     * Handles the case where same agent is both pickup and delivery agent for same
+     * parcel
      */
     public RatingSummaryDTO getAgentRatingSummary(Long agentId) {
         DeliveryAgent agent = agentRepository.findById(agentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Agent", "id", agentId));
 
-        Double avgRating = ratingRepository.getAverageAgentRating(agentId);
-        Long totalRatings = ratingRepository.countByAgentId(agentId);
+        // Get all unique ratings for this agent (combines delivery and pickup, removes
+        // duplicates)
+        List<Rating> allRatings = getAgentPublicRatings(agentId).stream()
+                .map(dto -> ratingRepository.findById(dto.getId()).orElse(null))
+                .filter(r -> r != null)
+                .collect(Collectors.toList());
 
-        // Get distribution
+        // Calculate combined statistics from unique ratings
+        long totalRatings = allRatings.size();
+
+        // Calculate combined average
+        Double avgRating = null;
+        if (totalRatings > 0) {
+            double totalSum = 0;
+            long validCount = 0;
+            for (Rating r : allRatings) {
+                // Use pickup agent rating if this agent is the pickup agent, else use delivery
+                // rating
+                Integer rating = null;
+                if (r.getPickupAgent() != null && r.getPickupAgent().getId().equals(agentId)
+                        && r.getPickupAgentRating() != null) {
+                    rating = r.getPickupAgentRating();
+                } else if (r.getAgent() != null && r.getAgent().getId().equals(agentId) && r.getAgentRating() != null) {
+                    rating = r.getAgentRating();
+                }
+                if (rating != null) {
+                    totalSum += rating;
+                    validCount++;
+                }
+            }
+            if (validCount > 0) {
+                avgRating = totalSum / validCount;
+            }
+        }
+
+        // Get distribution from unique ratings
         Map<Integer, Long> distribution = new HashMap<>();
         Map<Integer, Double> percentages = new HashMap<>();
 
         for (int i = 1; i <= 5; i++) {
-            Long count = ratingRepository.countByAgentIdAndAgentRating(agentId, i);
-            distribution.put(i, count);
-            percentages.put(i, totalRatings > 0 ? (count * 100.0 / totalRatings) : 0.0);
+            final int star = i;
+            long countForStar = allRatings.stream().filter(r -> {
+                Integer rating = null;
+                if (r.getPickupAgent() != null && r.getPickupAgent().getId().equals(agentId)
+                        && r.getPickupAgentRating() != null) {
+                    rating = r.getPickupAgentRating();
+                } else if (r.getAgent() != null && r.getAgent().getId().equals(agentId) && r.getAgentRating() != null) {
+                    rating = r.getAgentRating();
+                }
+                return rating != null && rating == star;
+            }).count();
+            distribution.put(i, countForStar);
+            percentages.put(i, totalRatings > 0 ? (countForStar * 100.0 / totalRatings) : 0.0);
         }
 
         return RatingSummaryDTO.builder()
@@ -432,33 +505,262 @@ public class RatingService {
     }
 
     // ==========================================
+    // Pickup Agent Rating (Group Shipment)
+    // ==========================================
+
+    /**
+     * Rate pickup agent for group shipment (when parcel reaches warehouse)
+     */
+    @Transactional
+    public void ratePickupAgent(Long parcelId, Long agentId, Integer rating, String comment, User currentUser) {
+        // Get customer
+        Customer customer = customerRepository.findByUser(currentUser)
+                .orElseThrow(() -> new ResourceNotFoundException("Customer profile not found"));
+
+        // Get parcel
+        Parcel parcel = parcelRepository.findById(parcelId)
+                .orElseThrow(() -> new ResourceNotFoundException("Parcel", "id", parcelId));
+
+        // Verify ownership
+        if (!parcel.getCustomer().getId().equals(customer.getId())) {
+            throw new ForbiddenException("You can only rate your own deliveries");
+        }
+
+        // Verify parcel is at warehouse or beyond (group shipment)
+        if (parcel.getStatus() != ParcelStatus.AT_WAREHOUSE &&
+                parcel.getStatus() != ParcelStatus.OUT_FOR_DELIVERY &&
+                parcel.getStatus() != ParcelStatus.DELIVERED) {
+            throw new BadRequestException("You can only rate the pickup agent after parcel reaches warehouse");
+        }
+
+        // Get agent
+        DeliveryAgent agent = agentRepository.findById(agentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Agent", "id", agentId));
+
+        // Check if rating already exists for this parcel - update it instead of
+        // creating new
+        Rating existingRating = ratingRepository.findByParcelId(parcelId).orElse(null);
+
+        if (existingRating != null) {
+            // Update existing rating with pickup agent info
+            if (existingRating.getHasRatedPickupAgent() != null && existingRating.getHasRatedPickupAgent()) {
+                throw new BadRequestException("You have already rated the pickup agent for this parcel");
+            }
+            // Store pickup agent and rating in dedicated fields
+            existingRating.setPickupAgent(agent);
+            existingRating.setPickupAgentRating(rating);
+            existingRating.setPickupAgentReview(comment);
+            existingRating.setHasRatedPickupAgent(true);
+            ratingRepository.save(existingRating);
+        } else {
+            // Create new rating for pickup agent
+            Rating pickupRating = Rating.builder()
+                    .parcel(parcel)
+                    .customer(customer)
+                    .company(parcel.getCompany())
+                    .pickupAgent(agent)
+                    .pickupAgentRating(rating)
+                    .pickupAgentReview(comment)
+                    // companyRating and overallRating left null - will be set when company is rated
+                    .hasRatedPickupAgent(true) // Mark pickup agent as rated
+                    .isPublic(true)
+                    .isVerified(true)
+                    .build();
+
+            ratingRepository.save(pickupRating);
+        }
+
+        // Update agent's average rating using the proper method
+        updateAgentRating(agent.getId());
+
+        log.info("Pickup agent {} rated {} stars by customer {} for parcel {}",
+                agent.getFullName(), rating, customer.getFullName(), parcel.getTrackingNumber());
+    }
+
+    /**
+     * Rate delivery agent for group shipment (when parcel is delivered)
+     */
+    @Transactional
+    public void rateDeliveryAgent(Long parcelId, Long agentId, Integer rating, String comment, User currentUser) {
+        // Get customer
+        Customer customer = customerRepository.findByUser(currentUser)
+                .orElseThrow(() -> new ResourceNotFoundException("Customer profile not found"));
+
+        // Get parcel
+        Parcel parcel = parcelRepository.findById(parcelId)
+                .orElseThrow(() -> new ResourceNotFoundException("Parcel", "id", parcelId));
+
+        // Verify ownership
+        if (!parcel.getCustomer().getId().equals(customer.getId())) {
+            throw new ForbiddenException("You can only rate your own deliveries");
+        }
+
+        // Verify parcel is delivered
+        if (parcel.getStatus() != ParcelStatus.DELIVERED) {
+            throw new BadRequestException("You can only rate the delivery agent after parcel is delivered");
+        }
+
+        // Get agent
+        DeliveryAgent agent = agentRepository.findById(agentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Agent", "id", agentId));
+
+        // Check if rating already exists for this parcel - update it instead of
+        // creating new
+        Rating existingRating = ratingRepository.findByParcelId(parcelId).orElse(null);
+
+        if (existingRating != null) {
+            // Update existing rating with delivery agent info
+            if (existingRating.getHasRatedDeliveryAgent() != null && existingRating.getHasRatedDeliveryAgent()) {
+                throw new BadRequestException("You have already rated the delivery agent for this parcel");
+            }
+            existingRating.setAgent(agent);
+            existingRating.setAgentRating(rating);
+            existingRating.setAgentReview(comment);
+            existingRating.setHasRatedDeliveryAgent(true);
+            ratingRepository.save(existingRating);
+        } else {
+            // Create new rating for delivery agent
+            Rating deliveryRating = Rating.builder()
+                    .parcel(parcel)
+                    .customer(customer)
+                    .company(parcel.getCompany())
+                    .agent(agent)
+                    .agentRating(rating)
+                    .agentReview(comment)
+                    // companyRating and overallRating left null - will be set when company is rated
+                    .hasRatedDeliveryAgent(true)
+                    .isPublic(true)
+                    .isVerified(true)
+                    .build();
+
+            ratingRepository.save(deliveryRating);
+        }
+
+        // Update agent's average rating using the proper method
+        updateAgentRating(agent.getId());
+
+        log.info("Delivery agent {} rated {} stars by customer {} for parcel {}",
+                agent.getFullName(), rating, customer.getFullName(), parcel.getTrackingNumber());
+    }
+
+    /**
+     * Rate company for group shipment (when parcel is delivered)
+     */
+    @Transactional
+    public void rateCompany(Long parcelId, Long companyId, Integer rating, String comment, User currentUser) {
+        // Get customer
+        Customer customer = customerRepository.findByUser(currentUser)
+                .orElseThrow(() -> new ResourceNotFoundException("Customer profile not found"));
+
+        // Get parcel
+        Parcel parcel = parcelRepository.findById(parcelId)
+                .orElseThrow(() -> new ResourceNotFoundException("Parcel", "id", parcelId));
+
+        // Verify ownership
+        if (!parcel.getCustomer().getId().equals(customer.getId())) {
+            throw new ForbiddenException("You can only rate your own deliveries");
+        }
+
+        // Verify parcel is delivered
+        if (parcel.getStatus() != ParcelStatus.DELIVERED) {
+            throw new BadRequestException("You can only rate the company after parcel is delivered");
+        }
+
+        // Verify company matches
+        if (!parcel.getCompany().getId().equals(companyId)) {
+            throw new BadRequestException("Company ID does not match parcel's company");
+        }
+
+        // Check if rating already exists for this parcel - update it instead of
+        // creating new
+        Rating existingRating = ratingRepository.findByParcelId(parcelId).orElse(null);
+
+        if (existingRating != null) {
+            // Update existing rating with company info
+            if (existingRating.getHasRatedCompany() != null && existingRating.getHasRatedCompany()) {
+                throw new BadRequestException("You have already rated the company for this parcel");
+            }
+            existingRating.setCompanyRating(rating);
+            existingRating.setCompanyReview(comment);
+            existingRating.setHasRatedCompany(true);
+            ratingRepository.save(existingRating);
+        } else {
+            // Create new rating for company
+            Rating companyRating = Rating.builder()
+                    .parcel(parcel)
+                    .customer(customer)
+                    .company(parcel.getCompany())
+                    .companyRating(rating)
+                    .companyReview(comment)
+                    .overallRating(rating) // Required field - use same rating
+                    .hasRatedCompany(true)
+                    .isPublic(true)
+                    .isVerified(true)
+                    .build();
+
+            ratingRepository.save(companyRating);
+        }
+
+        // Update company's average rating using the proper method
+        updateCompanyRating(companyId);
+
+        log.info("Company {} rated {} stars by customer {} for parcel {}",
+                parcel.getCompany().getCompanyName(), rating, customer.getFullName(), parcel.getTrackingNumber());
+    }
+
+    // ==========================================
     // Helper Methods
     // ==========================================
 
     /**
-     * Update company's average rating
+     * Update company's average rating (using companyRating from
+     * hasRatedCompany=true)
      */
     private void updateCompanyRating(Long companyId) {
-        Double avgRating = ratingRepository.getAverageOverallRatingByCompany(companyId);
-        if (avgRating != null) {
-            CompanyAdmin company = companyRepository.findById(companyId).orElse(null);
-            if (company != null) {
-                company.setRatingAvg(BigDecimal.valueOf(avgRating).setScale(1, RoundingMode.HALF_UP));
-                companyRepository.save(company);
-            }
+        Double avgRating = ratingRepository.getAverageCompanyRating(companyId);
+        CompanyAdmin company = companyRepository.findById(companyId).orElse(null);
+        if (company != null && avgRating != null) {
+            company.setRatingAvg(BigDecimal.valueOf(avgRating).setScale(1, RoundingMode.HALF_UP));
+            companyRepository.save(company);
+            log.info("Company {} rating updated to avg={}", company.getCompanyName(), avgRating);
+        } else if (company != null) {
+            log.warn("Could not update company {} rating - no valid ratings found", company.getCompanyName());
         }
     }
 
     /**
-     * Update agent's average rating
+     * Update agent's average rating (includes both delivery and pickup agent
+     * ratings)
      */
     private void updateAgentRating(Long agentId) {
-        Double avgRating = ratingRepository.getAverageAgentRating(agentId);
-        if (avgRating != null) {
+        // Get delivery agent ratings
+        Double deliveryAvg = ratingRepository.getAverageAgentRating(agentId);
+        Long deliveryCount = ratingRepository.countByAgentId(agentId);
+
+        // Get pickup agent ratings
+        Double pickupAvg = ratingRepository.getAveragePickupAgentRating(agentId);
+        Long pickupCount = ratingRepository.countPickupAgentRatings(agentId);
+
+        // Calculate combined average
+        long totalCount = (deliveryCount != null ? deliveryCount : 0) + (pickupCount != null ? pickupCount : 0);
+
+        if (totalCount > 0) {
+            double totalSum = 0;
+            if (deliveryAvg != null && deliveryCount != null) {
+                totalSum += deliveryAvg * deliveryCount;
+            }
+            if (pickupAvg != null && pickupCount != null) {
+                totalSum += pickupAvg * pickupCount;
+            }
+
+            double combinedAvg = totalSum / totalCount;
+
             DeliveryAgent agent = agentRepository.findById(agentId).orElse(null);
             if (agent != null) {
-                agent.setRatingAvg(BigDecimal.valueOf(avgRating).setScale(1, RoundingMode.HALF_UP));
+                agent.setRatingAvg(BigDecimal.valueOf(combinedAvg).setScale(1, RoundingMode.HALF_UP));
                 agentRepository.save(agent);
+                log.info("Agent {} rating updated: avg={} (delivery={}, pickup={})",
+                        agent.getFullName(), combinedAvg, deliveryAvg, pickupAvg);
             }
         }
     }
@@ -476,20 +778,30 @@ public class RatingService {
                 .customerName(rating.getCustomer().getFullName())
                 .companyId(rating.getCompany().getId())
                 .companyName(rating.getCompany().getCompanyName())
+                // Delivery agent info
                 .agentId(rating.getAgent() != null ? rating.getAgent().getId() : null)
                 .agentName(rating.getAgent() != null ? rating.getAgent().getFullName() : null)
+                // Pickup agent info
+                .pickupAgentId(rating.getPickupAgent() != null ? rating.getPickupAgent().getId() : null)
+                .pickupAgentName(rating.getPickupAgent() != null ? rating.getPickupAgent().getFullName() : null)
+                // Company ratings
                 .companyRating(rating.getCompanyRating())
                 .companyReview(rating.getCompanyReview())
                 .companyPackagingRating(rating.getCompanyPackagingRating())
                 .companyPricingRating(rating.getCompanyPricingRating())
                 .companyCommunicationRating(rating.getCompanyCommunicationRating())
-                .averageCompanyRating(rating.getAverageCompanyRating())
+                .averageCompanyRating(rating.getCompanyRating() != null ? rating.getAverageCompanyRating() : null)
+                // Delivery agent ratings
                 .agentRating(rating.getAgentRating())
                 .agentReview(rating.getAgentReview())
                 .agentPunctualityRating(rating.getAgentPunctualityRating())
                 .agentBehaviorRating(rating.getAgentBehaviorRating())
                 .agentHandlingRating(rating.getAgentHandlingRating())
-                .averageAgentRating(rating.getAverageAgentRating())
+                .averageAgentRating(rating.getAgentRating() != null ? rating.getAverageAgentRating() : null)
+                // Pickup agent ratings
+                .pickupAgentRating(rating.getPickupAgentRating())
+                .pickupAgentReview(rating.getPickupAgentReview())
+                // Overall
                 .overallRating(rating.getOverallRating())
                 .overallReview(rating.getOverallReview())
                 .wouldRecommend(rating.getWouldRecommend())
@@ -503,8 +815,13 @@ public class RatingService {
                 .isVerified(rating.getIsVerified())
                 .createdAt(rating.getCreatedAt())
                 .updatedAt(rating.getUpdatedAt())
-                .hasAgentRating(rating.hasAgentRating())
+                // Helper flags
+                .hasAgentRating(rating.getAgentRating() != null || rating.getPickupAgentRating() != null)
                 .hasCompanyResponse(rating.hasCompanyResponse())
+                // Rating status flags
+                .hasRatedPickupAgent(rating.getHasRatedPickupAgent() != null && rating.getHasRatedPickupAgent())
+                .hasRatedDeliveryAgent(rating.getHasRatedDeliveryAgent() != null && rating.getHasRatedDeliveryAgent())
+                .hasRatedCompany(rating.getHasRatedCompany() != null && rating.getHasRatedCompany())
                 .build();
     }
 }

@@ -22,8 +22,11 @@ public class GroupPublicDTO {
     private String groupCode;
 
     // Company info
+    private Long companyId;
     private String companyName;
     private BigDecimal companyRating;
+    private BigDecimal baseRatePerKm;
+    private BigDecimal baseRatePerKg;
 
     // Route
     private String sourceCity;

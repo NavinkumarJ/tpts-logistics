@@ -76,14 +76,24 @@ public interface EarningRepository extends JpaRepository<Earning, Long> {
                         @Param("startDate") LocalDateTime startDate,
                         @Param("endDate") LocalDateTime endDate);
 
-        // Sum platform commission
+        // Sum platform commission (include PENDING so admin sees expected commission)
         @Query("SELECT COALESCE(SUM(e.platformCommission), 0) FROM Earning e " +
-                        "WHERE e.status = 'CLEARED'")
+                        "WHERE e.status IN ('PENDING', 'CLEARED')")
         BigDecimal sumPlatformCommission();
 
         @Query("SELECT COALESCE(SUM(e.platformCommission), 0) FROM Earning e " +
-                        "WHERE e.status = 'CLEARED' AND e.createdAt BETWEEN :startDate AND :endDate")
+                        "WHERE e.status IN ('PENDING', 'CLEARED') AND e.createdAt BETWEEN :startDate AND :endDate")
         BigDecimal sumPlatformCommissionInPeriod(@Param("startDate") LocalDateTime startDate,
+                        @Param("endDate") LocalDateTime endDate);
+
+        // Sum total order amount (revenue) - excludes CANCELLED earnings
+        @Query("SELECT COALESCE(SUM(e.orderAmount), 0) FROM Earning e " +
+                        "WHERE e.status IN ('PENDING', 'CLEARED')")
+        BigDecimal sumTotalOrderAmount();
+
+        @Query("SELECT COALESCE(SUM(e.orderAmount), 0) FROM Earning e " +
+                        "WHERE e.status IN ('PENDING', 'CLEARED') AND e.createdAt BETWEEN :startDate AND :endDate")
+        BigDecimal sumTotalOrderAmountInPeriod(@Param("startDate") LocalDateTime startDate,
                         @Param("endDate") LocalDateTime endDate);
 
         // Count earnings

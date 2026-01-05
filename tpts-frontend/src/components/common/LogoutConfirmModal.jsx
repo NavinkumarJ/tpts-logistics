@@ -14,7 +14,7 @@ export default function LogoutConfirmModal({ isOpen, onClose, onConfirm, userNam
         setIsLoggingOut(true);
         // Small delay for better UX
         await new Promise(resolve => setTimeout(resolve, 300));
-        onConfirm();
+        await onConfirm();
     };
 
     return (

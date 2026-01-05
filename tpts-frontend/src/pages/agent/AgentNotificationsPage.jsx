@@ -15,11 +15,11 @@ const NOTIFICATION_ICONS = {
 };
 
 const NOTIFICATION_COLORS = {
-    DELIVERY: "bg-orange-100 text-orange-600",
-    PARCEL: "bg-indigo-100 text-indigo-600",
-    RATING: "bg-yellow-100 text-yellow-600",
-    PAYMENT: "bg-green-100 text-green-600",
-    DEFAULT: "bg-gray-100 text-gray-600",
+    DELIVERY: "bg-indigo-500/20 text-indigo-400",
+    PARCEL: "bg-purple-500/20 text-purple-400",
+    RATING: "bg-yellow-500/20 text-yellow-400",
+    PAYMENT: "bg-green-500/20 text-green-400",
+    DEFAULT: "bg-white/10 text-white/60",
 };
 
 const ITEMS_PER_PAGE = 8;
@@ -98,8 +98,8 @@ export default function AgentNotificationsPage() {
         return (
             <div className="flex items-center justify-center min-h-[60vh]">
                 <div className="text-center">
-                    <div className="inline-block h-12 w-12 animate-spin rounded-full border-4 border-orange-600 border-t-transparent"></div>
-                    <p className="mt-4 text-gray-600 font-medium">Loading notifications...</p>
+                    <div className="inline-block h-12 w-12 animate-spin rounded-full border-4 border-indigo-400 border-t-transparent"></div>
+                    <p className="mt-4 text-white/70 font-medium">Loading notifications...</p>
                 </div>
             </div>
         );
@@ -110,17 +110,17 @@ export default function AgentNotificationsPage() {
             {/* Header */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold text-gray-900">Notifications</h1>
-                    <p className="text-sm text-gray-500 mt-1">
+                    <h1 className="text-3xl font-bold text-white">Notifications</h1>
+                    <p className="text-sm text-white/60 mt-1">
                         {unreadCount > 0 ? `${unreadCount} unread notifications` : "All caught up!"}
                     </p>
                 </div>
                 {unreadCount > 0 && (
                     <button
                         onClick={handleMarkAllRead}
-                        className="px-4 py-2 rounded-xl border border-gray-200 text-gray-700 hover:bg-gray-50 text-sm font-medium flex items-center gap-2 transition shadow-sm"
+                        className="px-4 py-2 rounded-xl bg-white/10 border border-white/20 text-white hover:bg-white/20 text-sm font-medium flex items-center gap-2 transition"
                     >
-                        <FaCheckDouble className="text-orange-500" /> Mark All Read
+                        <FaCheckDouble className="text-indigo-400" /> Mark All Read
                     </button>
                 )}
             </div>
@@ -130,36 +130,36 @@ export default function AgentNotificationsPage() {
                 <button
                     onClick={() => setFilter("all")}
                     className={`p-4 rounded-xl border-2 transition-all ${filter === "all"
-                        ? "border-orange-500 bg-orange-50 shadow-md"
-                        : "border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm"
+                        ? "border-indigo-500 bg-indigo-500/20"
+                        : "border-white/20 bg-white/10 hover:border-white/30"
                         }`}
                 >
                     <div className="flex items-center gap-3">
-                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${filter === "all" ? "bg-orange-500 text-white" : "bg-gray-100 text-gray-600"
+                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${filter === "all" ? "bg-indigo-500 text-white" : "bg-white/10 text-white/60"
                             }`}>
                             <FaBell className="text-xl" />
                         </div>
                         <div className="text-left">
-                            <p className="text-2xl font-bold text-gray-900">{notifications.length}</p>
-                            <p className="text-sm text-gray-500">All Notifications</p>
+                            <p className="text-2xl font-bold text-white">{notifications.length}</p>
+                            <p className="text-sm text-white/50">All Notifications</p>
                         </div>
                     </div>
                 </button>
                 <button
                     onClick={() => setFilter("unread")}
                     className={`p-4 rounded-xl border-2 transition-all ${filter === "unread"
-                        ? "border-orange-500 bg-orange-50 shadow-md"
-                        : "border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm"
+                        ? "border-indigo-500 bg-indigo-500/20"
+                        : "border-white/20 bg-white/10 hover:border-white/30"
                         }`}
                 >
                     <div className="flex items-center gap-3">
-                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${filter === "unread" ? "bg-orange-500 text-white" : "bg-blue-100 text-blue-600"
+                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${filter === "unread" ? "bg-indigo-500 text-white" : "bg-blue-500/20 text-blue-400"
                             }`}>
                             <FaCheckDouble className="text-xl" />
                         </div>
                         <div className="text-left">
-                            <p className="text-2xl font-bold text-gray-900">{unreadCount}</p>
-                            <p className="text-sm text-gray-500">Unread</p>
+                            <p className="text-2xl font-bold text-white">{unreadCount}</p>
+                            <p className="text-sm text-white/50">Unread</p>
                         </div>
                     </div>
                 </button>
@@ -167,12 +167,12 @@ export default function AgentNotificationsPage() {
 
             {/* Notifications List */}
             {filteredNotifications.length === 0 ? (
-                <div className="bg-white rounded-xl p-12 shadow-md border border-gray-200 text-center">
-                    <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
-                        <FaBell className="text-4xl text-gray-300" />
+                <div className="bg-white/10 backdrop-blur-xl rounded-xl p-12 border border-white/20 text-center">
+                    <div className="w-20 h-20 rounded-full bg-white/10 flex items-center justify-center mx-auto mb-4">
+                        <FaBell className="text-4xl text-white/30" />
                     </div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">No Notifications</h3>
-                    <p className="text-sm text-gray-500">
+                    <h3 className="text-lg font-semibold text-white mb-2">No Notifications</h3>
+                    <p className="text-sm text-white/50">
                         {filter === "unread" ? "No unread notifications" : "You're all caught up!"}
                     </p>
                 </div>
@@ -185,9 +185,9 @@ export default function AgentNotificationsPage() {
                         return (
                             <div
                                 key={notification.id}
-                                className={`bg-white rounded-xl p-5 shadow-md border transition hover:shadow-lg ${notification.isRead
-                                    ? "border-gray-200"
-                                    : "border-l-4 border-l-orange-500 border-t border-r border-b border-gray-200 bg-orange-50/30"
+                                className={`bg-white/10 backdrop-blur-xl rounded-xl p-5 border transition hover:bg-white/15 ${notification.isRead
+                                    ? "border-white/10"
+                                    : "border-l-4 border-l-indigo-500 border-t-white/10 border-r-white/10 border-b-white/10"
                                     }`}
                             >
                                 <div className="flex items-start justify-between gap-4">
@@ -196,14 +196,14 @@ export default function AgentNotificationsPage() {
                                             <IconComponent className="text-xl" />
                                         </div>
                                         <div className="min-w-0 flex-1">
-                                            <p className={`font-semibold ${notification.isRead ? "text-gray-700" : "text-gray-900"}`}>
+                                            <p className={`font-semibold ${notification.isRead ? "text-white/70" : "text-white"}`}>
                                                 {notification.title}
                                             </p>
-                                            <p className="text-sm text-gray-600 mt-1 leading-relaxed">
+                                            <p className="text-sm text-white/60 mt-1 leading-relaxed">
                                                 {notification.message}
                                             </p>
-                                            <p className="text-xs text-gray-400 mt-2 flex items-center gap-1">
-                                                <span className={`w-2 h-2 rounded-full ${notification.isRead ? "bg-gray-300" : "bg-orange-500"}`}></span>
+                                            <p className="text-xs text-white/40 mt-2 flex items-center gap-1">
+                                                <span className={`w-2 h-2 rounded-full ${notification.isRead ? "bg-white/30" : "bg-indigo-500"}`}></span>
                                                 {new Date(notification.createdAt).toLocaleString("en-IN", {
                                                     day: "numeric",
                                                     month: "short",
@@ -216,7 +216,7 @@ export default function AgentNotificationsPage() {
                                     {!notification.isRead && (
                                         <button
                                             onClick={() => handleMarkRead(notification.id)}
-                                            className="text-orange-600 hover:text-orange-700 hover:bg-orange-100 p-2 rounded-lg transition"
+                                            className="text-indigo-400 hover:text-indigo-300 hover:bg-indigo-500/20 p-2 rounded-lg transition"
                                             title="Mark as read"
                                         >
                                             <FaCheck />

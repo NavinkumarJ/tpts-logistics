@@ -41,8 +41,9 @@ export default function OrderHistoryPage() {
         setError("");
         try {
             const data = await getMyParcels();
+            // Filter out group parcels (have their own pages) and keep only completed/cancelled
             const historyParcels = (data || []).filter(p =>
-                ["DELIVERED", "CANCELLED"].includes(p.status)
+                !p.groupShipmentId && ["DELIVERED", "CANCELLED"].includes(p.status)
             );
             setParcels(historyParcels);
         } catch (err) {
@@ -105,8 +106,8 @@ export default function OrderHistoryPage() {
         return (
             <div className="flex items-center justify-center min-h-[400px]">
                 <div className="text-center">
-                    <div className="inline-block h-12 w-12 animate-spin rounded-full border-4 border-primary-600 border-t-transparent"></div>
-                    <p className="mt-4 text-gray-600 font-medium">Loading order history...</p>
+                    <div className="inline-block h-12 w-12 animate-spin rounded-full border-4 border-indigo-400 border-t-transparent"></div>
+                    <p className="mt-4 text-white/70 font-medium">Loading order history...</p>
                 </div>
             </div>
         );
@@ -115,7 +116,7 @@ export default function OrderHistoryPage() {
     return (
         <div className="space-y-6">
             {/* Header with Gradient */}
-            <div className="bg-gradient-to-r from-violet-600 to-purple-600 rounded-2xl p-6 text-white shadow-lg">
+            <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-6 text-white shadow-lg border border-white/20">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
                         <div className="w-16 h-16 rounded-2xl bg-white/20 flex items-center justify-center">
@@ -154,14 +155,14 @@ export default function OrderHistoryPage() {
             </div>
 
             {/* Search and Filter */}
-            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
+            <div className="bg-white/10 backdrop-blur-xl rounded-xl p-4 border border-white/20">
                 <div className="flex flex-col md:flex-row gap-4">
                     <div className="flex-1 relative">
-                        <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+                        <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40" />
                         <input
                             type="text"
                             placeholder="Search by tracking number, city, or name..."
-                            className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                            className="w-full pl-12 pr-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />
@@ -172,8 +173,8 @@ export default function OrderHistoryPage() {
                                 key={filter.value}
                                 onClick={() => setStatusFilter(filter.value)}
                                 className={`px-4 py-2 rounded-xl text-sm font-medium transition flex items-center gap-2 ${statusFilter === filter.value
-                                    ? "bg-primary-600 text-white"
-                                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                                    ? "bg-indigo-600 text-white"
+                                    : "bg-white/10 text-white/70 hover:bg-white/20 border border-white/20"
                                     }`}
                             >
                                 <span>{filter.emoji}</span> {filter.label}
@@ -185,19 +186,19 @@ export default function OrderHistoryPage() {
 
             {/* Error */}
             {error && (
-                <div className="bg-red-50 border border-red-200 rounded-xl p-4">
-                    <p className="text-sm text-red-600">⚠️ {error}</p>
+                <div className="bg-red-500/20 border border-red-500/30 rounded-xl p-4">
+                    <p className="text-sm text-red-400">⚠️ {error}</p>
                 </div>
             )}
 
             {/* Results */}
             {filteredParcels.length === 0 ? (
-                <div className="bg-white rounded-2xl p-12 shadow-md border border-gray-200 text-center">
-                    <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
-                        <FaBox className="text-4xl text-gray-300" />
+                <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-12 border border-white/20 text-center">
+                    <div className="w-20 h-20 rounded-full bg-white/10 flex items-center justify-center mx-auto mb-4">
+                        <FaBox className="text-4xl text-white/30" />
                     </div>
-                    <h3 className="text-xl font-bold text-gray-900 mb-2">No Orders Found</h3>
-                    <p className="text-gray-500">
+                    <h3 className="text-xl font-bold text-white mb-2">No Orders Found</h3>
+                    <p className="text-white/60">
                         {searchQuery || statusFilter !== "all"
                             ? "Try adjusting your filters"
                             : "Your completed orders will appear here"}
@@ -209,45 +210,62 @@ export default function OrderHistoryPage() {
                         {paginatedParcels.map((parcel) => (
                             <div
                                 key={parcel.id}
-                                className={`bg-white rounded-xl shadow-sm border-l-4 overflow-hidden transition hover:shadow-md ${parcel.status === "DELIVERED" ? "border-l-green-500" : "border-l-red-500"
+                                className={`bg-white/10 backdrop-blur-xl rounded-xl border-l-4 overflow-hidden transition hover:bg-white/15 border border-white/20 ${parcel.status === "DELIVERED" ? "border-l-green-500" : "border-l-red-500"
                                     }`}
                             >
                                 <div className="p-5">
                                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                                         {/* Left: Info */}
                                         <div className="flex-1">
-                                            <div className="flex items-center gap-3 mb-2">
-                                                <span className="font-mono font-bold text-primary-600 text-lg">
+                                            <div className="flex items-center gap-3 mb-2 flex-wrap">
+                                                <span className="font-mono font-bold text-indigo-400 text-lg">
                                                     {parcel.trackingNumber}
                                                 </span>
-                                                <span className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1 ${parcel.status === "DELIVERED"
-                                                    ? "bg-green-100 text-green-700"
-                                                    : "bg-red-100 text-red-700"
+                                                <span className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1 border ${parcel.status === "DELIVERED"
+                                                    ? "bg-green-500/20 text-green-400 border-green-500/30"
+                                                    : "bg-red-500/20 text-red-400 border-red-500/30"
                                                     }`}>
                                                     {parcel.status === "DELIVERED" ? <FaCheckCircle /> : <FaTimesCircle />}
                                                     {parcel.status}
                                                 </span>
+                                                {/* Refund badge for cancelled paid orders */}
+                                                {parcel.status === "CANCELLED" && parcel.paymentStatus === "PAID" && (
+                                                    <span className="px-3 py-1 rounded-full text-xs font-semibold bg-green-500/20 text-green-400 border border-green-500/30 flex items-center gap-1">
+                                                        💰 Refunded
+                                                    </span>
+                                                )}
                                             </div>
-                                            <div className="flex items-center gap-2 text-gray-600">
+                                            <div className="flex items-center gap-2 text-white/70">
                                                 <span className="font-medium">{parcel.pickupCity}</span>
-                                                <FaArrowRight className="text-gray-400 text-xs" />
+                                                <FaArrowRight className="text-white/40 text-xs" />
                                                 <span className="font-medium">{parcel.deliveryCity}</span>
                                             </div>
-                                            <p className="text-xs text-gray-400 mt-1">
+                                            <p className="text-xs text-white/40 mt-1">
                                                 {parcel.status === "DELIVERED" ? "Delivered on " : "Cancelled on "}
                                                 {formatDate(parcel.status === "DELIVERED" ? parcel.deliveredAt : parcel.cancelledAt)}
                                             </p>
+                                            {/* Cancellation reason */}
+                                            {parcel.status === "CANCELLED" && parcel.cancellationReason && (
+                                                <p className="text-xs text-red-400 mt-1">
+                                                    <strong>Reason:</strong> {parcel.cancellationReason}
+                                                </p>
+                                            )}
                                         </div>
 
                                         {/* Right: Price */}
                                         <div className="text-right">
-                                            <p className="text-2xl font-bold text-gray-900">
+                                            <p className={`text-2xl font-bold ${parcel.status === "CANCELLED" ? "text-white/40 line-through" : "text-white"}`}>
                                                 ₹{(parcel.finalPrice || 0).toFixed(2)}
                                             </p>
-                                            <p className="text-xs text-gray-500">
+                                            {parcel.status === "CANCELLED" && parcel.paymentStatus === "PAID" && (
+                                                <p className="text-sm text-green-400 font-semibold">
+                                                    Refund processed
+                                                </p>
+                                            )}
+                                            <p className="text-xs text-white/50">
                                                 (₹{parcel.basePrice?.toFixed(2)} + 18% GST)
                                             </p>
-                                            <p className="text-xs text-gray-400 mt-1">
+                                            <p className="text-xs text-white/40 mt-1">
                                                 {parcel.packageType} • {parcel.weightKg}kg
                                             </p>
                                         </div>
@@ -255,7 +273,7 @@ export default function OrderHistoryPage() {
                                         {/* Action */}
                                         <button
                                             onClick={() => navigate(`/customer/shipments?id=${parcel.id}`)}
-                                            className="px-5 py-2.5 bg-primary-50 text-primary-700 hover:bg-primary-100 rounded-xl font-medium transition flex items-center gap-2"
+                                            className="px-5 py-2.5 bg-indigo-500/20 text-indigo-400 hover:bg-indigo-500/30 rounded-xl font-medium transition flex items-center gap-2 border border-indigo-500/30"
                                         >
                                             <FaEye /> View
                                         </button>

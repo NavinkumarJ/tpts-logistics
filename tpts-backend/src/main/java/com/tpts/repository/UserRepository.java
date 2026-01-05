@@ -20,6 +20,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     // Find by email (for login)
     Optional<User> findByEmail(String email);
+
     // Find by phone
     Optional<User> findByPhone(String phone);
 
@@ -49,6 +50,21 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     // Count users by type
     long countByUserType(UserType userType);
+
+    // Count active (non-deleted) users - for consistent stats
+    long countByIsDeletedFalse();
+
+    // Count non-deleted users excluding Super Admins
+    @Query("SELECT COUNT(u) FROM User u WHERE u.isDeleted = false AND u.userType <> com.tpts.entity.UserType.SUPER_ADMIN")
+    Long countNonAdminUsers();
+
+    // Count active users who logged in after a specific time
+    @Query("SELECT COUNT(u) FROM User u WHERE u.isDeleted = false AND u.lastLogin > :dateTime")
+    Long countActiveUsersAfter(@Param("dateTime") LocalDateTime dateTime);
+
+    // Count active users who logged in today, excluding Super Admins
+    @Query("SELECT COUNT(u) FROM User u WHERE u.isDeleted = false AND u.userType <> com.tpts.entity.UserType.SUPER_ADMIN AND u.lastLogin > :dateTime")
+    Long countActiveNonAdminUsersAfter(@Param("dateTime") LocalDateTime dateTime);
 
     // Custom query: Find user with valid OTP
     @Query("SELECT u FROM User u WHERE u.email = :email AND u.otp = :otp AND u.otpExpiry > CURRENT_TIMESTAMP")

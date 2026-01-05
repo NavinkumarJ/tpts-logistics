@@ -9,12 +9,28 @@ const apiClient = axios.create({
   },
 });
 
-// Add JWT token to requests
+// Add JWT token to requests and handle FormData properly
 apiClient.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+
+  // If the request data is FormData, delete the Content-Type header
+  // This allows the browser to automatically set the correct Content-Type
+  // with the proper boundary parameter for multipart/form-data
+  if (config.data instanceof FormData) {
+    delete config.headers["Content-Type"];
+  }
+
+  // Add timestamp to GET requests to prevent caching
+  if (config.method === "get") {
+    config.params = {
+      ...config.params,
+      _t: Date.now(),
+    };
+  }
+
   return config;
 });
 

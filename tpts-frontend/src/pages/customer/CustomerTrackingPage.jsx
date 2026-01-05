@@ -2,14 +2,19 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import apiClient from "../../utils/api";
+import { cancelParcel } from "../../services/parcelService";
 import { getRoute } from "../../services/routingService";
 import SockJS from "sockjs-client";
 import { Client } from "@stomp/stompjs";
 import {
     FaMapMarkerAlt, FaTruck, FaBox, FaUser, FaPhone, FaBuilding,
     FaStar, FaRoute, FaCheck, FaClock, FaArrowLeft, FaSync,
-    FaWeightHanging, FaRuler, FaExclamationTriangle
+    FaWeightHanging, FaRuler, FaExclamationTriangle, FaBan
 } from "react-icons/fa";
+import ChatPanel from "../../components/chat/ChatPanel";
+
+// Helper: Check if order can be cancelled
+const canCancelOrder = (status) => ["PENDING", "CONFIRMED", "ASSIGNED"].includes(status);
 
 export default function CustomerTrackingPage() {
     const { trackingNumber } = useParams();
@@ -26,6 +31,9 @@ export default function CustomerTrackingPage() {
     const [connected, setConnected] = useState(false);
     const [routeCoordinates, setRouteCoordinates] = useState([]);
     const [routeInfo, setRouteInfo] = useState(null);
+    const [cancelModal, setCancelModal] = useState(false);
+    const [cancelReason, setCancelReason] = useState("");
+    const [cancelling, setCancelling] = useState(false);
 
     // Fetch parcel details
     const fetchParcelDetails = useCallback(async () => {
@@ -63,6 +71,23 @@ export default function CustomerTrackingPage() {
             setLoading(false);
         }
     }, [trackingNumber]);
+
+    // Handle order cancellation
+    const handleCancelOrder = async () => {
+        if (!parcel) return;
+        setCancelling(true);
+        try {
+            await cancelParcel(parcel.id, cancelReason || "Cancelled by customer");
+            toast.success("Order cancelled successfully");
+            setCancelModal(false);
+            setCancelReason("");
+            navigate("/customer/shipments");
+        } catch (err) {
+            toast.error(err.response?.data?.message || "Failed to cancel order");
+        } finally {
+            setCancelling(false);
+        }
+    };
 
     // Initialize WebSocket connection
     const initWebSocket = useCallback(() => {
@@ -411,7 +436,7 @@ export default function CustomerTrackingPage() {
                 {/* Left Column: Map + Route Info */}
                 <div className="xl:col-span-2 space-y-4">
                     {/* Live Map */}
-                    <div className="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-200">
+                    <div className="bg-white/10 backdrop-blur-xl rounded-xl overflow-hidden border border-white/20">
                         <div className="bg-gradient-to-r from-primary-600 to-primary-700 text-white px-4 py-3 flex items-center justify-between">
                             <div className="flex items-center gap-2">
                                 <FaRoute />
@@ -423,14 +448,14 @@ export default function CustomerTrackingPage() {
                         </div>
                         <div ref={mapRef} className="h-[450px] w-full relative">
                             {!showLiveTracking && (
-                                <div className="absolute inset-0 flex items-center justify-center bg-gray-100/90 z-10">
+                                <div className="absolute inset-0 flex items-center justify-center bg-gray-900/80 z-10">
                                     <div className="text-center p-6">
                                         <div className="text-5xl mb-3">
                                             {parcel.status === "PENDING" ? "⏳" :
                                                 parcel.status === "CONFIRMED" ? "✅" :
                                                     parcel.status === "DELIVERED" ? "🎉" : "🗺️"}
                                         </div>
-                                        <p className="text-gray-700 font-medium">
+                                        <p className="text-white font-medium">
                                             {parcel.status === "PENDING" && "Waiting for confirmation..."}
                                             {parcel.status === "CONFIRMED" && "Waiting for agent assignment..."}
                                             {parcel.status === "DELIVERED" && "Package delivered successfully!"}
@@ -441,18 +466,18 @@ export default function CustomerTrackingPage() {
                             )}
                         </div>
                         {/* Map Legend */}
-                        <div className="px-4 py-3 bg-gray-50 border-t flex items-center gap-6 text-sm">
+                        <div className="px-4 py-3 bg-white/5 border-t border-white/10 flex items-center gap-6 text-sm">
                             <div className="flex items-center gap-2">
                                 <span className="w-4 h-4 rounded-full bg-amber-500"></span>
-                                <span className="text-gray-600">Pickup</span>
+                                <span className="text-white/70">Pickup</span>
                             </div>
                             <div className="flex items-center gap-2">
                                 <span className="w-4 h-4 rounded-full bg-green-500"></span>
-                                <span className="text-gray-600">Delivery</span>
+                                <span className="text-white/70">Delivery</span>
                             </div>
                             <div className="flex items-center gap-2">
                                 <span className="w-4 h-4 rounded-full bg-blue-500"></span>
-                                <span className="text-gray-600">Agent</span>
+                                <span className="text-white/70">Agent</span>
                             </div>
                         </div>
                     </div>
@@ -504,19 +529,19 @@ export default function CustomerTrackingPage() {
                     )}
 
                     {/* Route Info Card */}
-                    <div className="bg-white rounded-xl p-5 shadow-lg border border-gray-200">
+                    <div className="bg-white/10 backdrop-blur-xl rounded-xl p-5 border border-white/20">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             {/* From */}
                             <div className="flex gap-4">
-                                <div className="w-12 h-12 rounded-xl bg-amber-100 flex items-center justify-center text-amber-600 text-xl flex-shrink-0">
+                                <div className="w-12 h-12 rounded-xl flex items-center justify-center text-xl flex-shrink-0 bg-amber-500/20 text-amber-400">
                                     📦
                                 </div>
                                 <div>
-                                    <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-1">From (Sender)</p>
-                                    <p className="font-semibold text-gray-900">{parcel.pickupName}</p>
-                                    <p className="text-sm text-gray-600">{parcel.pickupAddress}</p>
-                                    <p className="text-sm text-gray-500">{parcel.pickupCity}, {parcel.pickupPincode}</p>
-                                    <a href={`tel:${parcel.pickupPhone}`} className="text-sm text-primary-600 flex items-center gap-1 mt-1 hover:underline">
+                                    <p className="text-xs uppercase tracking-wide font-semibold mb-1 text-white/50">From (Sender)</p>
+                                    <p className="font-semibold text-white">{parcel.pickupName}</p>
+                                    <p className="text-sm text-white/60">{parcel.pickupAddress}</p>
+                                    <p className="text-sm text-white/60">{parcel.pickupCity}, {parcel.pickupPincode}</p>
+                                    <a href={`tel:${parcel.pickupPhone}`} className="text-sm text-cyan-400 flex items-center gap-1 mt-1 hover:underline">
                                         <FaPhone className="text-xs" /> {parcel.pickupPhone}
                                     </a>
                                 </div>
@@ -524,15 +549,15 @@ export default function CustomerTrackingPage() {
 
                             {/* To */}
                             <div className="flex gap-4">
-                                <div className="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center text-green-600 text-xl flex-shrink-0">
+                                <div className="w-12 h-12 rounded-xl flex items-center justify-center text-xl flex-shrink-0 bg-green-500/20 text-green-400">
                                     📍
                                 </div>
                                 <div>
-                                    <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-1">To (Receiver)</p>
-                                    <p className="font-semibold text-gray-900">{parcel.deliveryName}</p>
-                                    <p className="text-sm text-gray-600">{parcel.deliveryAddress}</p>
-                                    <p className="text-sm text-gray-500">{parcel.deliveryCity}, {parcel.deliveryPincode}</p>
-                                    <a href={`tel:${parcel.deliveryPhone}`} className="text-sm text-primary-600 flex items-center gap-1 mt-1 hover:underline">
+                                    <p className="text-xs uppercase tracking-wide font-semibold mb-1 text-white/50">To (Receiver)</p>
+                                    <p className="font-semibold text-white">{parcel.deliveryName}</p>
+                                    <p className="text-sm text-white/60">{parcel.deliveryAddress}</p>
+                                    <p className="text-sm text-white/60">{parcel.deliveryCity}, {parcel.deliveryPincode}</p>
+                                    <a href={`tel:${parcel.deliveryPhone}`} className="text-sm text-cyan-400 flex items-center gap-1 mt-1 hover:underline">
                                         <FaPhone className="text-xs" /> {parcel.deliveryPhone}
                                     </a>
                                 </div>
@@ -542,22 +567,22 @@ export default function CustomerTrackingPage() {
 
                     {/* OTP Verification Codes */}
                     {(parcel.pickupOtp || parcel.deliveryOtp) && (
-                        <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-5 shadow-lg border border-indigo-100">
-                            <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                        <div className="bg-white/10 backdrop-blur-xl rounded-xl p-5 border border-indigo-500/30">
+                            <h3 className="font-semibold text-white mb-4 flex items-center gap-2">
                                 🔐 Verification OTPs
                             </h3>
-                            <p className="text-sm text-gray-600 mb-4">
+                            <p className="text-sm text-white/60 mb-4">
                                 Share these OTPs with the delivery agent to verify pickup and delivery.
                             </p>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 {/* Pickup OTP */}
                                 {parcel.pickupOtp && parcel.status !== "PICKED_UP" && parcel.status !== "IN_TRANSIT" && parcel.status !== "OUT_FOR_DELIVERY" && parcel.status !== "DELIVERED" && (
-                                    <div className="bg-white rounded-lg p-4 border border-blue-200">
-                                        <p className="text-xs text-blue-600 font-semibold uppercase mb-2">📦 Pickup OTP</p>
-                                        <p className="text-3xl font-mono font-bold text-blue-800 tracking-widest text-center">
+                                    <div className="rounded-lg p-4" style={{ backgroundColor: '#eff6ff', border: '1px solid #bfdbfe' }}>
+                                        <p className="text-xs font-semibold uppercase mb-2" style={{ color: '#2563eb' }}>📦 Pickup OTP</p>
+                                        <p className="text-3xl font-mono font-bold tracking-widest text-center" style={{ color: '#1e40af' }}>
                                             {parcel.pickupOtp}
                                         </p>
-                                        <p className="text-xs text-gray-500 mt-2 text-center">
+                                        <p className="text-xs text-muted mt-2 text-center">
                                             Give this to agent when they pickup
                                         </p>
                                     </div>
@@ -565,12 +590,12 @@ export default function CustomerTrackingPage() {
 
                                 {/* Delivery OTP */}
                                 {parcel.deliveryOtp && parcel.status !== "DELIVERED" && (
-                                    <div className="bg-white rounded-lg p-4 border border-green-200">
-                                        <p className="text-xs text-green-600 font-semibold uppercase mb-2">📍 Delivery OTP</p>
-                                        <p className="text-3xl font-mono font-bold text-green-800 tracking-widest text-center">
+                                    <div className="rounded-lg p-4" style={{ backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0' }}>
+                                        <p className="text-xs font-semibold uppercase mb-2" style={{ color: '#16a34a' }}>📍 Delivery OTP</p>
+                                        <p className="text-3xl font-mono font-bold tracking-widest text-center" style={{ color: '#166534' }}>
                                             {parcel.deliveryOtp}
                                         </p>
-                                        <p className="text-xs text-gray-500 mt-2 text-center">
+                                        <p className="text-xs text-muted mt-2 text-center">
                                             Receiver gives this to agent on delivery
                                         </p>
                                     </div>
@@ -579,74 +604,74 @@ export default function CustomerTrackingPage() {
                         </div>
                     )}
                     {/* Package Details */}
-                    <div className="bg-white rounded-xl p-5 shadow-lg border border-gray-200">
-                        <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                            <FaBox className="text-primary-600" /> Package Details
+                    <div className="bg-white/10 backdrop-blur-xl rounded-xl p-5 border border-white/20">
+                        <h3 className="font-semibold text-white mb-4 flex items-center gap-2">
+                            <FaBox className="text-orange-400" /> Package Details
                         </h3>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            <div className="bg-gray-50 rounded-lg p-3">
-                                <p className="text-xs text-gray-500 mb-1">Type</p>
-                                <p className="font-semibold text-gray-900">{parcel.packageType || "Standard"}</p>
+                            <div className="rounded-lg p-3 bg-white/10">
+                                <p className="text-xs text-white/50 mb-1">Type</p>
+                                <p className="font-semibold text-white">{parcel.packageType || "Standard"}</p>
                             </div>
-                            <div className="bg-gray-50 rounded-lg p-3">
-                                <p className="text-xs text-gray-500 mb-1 flex items-center gap-1">
-                                    <FaWeightHanging className="text-gray-400" /> Weight
+                            <div className="rounded-lg p-3 bg-white/10">
+                                <p className="text-xs text-white/50 mb-1 flex items-center gap-1">
+                                    <FaWeightHanging className="text-white/50" /> Weight
                                 </p>
-                                <p className="font-semibold text-gray-900">{parcel.weightKg} kg</p>
+                                <p className="font-semibold text-white">{parcel.weightKg} kg</p>
                             </div>
                             {parcel.dimensions && (
-                                <div className="bg-gray-50 rounded-lg p-3">
-                                    <p className="text-xs text-gray-500 mb-1 flex items-center gap-1">
-                                        <FaRuler className="text-gray-400" /> Dimensions
+                                <div className="rounded-lg p-3 bg-white/10">
+                                    <p className="text-xs text-white/50 mb-1 flex items-center gap-1">
+                                        <FaRuler className="text-white/50" /> Dimensions
                                     </p>
-                                    <p className="font-semibold text-gray-900">{parcel.dimensions}</p>
+                                    <p className="font-semibold text-white">{parcel.dimensions}</p>
                                 </div>
                             )}
                             {parcel.isFragile && (
-                                <div className="bg-red-50 rounded-lg p-3">
-                                    <p className="text-xs text-red-500 mb-1 flex items-center gap-1">
+                                <div className="rounded-lg p-3 bg-red-500/20">
+                                    <p className="text-xs mb-1 flex items-center gap-1 text-red-400">
                                         <FaExclamationTriangle /> Fragile
                                     </p>
-                                    <p className="font-semibold text-red-600">Handle with care</p>
+                                    <p className="font-semibold text-red-400">Handle with care</p>
                                 </div>
                             )}
                         </div>
                         {parcel.specialInstructions && (
-                            <div className="mt-4 p-3 bg-amber-50 rounded-lg border border-amber-200">
-                                <p className="text-xs text-amber-700 font-semibold mb-1">Special Instructions</p>
-                                <p className="text-sm text-amber-800">{parcel.specialInstructions}</p>
+                            <div className="mt-4 p-3 rounded-lg bg-amber-500/20 border border-amber-500/30">
+                                <p className="text-xs font-semibold mb-1 text-amber-400">Special Instructions</p>
+                                <p className="text-sm text-amber-300">{parcel.specialInstructions}</p>
                             </div>
                         )}
                     </div>
 
                     {/* Order Summary */}
-                    <div className="bg-white rounded-xl p-5 shadow-lg border border-gray-200">
-                        <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                    <div className="bg-white/10 backdrop-blur-xl rounded-xl p-5 border border-white/20">
+                        <h3 className="font-semibold text-white mb-4 flex items-center gap-2">
                             💰 Order Summary
                         </h3>
                         <div className="space-y-3">
                             <div className="flex justify-between text-sm">
-                                <span className="text-gray-600">Base Price</span>
-                                <span className="text-gray-900 font-medium">₹{parcel.basePrice?.toFixed(2) || "0.00"}</span>
+                                <span className="text-white/60">Base Price</span>
+                                <span className="text-white font-medium">₹{parcel.basePrice?.toFixed(2) || "0.00"}</span>
                             </div>
                             {parcel.discountAmount > 0 && (
                                 <div className="flex justify-between text-sm">
-                                    <span className="text-green-600">Discount</span>
-                                    <span className="text-green-600 font-medium">-₹{parcel.discountAmount?.toFixed(2)}</span>
+                                    <span className="text-green-400">Discount</span>
+                                    <span className="text-green-400 font-medium">-₹{parcel.discountAmount?.toFixed(2)}</span>
                                 </div>
                             )}
                             <div className="flex justify-between text-sm">
-                                <span className="text-gray-600">Subtotal</span>
-                                <span className="text-gray-900 font-medium">₹{parcel.basePrice?.toFixed(2) || "0.00"}</span>
+                                <span className="text-white/60">Subtotal</span>
+                                <span className="text-white font-medium">₹{parcel.basePrice?.toFixed(2) || "0.00"}</span>
                             </div>
                             <div className="flex justify-between text-sm">
-                                <span className="text-gray-600">GST (18%)</span>
-                                <span className="text-gray-900 font-medium">₹{((parcel.basePrice || 0) * 0.18).toFixed(2)}</span>
+                                <span className="text-white/60">GST (18%)</span>
+                                <span className="text-white font-medium">₹{((parcel.basePrice || 0) * 0.18).toFixed(2)}</span>
                             </div>
-                            <div className="border-t border-gray-200 pt-3 mt-3">
+                            <div className="pt-3 mt-3 border-t border-white/20">
                                 <div className="flex justify-between">
-                                    <span className="text-gray-900 font-bold">Total Paid</span>
-                                    <span className="text-lg font-bold text-primary-600">
+                                    <span className="text-white font-bold">Total Paid</span>
+                                    <span className="text-lg font-bold text-green-400">
                                         ₹{(parcel.finalPrice || 0).toFixed(2)}
                                     </span>
                                 </div>
@@ -654,13 +679,13 @@ export default function CustomerTrackingPage() {
                             {parcel.paymentStatus && (
                                 <div className="mt-2 flex items-center justify-center gap-3 flex-wrap">
                                     <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium ${parcel.paymentStatus === "PAID" || parcel.paymentStatus === "SUCCESS"
-                                        ? "bg-green-100 text-green-700"
-                                        : "bg-yellow-100 text-yellow-700"
+                                        ? "bg-green-500/20 text-green-400"
+                                        : "bg-amber-500/20 text-amber-400"
                                         }`}>
                                         {["PAID", "SUCCESS"].includes(parcel.paymentStatus) ? "✓ Payment Completed" : "⏳ " + parcel.paymentStatus}
                                     </span>
                                     {parcel.paymentMethod && (
-                                        <span className="text-xs text-gray-600 bg-gray-100 px-3 py-1 rounded-full">
+                                        <span className="text-xs text-white/60 px-3 py-1 rounded-full bg-white/10">
                                             💳 {parcel.paymentMethod === "RAZORPAY" ? "Online (Razorpay)" : parcel.paymentMethod}
                                         </span>
                                     )}
@@ -674,23 +699,23 @@ export default function CustomerTrackingPage() {
                 <div className="space-y-4">
                     {/* Delivery Agent Card */}
                     {parcel.agentId ? (
-                        <div className="bg-white rounded-xl p-5 shadow-lg border border-gray-200">
-                            <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                                <FaTruck className="text-blue-600" /> Delivery Agent
+                        <div className="bg-white/10 backdrop-blur-xl rounded-xl p-5 border border-white/20">
+                            <h3 className="font-semibold text-white mb-4 flex items-center gap-2">
+                                <FaTruck className="text-blue-400" /> Delivery Agent
                             </h3>
                             <div className="flex items-center gap-4">
-                                <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white text-2xl font-bold shadow-lg">
+                                <div className="w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold shadow-lg" style={{ background: 'linear-gradient(135deg, #3b82f6, #2563eb)', color: '#ffffff' }}>
                                     {parcel.agentName?.charAt(0) || "A"}
                                 </div>
                                 <div className="flex-1">
-                                    <p className="font-bold text-gray-900 text-lg">{parcel.agentName}</p>
-                                    <div className="flex items-center gap-1 text-yellow-500 mt-1">
-                                        <FaStar />
-                                        <span className="text-gray-700 font-medium">
+                                    <p className="font-bold text-white text-lg">{parcel.agentName}</p>
+                                    <div className="flex items-center gap-1 mt-1">
+                                        <FaStar className="text-yellow-400" />
+                                        <span className="text-white font-medium">
                                             {parcel.agentRating ? parcel.agentRating.toFixed(1) : "New"}
                                         </span>
                                         {parcel.agentRating && (
-                                            <span className="text-gray-400 text-xs ml-1">
+                                            <span className="text-white/50 text-xs ml-1">
                                                 ({parcel.agentTotalRatings || 0} reviews)
                                             </span>
                                         )}
@@ -698,59 +723,59 @@ export default function CustomerTrackingPage() {
                                 </div>
                             </div>
                             {/* Agent Details */}
-                            <div className="mt-4 bg-gray-50 rounded-lg p-3 space-y-2">
+                            <div className="mt-4 rounded-lg p-3 space-y-2 bg-white/10">
                                 <div className="flex items-center gap-2 text-sm">
-                                    <FaPhone className="text-green-600" />
-                                    <span className="text-gray-600">Phone:</span>
-                                    <a href={`tel:${parcel.agentPhone}`} className="text-primary-600 font-medium hover:underline">
+                                    <FaPhone className="text-green-400" />
+                                    <span className="text-white/60">Phone:</span>
+                                    <a href={`tel:${parcel.agentPhone}`} className="text-blue-400 font-medium hover:underline">
                                         {parcel.agentPhone || "Not available"}
                                     </a>
                                 </div>
                                 {parcel.agentVehicleType && (
                                     <div className="flex items-center gap-2 text-sm">
-                                        <FaTruck className="text-blue-600" />
-                                        <span className="text-gray-600">Vehicle:</span>
-                                        <span className="text-gray-900 font-medium">{parcel.agentVehicleType}</span>
+                                        <FaTruck className="text-blue-400" />
+                                        <span className="text-white/60">Vehicle:</span>
+                                        <span className="text-white font-medium">{parcel.agentVehicleType}</span>
                                     </div>
                                 )}
                                 {parcel.agentVehicleNumber && (
                                     <div className="flex items-center gap-2 text-sm">
-                                        <span className="text-gray-600">🚗 Vehicle No:</span>
-                                        <span className="text-gray-900 font-medium">{parcel.agentVehicleNumber}</span>
+                                        <span className="text-white/60">🚗 Vehicle No:</span>
+                                        <span className="text-white font-medium">{parcel.agentVehicleNumber}</span>
                                     </div>
                                 )}
                             </div>
                         </div>
                     ) : (
-                        <div className="bg-white rounded-xl p-5 shadow-lg border border-gray-200">
-                            <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                                <FaTruck className="text-gray-400" /> Delivery Agent
+                        <div className="bg-white/10 backdrop-blur-xl rounded-xl p-5 border border-white/20">
+                            <h3 className="font-semibold text-white mb-4 flex items-center gap-2">
+                                <FaTruck className="text-white/50" /> Delivery Agent
                             </h3>
                             <div className="text-center py-4">
                                 <div className="text-4xl mb-2">👤</div>
-                                <p className="text-gray-500">Agent not yet assigned</p>
+                                <p className="text-white/50">Agent not yet assigned</p>
                             </div>
                         </div>
                     )}
 
                     {/* Company Card */}
-                    <div className="bg-white rounded-xl p-5 shadow-lg border border-gray-200">
-                        <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                            <FaBuilding className="text-indigo-600" /> Delivery Company
+                    <div className="bg-white/10 backdrop-blur-xl rounded-xl p-5 border border-white/20">
+                        <h3 className="font-semibold text-white mb-4 flex items-center gap-2">
+                            <FaBuilding className="text-purple-400" /> Delivery Company
                         </h3>
                         <div className="flex items-center gap-3">
-                            <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center text-white text-lg font-bold shadow">
+                            <div className="w-12 h-12 rounded-xl flex items-center justify-center text-lg font-bold shadow" style={{ background: 'linear-gradient(135deg, #6366f1, #9333ea)', color: '#ffffff' }}>
                                 {parcel.companyName?.charAt(0) || "C"}
                             </div>
                             <div>
-                                <p className="font-semibold text-gray-900">{parcel.companyName}</p>
-                                <div className="flex items-center gap-1 text-yellow-500">
-                                    <FaStar className="text-sm" />
-                                    <span className="text-gray-600 text-sm">
+                                <p className="font-semibold text-white">{parcel.companyName}</p>
+                                <div className="flex items-center gap-1">
+                                    <FaStar className="text-sm text-yellow-400" />
+                                    <span className="text-white/60 text-sm">
                                         {parcel.companyRating ? `${parcel.companyRating.toFixed(1)} rating` : "New company"}
                                     </span>
                                     {parcel.companyTotalRatings && (
-                                        <span className="text-gray-400 text-xs">
+                                        <span className="text-white/40 text-xs">
                                             ({parcel.companyTotalRatings} reviews)
                                         </span>
                                     )}
@@ -760,34 +785,34 @@ export default function CustomerTrackingPage() {
                     </div>
 
                     {/* Timeline Card */}
-                    <div className="bg-white rounded-xl p-5 shadow-lg border border-gray-200">
-                        <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                            <FaClock className="text-primary-600" /> Delivery Progress
+                    <div className="bg-white/10 backdrop-blur-xl rounded-xl p-5 border border-white/20">
+                        <h3 className="font-semibold text-white mb-4 flex items-center gap-2">
+                            <FaClock className="text-indigo-400" /> Delivery Progress
                         </h3>
                         <ol className="space-y-4">
                             {timelineSteps.map((step, idx) => (
                                 <li key={idx} className="flex gap-3">
                                     <div className="flex flex-col items-center">
                                         <div
-                                            className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-semibold transition-all ${step.completed
-                                                ? "bg-green-500 text-white shadow-md"
-                                                : step.current
-                                                    ? "bg-primary-600 text-white ring-4 ring-primary-100 shadow-lg"
-                                                    : "bg-gray-200 text-gray-400"
-                                                }`}
+                                            className="flex h-8 w-8 items-center justify-center rounded-full text-sm font-semibold transition-all"
+                                            style={{
+                                                backgroundColor: step.completed ? '#22c55e' : step.current ? '#2563eb' : 'rgba(255,255,255,0.1)',
+                                                color: step.completed || step.current ? '#ffffff' : 'rgba(255,255,255,0.4)',
+                                                boxShadow: step.current ? '0 0 0 4px rgba(37, 99, 235, 0.3)' : 'none'
+                                            }}
                                         >
                                             {step.completed ? <FaCheck /> : step.icon}
                                         </div>
                                         {idx < timelineSteps.length - 1 && (
-                                            <div className={`w-0.5 h-8 mt-1 ${step.completed ? "bg-green-500" : "bg-gray-200"}`} />
+                                            <div className="w-0.5 h-8 mt-1" style={{ backgroundColor: step.completed ? '#22c55e' : 'rgba(255,255,255,0.1)' }} />
                                         )}
                                     </div>
                                     <div className="flex-1 pb-2">
-                                        <p className={`font-medium ${step.completed || step.current ? "text-gray-900" : "text-gray-400"}`}>
+                                        <p className="font-medium" style={{ color: step.completed || step.current ? '#ffffff' : 'rgba(255,255,255,0.4)' }}>
                                             {step.title}
                                         </p>
                                         {step.timestamp && (
-                                            <p className="text-xs text-gray-500 mt-0.5">
+                                            <p className="text-xs mt-0.5 text-white/50">
                                                 {new Date(step.timestamp).toLocaleString()}
                                             </p>
                                         )}
@@ -811,19 +836,27 @@ export default function CustomerTrackingPage() {
                             </Link>
                         )}
                         {isDelivered && parcel.hasRated && (
-                            <div className="text-center p-4 bg-green-50 rounded-lg border border-green-200">
-                                <FaStar className="text-yellow-500 mx-auto mb-2 text-xl" />
-                                <p className="text-green-700 font-medium">✓ Thank you for your feedback!</p>
-                                <p className="text-xs text-gray-500 mt-1">You've already rated this delivery</p>
+                            <div className="text-center p-4 bg-green-500/20 rounded-lg border border-green-500/30">
+                                <FaStar className="text-yellow-400 mx-auto mb-2 text-xl" />
+                                <p className="text-green-400 font-medium">✓ Thank you for your feedback!</p>
+                                <p className="text-xs text-white/50 mt-1">You've already rated this delivery</p>
                             </div>
+                        )}
+                        {canCancelOrder(parcel.status) && (
+                            <button
+                                onClick={() => setCancelModal(true)}
+                                className="w-full px-4 py-3 bg-red-500/20 text-red-400 hover:bg-red-500/30 font-medium rounded-xl transition flex items-center justify-center gap-2 border border-red-500/30"
+                            >
+                                <FaBan /> Cancel Order
+                            </button>
                         )}
                     </div>
 
                     {/* Estimated Delivery */}
                     {parcel.estimatedDelivery && !isDelivered && (
-                        <div className="bg-gradient-to-r from-primary-50 to-blue-50 rounded-xl p-4 border border-primary-200">
-                            <p className="text-xs text-primary-700 font-semibold uppercase">Estimated Delivery</p>
-                            <p className="text-lg font-bold text-primary-800">
+                        <div className="bg-gradient-to-r from-primary-600/30 to-blue-600/30 rounded-xl p-4 border border-primary-500/30">
+                            <p className="text-xs text-blue-300 font-semibold uppercase">Estimated Delivery</p>
+                            <p className="text-lg font-bold text-white">
                                 {new Date(parcel.estimatedDelivery).toLocaleDateString("en-IN", {
                                     weekday: "long",
                                     day: "numeric",
@@ -843,6 +876,76 @@ export default function CustomerTrackingPage() {
                 }
                 .agent-marker { animation: pulse 2s infinite; }
             `}</style>
+
+            {/* Cancel Confirmation Modal */}
+            {cancelModal && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 animate-fade-in">
+                        <div className="text-center mb-6">
+                            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <FaBan className="text-red-500 text-3xl" />
+                            </div>
+                            <h3 className="text-xl font-bold text-gray-900">Cancel Order?</h3>
+                            <p className="text-gray-600 mt-2">
+                                Are you sure you want to cancel order <span className="font-mono font-bold text-primary-600">{parcel?.trackingNumber}</span>?
+                            </p>
+                        </div>
+
+                        <div className="mb-6">
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Reason for cancellation (optional)
+                            </label>
+                            <textarea
+                                value={cancelReason}
+                                onChange={(e) => setCancelReason(e.target.value)}
+                                placeholder="e.g., Changed my mind, Wrong address, etc."
+                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 resize-none"
+                                rows={3}
+                            />
+                        </div>
+
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => {
+                                    setCancelModal(false);
+                                    setCancelReason("");
+                                }}
+                                disabled={cancelling}
+                                className="flex-1 px-4 py-3 bg-gray-100 text-gray-700 font-medium rounded-xl hover:bg-gray-200 transition"
+                            >
+                                Keep Order
+                            </button>
+                            <button
+                                onClick={handleCancelOrder}
+                                disabled={cancelling}
+                                className="flex-1 px-4 py-3 bg-red-500 text-white font-medium rounded-xl hover:bg-red-600 transition flex items-center justify-center gap-2"
+                            >
+                                {cancelling ? (
+                                    <>
+                                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                        Cancelling...
+                                    </>
+                                ) : (
+                                    <>
+                                        <FaBan /> Cancel Order
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Chat with Agent - show when agent is assigned */}
+            {parcel && parcel.agentId && !['DELIVERED', 'CANCELLED'].includes(parcel.status) && (
+                <ChatPanel
+                    type="parcel"
+                    id={parcel.id}
+                    receiverName={parcel.agentName || 'Delivery Agent'}
+                    isAgent={false}
+                    isMinimized={true}
+                />
+            )}
         </div>
     );
 }

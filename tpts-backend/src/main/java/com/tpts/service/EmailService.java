@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
@@ -380,6 +381,347 @@ public class EmailService {
     }
 
     /**
+     * Send Company Rejection Email
+     * Sent when a company's registration is rejected by Super Admin with the reason
+     */
+    public void sendCompanyRejectionEmail(String toEmail, String companyName, String contactPersonName,
+            String reason) {
+        try {
+            String htmlContent = buildCompanyRejectionHtml(companyName, contactPersonName, reason);
+
+            sendHtmlEmail(
+                    toEmail,
+                    String.format("[%s] Registration Update - Application Not Approved", appName),
+                    htmlContent);
+
+            log.info("Company rejection email sent to {}", maskEmail(toEmail));
+
+        } catch (Exception e) {
+            log.error("Failed to send company rejection email", e);
+        }
+    }
+
+    private String buildCompanyRejectionHtml(String companyName, String contactPersonName, String reason) {
+        return String.format(
+                """
+                        <html>
+                        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+                            <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+                                <div style="background: linear-gradient(135deg, #dc2626, #b91c1c); color: white; padding: 30px; border-radius: 10px; text-align: center; margin-bottom: 20px;">
+                                    <h1 style="margin: 0;">Registration Update</h1>
+                                    <p style="margin: 10px 0 0;">Application Not Approved</p>
+                                </div>
+
+                                <h2 style="color: #333;">Dear %s,</h2>
+
+                                <p>Thank you for your interest in partnering with us. After careful review of your company <strong>%s</strong>'s registration application, we regret to inform you that we are unable to approve your registration at this time.</p>
+
+                                <div style="background: #fef2f2; border-left: 4px solid #dc2626; padding: 15px; margin: 20px 0;">
+                                    <h3 style="margin-top: 0; color: #dc2626;">Reason:</h3>
+                                    <p style="margin: 0; font-style: italic;">%s</p>
+                                </div>
+
+                                <div style="background: #f0f9ff; border-left: 4px solid #0284c7; padding: 15px; margin: 20px 0;">
+                                    <h3 style="margin-top: 0; color: #0284c7;">What You Can Do:</h3>
+                                    <ul style="margin: 0; padding-left: 20px; color: #64748b;">
+                                        <li>Address the concerns mentioned above</li>
+                                        <li>Ensure all documents are valid and complete</li>
+                                        <li>Re-apply with updated information</li>
+                                        <li>Contact our support team if you have questions</li>
+                                    </ul>
+                                </div>
+
+                                <div style="text-align: center; margin: 30px 0;">
+                                    <a href="mailto:support@tpts.in" style="background: #0284c7; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold;">
+                                        Contact Support
+                                    </a>
+                                </div>
+
+                                <p>We encourage you to review the feedback and consider reapplying once you have addressed the concerns.</p>
+
+                                <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+
+                                <p style="color: #666; font-size: 14px;">
+                                    If you have any questions, please email us at <a href="mailto:support@tpts.in">support@tpts.in</a>
+                                </p>
+
+                                <p style="color: #999; font-size: 12px; text-align: center;">
+                                    © 2024 %s. All rights reserved.
+                                </p>
+                            </div>
+                        </body>
+                        </html>
+                        """,
+                contactPersonName, companyName, reason, appName);
+    }
+
+    /**
+     * Send Company Suspension Email
+     * Sent when a company is suspended by Super Admin with the reason
+     */
+    public void sendCompanySuspensionEmail(String toEmail, String companyName, String contactPersonName,
+            String reason) {
+        try {
+            String htmlContent = buildCompanySuspensionHtml(companyName, contactPersonName, reason);
+
+            sendHtmlEmail(
+                    toEmail,
+                    String.format("[%s] Important: Your Company Account Has Been Suspended", appName),
+                    htmlContent);
+
+            log.info("Company suspension email sent to {}", maskEmail(toEmail));
+
+        } catch (Exception e) {
+            log.error("Failed to send company suspension email", e);
+        }
+    }
+
+    private String buildCompanySuspensionHtml(String companyName, String contactPersonName, String reason) {
+        return String.format(
+                """
+                        <html>
+                        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+                            <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+                                <div style="background: linear-gradient(135deg, #dc2626, #b91c1c); color: white; padding: 30px; border-radius: 10px; text-align: center; margin-bottom: 20px;">
+                                    <h1 style="margin: 0;">⚠️ Account Suspended</h1>
+                                    <p style="margin: 10px 0 0;">Important Notice</p>
+                                </div>
+
+                                <h2 style="color: #333;">Dear %s,</h2>
+
+                                <p>We regret to inform you that your company <strong>%s</strong>'s account on our platform has been suspended.</p>
+
+                                <div style="background: #fef2f2; border-left: 4px solid #dc2626; padding: 15px; margin: 20px 0;">
+                                    <h3 style="margin-top: 0; color: #dc2626;">Reason for Suspension:</h3>
+                                    <p style="margin: 0; font-style: italic;">%s</p>
+                                </div>
+
+                                <div style="background: #f8fafc; padding: 15px; margin: 20px 0; border-radius: 8px;">
+                                    <h3 style="margin-top: 0; color: #475569;">What This Means:</h3>
+                                    <ul style="margin: 0; padding-left: 20px; color: #64748b;">
+                                        <li>You will not be able to log into your company dashboard</li>
+                                        <li>New parcel bookings for your company will be disabled</li>
+                                        <li>Your agents will not be able to access their accounts</li>
+                                        <li>Existing deliveries in progress may still be completed</li>
+                                    </ul>
+                                </div>
+
+                                <div style="background: #f0f9ff; border-left: 4px solid #0284c7; padding: 15px; margin: 20px 0;">
+                                    <h3 style="margin-top: 0; color: #0284c7;">How to Resolve This:</h3>
+                                    <p style="margin: 0;">If you believe this suspension was made in error or if you have addressed the concerns mentioned above, please contact our support team to request a review of your account.</p>
+                                </div>
+
+                                <div style="text-align: center; margin: 30px 0;">
+                                    <a href="mailto:support@tpts.in" style="background: #0284c7; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold;">
+                                        Contact Support
+                                    </a>
+                                </div>
+
+                                <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+
+                                <p style="color: #666; font-size: 14px;">
+                                    If you have any questions, please email us at <a href="mailto:support@tpts.in">support@tpts.in</a>
+                                </p>
+
+                                <p style="color: #999; font-size: 12px; text-align: center;">
+                                    © 2024 %s. All rights reserved.
+                                </p>
+                            </div>
+                        </body>
+                        </html>
+                        """,
+                contactPersonName, companyName, reason, appName);
+    }
+
+    /**
+     * Send Company Reactivation Email
+     * Sent when a suspended company is reactivated by Super Admin
+     */
+    public void sendCompanyReactivationEmail(String toEmail, String companyName, String contactPersonName) {
+        try {
+            String htmlContent = buildCompanyReactivationHtml(companyName, contactPersonName);
+
+            sendHtmlEmail(
+                    toEmail,
+                    String.format("[%s] Great News! Your Company Account Has Been Reactivated", appName),
+                    htmlContent);
+
+            log.info("Company reactivation email sent to {}", maskEmail(toEmail));
+
+        } catch (Exception e) {
+            log.error("Failed to send company reactivation email", e);
+        }
+    }
+
+    private String buildCompanyReactivationHtml(String companyName, String contactPersonName) {
+        return String.format(
+                """
+                        <html>
+                        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+                            <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+                                <div style="background: linear-gradient(135deg, #10b981, #059669); color: white; padding: 30px; border-radius: 10px; text-align: center; margin-bottom: 20px;">
+                                    <h1 style="margin: 0;">🎉 Account Reactivated!</h1>
+                                    <p style="margin: 10px 0 0;">Welcome Back</p>
+                                </div>
+
+                                <h2 style="color: #333;">Dear %s,</h2>
+
+                                <p>Great news! Your company <strong>%s</strong>'s account on our platform has been reactivated.</p>
+
+                                <div style="background: #f0fdf4; border-left: 4px solid #10b981; padding: 15px; margin: 20px 0;">
+                                    <h3 style="margin-top: 0; color: #059669;">What This Means:</h3>
+                                    <ul style="margin: 0; padding-left: 20px; color: #166534;">
+                                        <li>You can now log into your company dashboard</li>
+                                        <li>New parcel bookings for your company are enabled</li>
+                                        <li>Your agents can access their accounts again</li>
+                                        <li>All services have been fully restored</li>
+                                    </ul>
+                                </div>
+
+                                <div style="text-align: center; margin: 30px 0;">
+                                    <a href="%s/login" style="background: #10b981; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold;">
+                                        Go to Dashboard →
+                                    </a>
+                                </div>
+
+                                <p>We're happy to have you back! If you have any questions about your account, please don't hesitate to contact our support team.</p>
+
+                                <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+
+                                <p style="color: #666; font-size: 14px;">
+                                    Need help? Contact our support team at <a href="mailto:support@tpts.in">support@tpts.in</a>
+                                </p>
+
+                                <p style="color: #999; font-size: 12px; text-align: center;">
+                                    © 2024 %s. All rights reserved.
+                                </p>
+                            </div>
+                        </body>
+                        </html>
+                        """,
+                contactPersonName, companyName, appUrl, appName);
+    }
+
+    /**
+     * Send User Suspension Email
+     * Sent when a user's account is suspended by Super Admin
+     */
+    public void sendUserSuspensionEmail(String toEmail, String userName, String reason) {
+        try {
+            String htmlContent = String.format(
+                    """
+                            <html>
+                            <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+                                <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+                                    <div style="background: linear-gradient(135deg, #dc2626, #b91c1c); color: white; padding: 30px; border-radius: 10px; text-align: center; margin-bottom: 20px;">
+                                        <h1 style="margin: 0;">⚠️ Account Suspended</h1>
+                                        <p style="margin: 10px 0 0;">Important Notice</p>
+                                    </div>
+
+                                    <h2 style="color: #333;">Dear %s,</h2>
+
+                                    <p>We regret to inform you that your account on our platform has been suspended.</p>
+
+                                    <div style="background: #fef2f2; border-left: 4px solid #dc2626; padding: 15px; margin: 20px 0;">
+                                        <h3 style="margin-top: 0; color: #dc2626;">Reason for Suspension:</h3>
+                                        <p style="margin: 0; font-style: italic;">%s</p>
+                                    </div>
+
+                                    <div style="background: #f0f9ff; border-left: 4px solid #0284c7; padding: 15px; margin: 20px 0;">
+                                        <h3 style="margin-top: 0; color: #0284c7;">How to Resolve This:</h3>
+                                        <p style="margin: 0;">If you believe this suspension was made in error or if you have addressed the concerns mentioned above, please contact our support team to request a review of your account.</p>
+                                    </div>
+
+                                    <div style="text-align: center; margin: 30px 0;">
+                                        <a href="mailto:support@tpts.in" style="background: #0284c7; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold;">
+                                            Contact Support
+                                        </a>
+                                    </div>
+
+                                    <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+
+                                    <p style="color: #999; font-size: 12px; text-align: center;">
+                                        © 2024 %s. All rights reserved.
+                                    </p>
+                                </div>
+                            </body>
+                            </html>
+                            """,
+                    userName, reason, appName);
+
+            sendHtmlEmail(
+                    toEmail,
+                    String.format("[%s] Important: Your Account Has Been Suspended", appName),
+                    htmlContent);
+
+            log.info("User suspension email sent to {}", maskEmail(toEmail));
+
+        } catch (Exception e) {
+            log.error("Failed to send user suspension email", e);
+        }
+    }
+
+    /**
+     * Send User Activation Email
+     * Sent when a suspended user's account is reactivated by Super Admin
+     */
+    public void sendUserActivationEmail(String toEmail, String userName) {
+        try {
+            String htmlContent = String.format(
+                    """
+                            <html>
+                            <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+                                <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+                                    <div style="background: linear-gradient(135deg, #10b981, #059669); color: white; padding: 30px; border-radius: 10px; text-align: center; margin-bottom: 20px;">
+                                        <h1 style="margin: 0;">🎉 Account Reactivated!</h1>
+                                        <p style="margin: 10px 0 0;">Welcome Back</p>
+                                    </div>
+
+                                    <h2 style="color: #333;">Dear %s,</h2>
+
+                                    <p>Great news! Your account on our platform has been reactivated.</p>
+
+                                    <div style="background: #f0fdf4; border-left: 4px solid #10b981; padding: 15px; margin: 20px 0;">
+                                        <h3 style="margin-top: 0; color: #059669;">What This Means:</h3>
+                                        <ul style="margin: 0; padding-left: 20px; color: #166534;">
+                                            <li>You can now log into your account</li>
+                                            <li>All your previous data and settings are intact</li>
+                                            <li>All services have been fully restored</li>
+                                        </ul>
+                                    </div>
+
+                                    <div style="text-align: center; margin: 30px 0;">
+                                        <a href="%s/login" style="background: #10b981; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold;">
+                                            Log In Now →
+                                        </a>
+                                    </div>
+
+                                    <p>We're happy to have you back! If you have any questions, please don't hesitate to contact our support team.</p>
+
+                                    <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+
+                                    <p style="color: #999; font-size: 12px; text-align: center;">
+                                        © 2024 %s. All rights reserved.
+                                    </p>
+                                </div>
+                            </body>
+                            </html>
+                            """,
+                    userName, appUrl, appName);
+
+            sendHtmlEmail(
+                    toEmail,
+                    String.format("[%s] Great News! Your Account Has Been Reactivated", appName),
+                    htmlContent);
+
+            log.info("User activation email sent to {}", maskEmail(toEmail));
+
+        } catch (Exception e) {
+            log.error("Failed to send user activation email", e);
+        }
+    }
+
+    /**
      * Send Delivered Confirmation Email
      */
     public void sendDeliveredConfirmation(String toEmail, String customerName,
@@ -518,6 +860,267 @@ public class EmailService {
 
         } catch (Exception e) {
             log.error("Failed to send job application status", e);
+        }
+    }
+
+    /**
+     * Send Group Buy Cancelled Email to Company Admin
+     * Sent when a group expires with insufficient members (< 70% filled)
+     */
+    public void sendGroupBuyCancelledToCompany(String toEmail, String companyName, String groupCode,
+            String route, int currentMembers, int targetMembers) {
+        try {
+            String htmlContent = String.format(
+                    """
+                            <html>
+                            <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+                                <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+                                    <div style="background: linear-gradient(135deg, #dc2626, #b91c1c); color: white; padding: 30px; border-radius: 10px; text-align: center; margin-bottom: 20px;">
+                                        <h1 style="margin: 0;">❌ Group Buy Cancelled</h1>
+                                        <p style="margin: 10px 0 0;">Insufficient Members</p>
+                                    </div>
+
+                                    <h2 style="color: #333;">Dear %s Admin,</h2>
+
+                                    <p>We're notifying you that a group buy has been automatically cancelled due to insufficient members joining before the deadline.</p>
+
+                                    <div style="background: #fef2f2; border-left: 4px solid #dc2626; padding: 15px; margin: 20px 0;">
+                                        <h3 style="margin-top: 0; color: #dc2626;">Cancelled Group Details:</h3>
+                                        <table style="width: 100%%; border-collapse: collapse;">
+                                            <tr><td style="padding: 5px 0; color: #666;">Group Code:</td><td style="padding: 5px 0; font-weight: bold;">%s</td></tr>
+                                            <tr><td style="padding: 5px 0; color: #666;">Route:</td><td style="padding: 5px 0; font-weight: bold;">%s</td></tr>
+                                            <tr><td style="padding: 5px 0; color: #666;">Members Joined:</td><td style="padding: 5px 0; font-weight: bold;">%d / %d</td></tr>
+                                            <tr><td style="padding: 5px 0; color: #666;">Fill Rate:</td><td style="padding: 5px 0; font-weight: bold; color: #dc2626;">%d%%</td></tr>
+                                        </table>
+                                    </div>
+
+                                    <div style="background: #f0f9ff; border-left: 4px solid #0284c7; padding: 15px; margin: 20px 0;">
+                                        <h3 style="margin-top: 0; color: #0284c7;">What Happens Next:</h3>
+                                        <ul style="margin: 0; padding-left: 20px; color: #64748b;">
+                                            <li>Customers who joined have been notified</li>
+                                            <li>Refunds will be processed automatically</li>
+                                            <li>Parcels have been cancelled</li>
+                                        </ul>
+                                    </div>
+
+                                    <div style="text-align: center; margin: 30px 0;">
+                                        <a href="%s/company/shipments" style="background: #6366f1; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold;">
+                                            View Dashboard →
+                                        </a>
+                                    </div>
+
+                                    <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+
+                                    <p style="color: #999; font-size: 12px; text-align: center;">
+                                        © 2024 %s. All rights reserved.
+                                    </p>
+                                </div>
+                            </body>
+                            </html>
+                            """,
+                    companyName, groupCode, route, currentMembers, targetMembers,
+                    (currentMembers * 100 / targetMembers), appUrl, appName);
+
+            sendHtmlEmail(
+                    toEmail,
+                    String.format("[%s] Group Buy Cancelled - %s", appName, groupCode),
+                    htmlContent);
+
+            log.info("Group buy cancelled email sent to company {}", maskEmail(toEmail));
+
+        } catch (Exception e) {
+            log.error("Failed to send group buy cancelled email to company", e);
+        }
+    }
+
+    /**
+     * Send Group Buy Ready Email to Company Admin
+     * Sent when a group expires with sufficient members (>= 70% filled) OR reaches
+     * target
+     */
+    public void sendGroupBuyReadyToCompany(String toEmail, String companyName, String groupCode,
+            String route, int memberCount, int targetMembers) {
+        try {
+            String htmlContent = String.format(
+                    """
+                            <html>
+                            <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+                                <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+                                    <div style="background: linear-gradient(135deg, #10b981, #059669); color: white; padding: 30px; border-radius: 10px; text-align: center; margin-bottom: 20px;">
+                                        <h1 style="margin: 0;">🎉 Group Buy Ready!</h1>
+                                        <p style="margin: 10px 0 0;">Time to Assign Pickup Agent</p>
+                                    </div>
+
+                                    <h2 style="color: #333;">Dear %s Admin,</h2>
+
+                                    <p>Great news! A group buy has reached its deadline with sufficient members. It's ready for pickup agent assignment!</p>
+
+                                    <div style="background: #f0fdf4; border-left: 4px solid #10b981; padding: 15px; margin: 20px 0;">
+                                        <h3 style="margin-top: 0; color: #059669;">Group Details:</h3>
+                                        <table style="width: 100%%; border-collapse: collapse;">
+                                            <tr><td style="padding: 5px 0; color: #666;">Group Code:</td><td style="padding: 5px 0; font-weight: bold;">%s</td></tr>
+                                            <tr><td style="padding: 5px 0; color: #666;">Route:</td><td style="padding: 5px 0; font-weight: bold;">%s</td></tr>
+                                            <tr><td style="padding: 5px 0; color: #666;">Members Joined:</td><td style="padding: 5px 0; font-weight: bold; color: #10b981;">%d / %d</td></tr>
+                                            <tr><td style="padding: 5px 0; color: #666;">Status:</td><td style="padding: 5px 0; font-weight: bold; color: #10b981;">✅ Ready for Pickup</td></tr>
+                                        </table>
+                                    </div>
+
+                                    <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0;">
+                                        <h3 style="margin-top: 0; color: #d97706;">⚡ Action Required:</h3>
+                                        <p style="margin: 0;">Please assign a pickup agent to collect all %d parcels from customers.</p>
+                                    </div>
+
+                                    <div style="text-align: center; margin: 30px 0;">
+                                        <a href="%s/company/shipments" style="background: #10b981; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold;">
+                                            Assign Pickup Agent →
+                                        </a>
+                                    </div>
+
+                                    <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+
+                                    <p style="color: #999; font-size: 12px; text-align: center;">
+                                        © 2024 %s. All rights reserved.
+                                    </p>
+                                </div>
+                            </body>
+                            </html>
+                            """,
+                    companyName, groupCode, route, memberCount, targetMembers, memberCount, appUrl, appName);
+
+            sendHtmlEmail(
+                    toEmail,
+                    String.format("[%s] Group Buy Ready - Assign Pickup Agent for %s", appName, groupCode),
+                    htmlContent);
+
+            log.info("Group buy ready email sent to company {}", maskEmail(toEmail));
+
+        } catch (Exception e) {
+            log.error("Failed to send group buy ready email to company", e);
+        }
+    }
+
+    /**
+     * Send Balance Due Email to Customer
+     * Sent when group is partially filled and discount is pro-rated
+     */
+    public void sendBalanceDueEmail(String toEmail, String customerName, String trackingNumber,
+            String groupCode, BigDecimal originalDiscount, BigDecimal effectiveDiscount,
+            BigDecimal balanceAmount, BigDecimal fillPercentage) {
+        try {
+            String htmlContent = String.format(
+                    """
+                            <html>
+                            <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+                                <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+                                    <div style="background: linear-gradient(135deg, #f59e0b, #d97706); color: white; padding: 30px; border-radius: 10px; text-align: center; margin-bottom: 20px;">
+                                        <h1 style="margin: 0;">⚠️ Group Discount Adjusted</h1>
+                                        <p style="margin: 10px 0 0;">Balance Payment Required</p>
+                                    </div>
+
+                                    <h2 style="color: #333;">Hi %s,</h2>
+
+                                    <p>Your group buy <strong>%s</strong> reached its deadline with <strong>%s%% fill</strong>. The discount has been adjusted based on the number of members who joined.</p>
+
+                                    <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0;">
+                                        <h3 style="margin-top: 0; color: #d97706;">Discount Adjustment:</h3>
+                                        <table style="width: 100%%; border-collapse: collapse;">
+                                            <tr><td style="padding: 5px 0; color: #666;">Tracking Number:</td><td style="padding: 5px 0; font-weight: bold;">%s</td></tr>
+                                            <tr><td style="padding: 5px 0; color: #666;">Original Discount:</td><td style="padding: 5px 0; font-weight: bold; text-decoration: line-through;">%s%%</td></tr>
+                                            <tr><td style="padding: 5px 0; color: #666;">Adjusted Discount:</td><td style="padding: 5px 0; font-weight: bold; color: #f59e0b;">%s%%</td></tr>
+                                        </table>
+                                    </div>
+
+                                    <div style="background: #fef2f2; border: 2px solid #dc2626; padding: 20px; margin: 20px 0; border-radius: 8px; text-align: center;">
+                                        <h3 style="margin-top: 0; color: #dc2626;">💰 Balance Due</h3>
+                                        <p style="font-size: 32px; font-weight: bold; color: #dc2626; margin: 10px 0;">₹%s</p>
+                                        <p style="color: #666; margin: 0;">Pay now or at delivery</p>
+                                    </div>
+
+                                    <div style="background: #f0f9ff; border-left: 4px solid #0284c7; padding: 15px; margin: 20px 0;">
+                                        <h3 style="margin-top: 0; color: #0284c7;">How to Pay:</h3>
+                                        <ul style="margin: 0; padding-left: 20px; color: #64748b;">
+                                            <li>Log in to your account and pay online via Razorpay</li>
+                                            <li>Or pay cash to the delivery agent at time of delivery</li>
+                                        </ul>
+                                    </div>
+
+                                    <div style="text-align: center; margin: 30px 0;">
+                                        <a href="%s/customer/groups" style="background: #f59e0b; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold;">
+                                            Pay Balance Now →
+                                        </a>
+                                    </div>
+
+                                    <p style="color: #666; font-size: 14px;">
+                                        <strong>Note:</strong> Your parcel will still be delivered. However, the agent will request payment before handing over the package.
+                                    </p>
+
+                                    <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+
+                                    <p style="color: #999; font-size: 12px; text-align: center;">
+                                        © 2024 %s. All rights reserved.
+                                    </p>
+                                </div>
+                            </body>
+                            </html>
+                            """,
+                    customerName, groupCode, fillPercentage, trackingNumber,
+                    originalDiscount, effectiveDiscount, balanceAmount, appUrl, appName);
+
+            sendHtmlEmail(
+                    toEmail,
+                    String.format("[%s] Balance Due ₹%s - Group Buy %s", appName, balanceAmount, groupCode),
+                    htmlContent);
+
+            log.info("Balance due email sent to {}", maskEmail(toEmail));
+
+        } catch (Exception e) {
+            log.error("Failed to send balance due email", e);
+        }
+    }
+
+    /**
+     * Send Bulk Admin Email
+     * Generic email template for admin/company bulk messaging
+     */
+    public void sendBulkAdminEmail(String toEmail, String recipientName, String subject, String messageContent) {
+        try {
+            String htmlContent = String.format(
+                    """
+                            <html>
+                            <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+                                <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+                                    <div style="background: linear-gradient(135deg, #6366f1, #4f46e5); color: white; padding: 30px; border-radius: 10px; text-align: center; margin-bottom: 20px;">
+                                        <h1 style="margin: 0;">%s</h1>
+                                        <p style="margin: 10px 0 0;">Message from %s</p>
+                                    </div>
+
+                                    <h2 style="color: #333;">Dear %s,</h2>
+
+                                    <div style="background: #f8fafc; padding: 20px; margin: 20px 0; border-radius: 8px; border-left: 4px solid #6366f1;">
+                                        %s
+                                    </div>
+
+                                    <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+
+                                    <p style="color: #666; font-size: 14px;">
+                                        This is an automated message from %s. If you have questions, please contact our support team at <a href="mailto:support@tpts.in">support@tpts.in</a>
+                                    </p>
+
+                                    <p style="color: #999; font-size: 12px; text-align: center;">
+                                        © 2024 %s. All rights reserved.
+                                    </p>
+                                </div>
+                            </body>
+                            </html>
+                            """,
+                    subject, appName, recipientName, messageContent, appName, appName);
+
+            sendHtmlEmail(toEmail, String.format("[%s] %s", appName, subject), htmlContent);
+            log.info("Bulk admin email sent to {} - Subject: {}", maskEmail(toEmail), subject);
+
+        } catch (Exception e) {
+            log.error("Failed to send bulk admin email to {}: {}", maskEmail(toEmail), e.getMessage());
+            throw new TptsExceptions.EmailSendFailedException("Failed to send email: " + e.getMessage());
         }
     }
 

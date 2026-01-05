@@ -30,12 +30,19 @@ public class PlatformStatsDTO {
     private Long rejectedCompanies;
     private Long hiringCompanies;
 
-    // Parcel stats
+    // Parcel stats (raw parcel counts)
     private Long totalParcels;
     private Long pendingParcels;
     private Long inTransitParcels;
     private Long deliveredParcels;
     private Long todayParcels;
+
+    // Order stats (groups counted as 1 order)
+    private Long totalOrders; // regularOrders + groupBuyOrders
+    private Long regularOrders; // Parcels not in any group
+    private Long groupBuyOrders; // Number of groups (not parcels in groups)
+    private Long completedOrders; // Delivered orders
+    private Long cancelledOrders; // Cancelled orders
 
     // Group stats
     private Long totalGroups;
@@ -69,4 +76,12 @@ public class PlatformStatsDTO {
     // Agent Statistics - ADD THESE
     private Long activeAgents;
     private Long availableAgents;
+
+    // Cancellation Statistics
+    private Long cancelledParcels;
+    private Double cancellationRate; // Percentage of total parcels that were cancelled
+    private Long cancelledByCustomer;
+    private Long cancelledByCompany;
+    private Long cancelledByAgent;
+    private Long cancelledByAdmin;
 }

@@ -1,0 +1,369 @@
+{
+  "info": {
+    "name": "TPTS Backend API",
+    "description": "Trail Parcel Tracking System - Authentication API Collection\n\nBase URL: http://localhost:8080/api\n\nSetup:\n1. Create MySQL database: tpts_db\n2. Run Spring Boot application\n3. Use this collection to test endpoints",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "accessToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "refreshToken",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health Check",
+      "item": [
+        {
+          "name": "Root - Welcome",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/",
+            "description": "Welcome endpoint - Returns API info"
+          }
+        },
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/health",
+            "description": "Health check endpoint"
+          }
+        },
+        {
+          "name": "Auth Health",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/auth/health",
+            "description": "Auth service health check"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "1. Register Customer",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.data) {",
+                  "        pm.collectionVariables.set('accessToken', jsonData.data.accessToken);",
+                  "        pm.collectionVariables.set('refreshToken', jsonData.data.refreshToken);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/auth/register/customer",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"fullName\": \"Jai Kumar\",\n    \"email\": \"jai@example.com\",\n    \"phone\": \"9876543210\",\n    \"password\": \"password123\",\n    \"city\": \"Chennai\",\n    \"pincode\": \"600001\"\n}"
+            },
+            "description": "Register a new customer account\n\nValidations:\n- fullName: 2-100 characters\n- email: valid email format\n- phone: 10-digit Indian number starting with 6-9\n- password: 6-50 characters\n- pincode: 6-digit starting with 1-9"
+          }
+        },
+        {
+          "name": "2. Register Company",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.data) {",
+                  "        pm.collectionVariables.set('accessToken', jsonData.data.accessToken);",
+                  "        pm.collectionVariables.set('refreshToken', jsonData.data.refreshToken);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/auth/register/company",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"companyName\": \"SpeedX Logistics\",\n    \"registrationNumber\": \"CIN123456789\",\n    \"gstNumber\": \"33AABCU9603R1ZX\",\n    \"contactPersonName\": \"Rahul Sharma\",\n    \"email\": \"admin@speedx.com\",\n    \"phone\": \"9876543211\",\n    \"password\": \"company123\",\n    \"address\": \"123 Anna Nagar, Chennai\",\n    \"city\": \"Chennai\",\n    \"state\": \"Tamil Nadu\",\n    \"pincode\": \"600040\",\n    \"serviceCities\": [\"Chennai\", \"Bangalore\", \"Hyderabad\"],\n    \"baseRatePerKm\": 5.00,\n    \"baseRatePerKg\": 10.00\n}"
+            },
+            "description": "Register a new courier company\n\nNote: Company needs SuperAdmin approval before login"
+          }
+        },
+        {
+          "name": "3. Login - Customer",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.data) {",
+                  "        pm.collectionVariables.set('accessToken', jsonData.data.accessToken);",
+                  "        pm.collectionVariables.set('refreshToken', jsonData.data.refreshToken);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/auth/login",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"jai@example.com\",\n    \"password\": \"password123\",\n    \"userType\": \"CUSTOMER\"\n}"
+            },
+            "description": "Login as a customer\n\nUserTypes: CUSTOMER, COMPANY_ADMIN, DELIVERY_AGENT, SUPER_ADMIN"
+          }
+        },
+        {
+          "name": "3. Login - Company Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.data) {",
+                  "        pm.collectionVariables.set('accessToken', jsonData.data.accessToken);",
+                  "        pm.collectionVariables.set('refreshToken', jsonData.data.refreshToken);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/auth/login",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"admin@speedx.com\",\n    \"password\": \"company123\",\n    \"userType\": \"COMPANY_ADMIN\"\n}"
+            },
+            "description": "Login as a company admin\n\nNote: Will fail if company is not approved yet"
+          }
+        },
+        {
+          "name": "4. Verify OTP",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.data) {",
+                  "        pm.collectionVariables.set('accessToken', jsonData.data.accessToken);",
+                  "        pm.collectionVariables.set('refreshToken', jsonData.data.refreshToken);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/auth/verify-otp",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"jai@example.com\",\n    \"otp\": \"123456\"\n}"
+            },
+            "description": "Verify OTP sent during registration\n\nNote: Check console/logs for actual OTP (SMS/Email not implemented yet)"
+          }
+        },
+        {
+          "name": "5. Resend OTP",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/auth/resend-otp",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"jai@example.com\"\n}"
+            },
+            "description": "Request a new OTP"
+          }
+        },
+        {
+          "name": "6. Refresh Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.data) {",
+                  "        pm.collectionVariables.set('accessToken', jsonData.data.accessToken);",
+                  "        pm.collectionVariables.set('refreshToken', jsonData.data.refreshToken);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/auth/refresh-token",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"refreshToken\": \"{{refreshToken}}\"\n}"
+            },
+            "description": "Get new access token using refresh token"
+          }
+        },
+        {
+          "name": "7. Forgot Password",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/auth/forgot-password",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"jai@example.com\"\n}"
+            },
+            "description": "Request password reset link\n\nNote: Check console/logs for reset token"
+          }
+        },
+        {
+          "name": "8. Reset Password",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/auth/reset-password",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"token\": \"paste-reset-token-here\",\n    \"newPassword\": \"newpassword123\"\n}"
+            },
+            "description": "Reset password using token from email/console"
+          }
+        },
+        {
+          "name": "9. Logout",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/auth/logout",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "description": "Logout and invalidate refresh token\n\nRequires: Authorization header with Bearer token"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Protected Endpoints (Test Auth)",
+      "item": [
+        {
+          "name": "Test Protected - No Token (Should Fail)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/customers/1",
+            "description": "Try to access protected endpoint without token\n\nExpected: 401 Unauthorized or 403 Forbidden"
+          }
+        },
+        {
+          "name": "Test Protected - With Token",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/customers/1",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "description": "Access protected endpoint with valid token\n\nNote: This endpoint doesn't exist yet, but tests JWT auth"
+          }
+        }
+      ]
+    }
+  ]
+}

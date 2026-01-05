@@ -134,6 +134,33 @@ public class NotificationService {
         }
 
         /**
+         * Convenience method to send notification directly with User object
+         * Uses IN_APP channel and SYSTEM_ALERT type by default
+         */
+        @Transactional
+        public void sendNotification(User user, String title, String message, String typeString, Long referenceId) {
+                NotificationType type = NotificationType.SYSTEM_ALERT;
+                try {
+                        type = NotificationType.valueOf(typeString);
+                } catch (IllegalArgumentException e) {
+                        // Use default SYSTEM_ALERT if type string is not valid
+                        log.warn("Unknown notification type: {}, using SYSTEM_ALERT", typeString);
+                }
+
+                SendNotificationRequest request = SendNotificationRequest.builder()
+                                .userId(user.getId())
+                                .title(title)
+                                .message(message)
+                                .type(type)
+                                .channel(NotificationChannel.IN_APP)
+                                .referenceId(referenceId)
+                                .priority(3)
+                                .build();
+
+                sendNotification(request);
+        }
+
+        /**
          * Send group deadline reminder with exact minutes
          */
         public void sendGroupDeadlineReminderWithMinutes(User user, String groupCode, int membersNeeded,
@@ -1138,6 +1165,281 @@ public class NotificationService {
                                 .build());
         }
 
+        /**
+         * Notify customer when parcel reaches warehouse (Group Buy specific)
+         */
+        public void sendGroupAtWarehouse(User senderUser, User receiverUser,
+                        String groupCode, String trackingNumber, String warehouseCity) {
+                String senderMessage = String.format(
+                                "📦 Your package has arrived at our warehouse!\\n\\n" +
+                                                "Tracking: %s\\n" +
+                                                "Group: %s\\n" +
+                                                "Location: %s Sorting Facility\\n\\n" +
+                                                "It will be dispatched for delivery soon.",
+                                trackingNumber, groupCode, warehouseCity);
+
+                // Notify sender
+                sendNotification(SendNotificationRequest.builder()
+                                .userId(senderUser.getId())
+                                .title("Package at Warehouse")
+                                .message(senderMessage)
+                                .type(NotificationType.SYSTEM_ALERT)
+                                .channel(NotificationChannel.IN_APP)
+                                .priority(3)
+                                .build());
+
+                String receiverMessage = String.format(
+                                "📦 Your package is at the warehouse!\\n\\n" +
+                                                "Tracking: %s\\n" +
+                                                "Location: %s\\n\\n" +
+                                                "Delivery agent will be assigned soon.",
+                                trackingNumber, warehouseCity);
+
+                // Notify receiver
+                if (receiverUser != null) {
+                        sendNotification(SendNotificationRequest.builder()
+                                        .userId(receiverUser.getId())
+                                        .title("Package at Warehouse")
+                                        .message(receiverMessage)
+                                        .type(NotificationType.SYSTEM_ALERT)
+                                        .channel(NotificationChannel.IN_APP)
+                                        .priority(3)
+                                        .build());
+                }
+        }
+
+        /**
+         * Notify when delivery agent is assigned (Group Buy)
+         */
+        public void sendGroupDeliveryStarting(User receiverUser, String trackingNumber,
+                        String agentName, String deliveryOtp) {
+                String message = String.format(
+                                "🛵 Your package is out for delivery!\\n\\n" +
+                                                "Tracking: %s\\n" +
+                                                "Agent: %s\\n\\n" +
+                                                "🔑 Delivery OTP: %s\\n\\n" +
+                                                "Share this OTP with the agent upon delivery.",
+                                trackingNumber, agentName, deliveryOtp);
+
+                // SMS with OTP
+                sendNotification(SendNotificationRequest.builder()
+                                .userId(receiverUser.getId())
+                                .title("Out for Delivery - OTP: " + deliveryOtp)
+                                .message(message)
+                                .type(NotificationType.OUT_FOR_DELIVERY)
+                                .channel(NotificationChannel.SMS)
+                                .priority(1)
+                                .build());
+
+                // In-app notification
+                sendNotification(SendNotificationRequest.builder()
+                                .userId(receiverUser.getId())
+                                .title("Package Out for Delivery")
+                                .message(message)
+                                .type(NotificationType.OUT_FOR_DELIVERY)
+                                .channel(NotificationChannel.IN_APP)
+                                .priority(1)
+                                .build());
+        }
+
+        /**
+         * Notify company admin when a group buy is cancelled (insufficient members)
+         */
+        public void sendGroupCancelledToCompany(User companyUser, String groupCode,
+                        String route, int currentMembers, int targetMembers, String companyName) {
+                String message = String.format(
+                                "❌ Group Buy Cancelled\n\n" +
+                                                "Group: %s\n" +
+                                                "Route: %s\n" +
+                                                "Members: %d/%d\n\n" +
+                                                "Cancelled due to insufficient members. Customers have been notified.",
+                                groupCode, route, currentMembers, targetMembers);
+
+                // In-App notification
+                sendNotification(SendNotificationRequest.builder()
+                                .userId(companyUser.getId())
+                                .title("Group Buy Cancelled - " + groupCode)
+                                .message(message)
+                                .type(NotificationType.SYSTEM_ALERT)
+                                .channel(NotificationChannel.IN_APP)
+                                .priority(2)
+                                .build());
+
+                // Email notification via EmailService
+                try {
+                        emailService.sendGroupBuyCancelledToCompany(
+                                        companyUser.getEmail(),
+                                        companyName,
+                                        groupCode,
+                                        route,
+                                        currentMembers,
+                                        targetMembers);
+                } catch (Exception e) {
+                        log.error("Failed to send group cancelled email to company: {}", e.getMessage());
+                }
+        }
+
+        /**
+         * Notify company admin when a group buy is ready for pickup agent assignment
+         */
+        public void sendGroupReadyToCompany(User companyUser, String groupCode,
+                        String route, int memberCount, int targetMembers, String companyName) {
+                String message = String.format(
+                                "🎉 Group Buy Ready!\n\n" +
+                                                "Group: %s\n" +
+                                                "Route: %s\n" +
+                                                "Members: %d/%d\n\n" +
+                                                "Please assign a pickup agent to collect the parcels.",
+                                groupCode, route, memberCount, targetMembers);
+
+                // In-App notification
+                sendNotification(SendNotificationRequest.builder()
+                                .userId(companyUser.getId())
+                                .title("Assign Pickup Agent - " + groupCode)
+                                .message(message)
+                                .type(NotificationType.SYSTEM_ALERT)
+                                .channel(NotificationChannel.IN_APP)
+                                .priority(1) // High priority - action required
+                                .build());
+
+                // Email notification via EmailService
+                try {
+                        emailService.sendGroupBuyReadyToCompany(
+                                        companyUser.getEmail(),
+                                        companyName,
+                                        groupCode,
+                                        route,
+                                        memberCount,
+                                        targetMembers);
+                } catch (Exception e) {
+                        log.error("Failed to send group ready email to company: {}", e.getMessage());
+                }
+        }
+
+        /**
+         * Notify customer about balance amount due after partial group fill
+         */
+        public void sendBalanceDueToCustomer(User customerUser, String trackingNumber,
+                        String groupCode, BigDecimal originalDiscount, BigDecimal effectiveDiscount,
+                        BigDecimal balanceAmount, BigDecimal fillPercentage) {
+                String message = String.format(
+                                "⚠️ Group Discount Adjusted\n\n" +
+                                                "Tracking: %s\n" +
+                                                "Group: %s\n" +
+                                                "Fill Rate: %s%%\n\n" +
+                                                "Original Discount: %s%%\n" +
+                                                "Adjusted Discount: %s%%\n\n" +
+                                                "💰 Balance Due: ₹%s\n\n" +
+                                                "Pay now or at delivery to receive your parcel.",
+                                trackingNumber, groupCode, fillPercentage,
+                                originalDiscount, effectiveDiscount, balanceAmount);
+
+                // SMS notification
+                sendNotification(SendNotificationRequest.builder()
+                                .userId(customerUser.getId())
+                                .title("Balance Due: ₹" + balanceAmount)
+                                .message(message)
+                                .type(NotificationType.SYSTEM_ALERT)
+                                .channel(NotificationChannel.SMS)
+                                .priority(1)
+                                .build());
+
+                // In-App notification
+                sendNotification(SendNotificationRequest.builder()
+                                .userId(customerUser.getId())
+                                .title("Group Discount Adjusted - Pay ₹" + balanceAmount)
+                                .message(message)
+                                .type(NotificationType.SYSTEM_ALERT)
+                                .channel(NotificationChannel.IN_APP)
+                                .priority(1)
+                                .build());
+
+                // Email notification
+                try {
+                        emailService.sendBalanceDueEmail(
+                                        customerUser.getEmail(),
+                                        "Customer", // User entity doesn't have fullName
+                                        trackingNumber,
+                                        groupCode,
+                                        originalDiscount,
+                                        effectiveDiscount,
+                                        balanceAmount,
+                                        fillPercentage);
+                } catch (Exception e) {
+                        log.error("Failed to send balance due email: {}", e.getMessage());
+                }
+        }
+
+        /**
+         * Notify customer when balance is paid successfully
+         */
+        public void sendBalancePaidConfirmation(User customerUser, String trackingNumber,
+                        BigDecimal balanceAmount, String paymentMethod) {
+                String message = String.format(
+                                "✅ Balance Payment Received!\n\n" +
+                                                "Tracking: %s\n" +
+                                                "Amount: ₹%s\n" +
+                                                "Method: %s\n\n" +
+                                                "Your parcel will proceed for delivery.",
+                                trackingNumber, balanceAmount, paymentMethod);
+
+                // In-App notification
+                sendNotification(SendNotificationRequest.builder()
+                                .userId(customerUser.getId())
+                                .title("Balance Paid - ₹" + balanceAmount)
+                                .message(message)
+                                .type(NotificationType.PAYMENT_RECEIVED)
+                                .channel(NotificationChannel.IN_APP)
+                                .priority(2)
+                                .build());
+        }
+
+        /**
+         * Notify agent about unpaid balance on parcel
+         */
+        public void sendUnpaidBalanceAlertToAgent(User agentUser, String trackingNumber,
+                        String customerName, BigDecimal balanceAmount) {
+                String message = String.format(
+                                "⚠️ Unpaid Balance Alert\n\n" +
+                                                "Tracking: %s\n" +
+                                                "Customer: %s\n" +
+                                                "Balance: ₹%s\n\n" +
+                                                "Ask customer to pay online or collect cash at delivery.",
+                                trackingNumber, customerName, balanceAmount);
+
+                sendNotification(SendNotificationRequest.builder()
+                                .userId(agentUser.getId())
+                                .title("Collect ₹" + balanceAmount + " - " + trackingNumber)
+                                .message(message)
+                                .type(NotificationType.SYSTEM_ALERT)
+                                .channel(NotificationChannel.IN_APP)
+                                .priority(1)
+                                .build());
+        }
+
+        /**
+         * Notify company when agent collects cash for balance
+         */
+        public void sendCashCollectionToCompany(User companyUser, String trackingNumber,
+                        String agentName, BigDecimal amount) {
+                String message = String.format(
+                                "💵 Cash Collection\n\n" +
+                                                "Tracking: %s\n" +
+                                                "Collected By: %s\n" +
+                                                "Amount: ₹%s\n\n" +
+                                                "Balance payment collected in cash at delivery.",
+                                trackingNumber, agentName, amount);
+
+                sendNotification(SendNotificationRequest.builder()
+                                .userId(companyUser.getId())
+                                .title("Cash Collected: ₹" + amount)
+                                .message(message)
+                                .type(NotificationType.PAYMENT_RECEIVED)
+                                .channel(NotificationChannel.IN_APP)
+                                .priority(2)
+                                .build());
+        }
+
         // ==========================================
         // RATING REMINDERS
         // ==========================================
@@ -1850,6 +2152,10 @@ public class NotificationService {
 
         private String buildActionUrl(Notification notification) {
                 if (notification.getReferenceId() == null)
+                        return null;
+
+                // Handle null referenceType to prevent NullPointerException
+                if (notification.getReferenceType() == null)
                         return null;
 
                 return switch (notification.getReferenceType()) {

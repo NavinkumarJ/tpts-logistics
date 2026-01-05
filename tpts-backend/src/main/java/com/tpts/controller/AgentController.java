@@ -63,6 +63,174 @@ public class AgentController {
         return ResponseEntity.ok(ApiResponse.success(dashboard, "Dashboard retrieved"));
     }
 
+    @GetMapping("/my-groups")
+    @PreAuthorize("hasRole('DELIVERY_AGENT')")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getMyGroupAssignments(
+            @AuthenticationPrincipal User currentUser) {
+        log.info("Getting group assignments for agent: {}", currentUser.getEmail());
+        Map<String, Object> groups = agentService.getAgentGroupAssignments(currentUser);
+        return ResponseEntity.ok(ApiResponse.success(groups, "Group assignments retrieved"));
+    }
+
+    @PostMapping("/share-location")
+    @PreAuthorize("hasRole('DELIVERY_AGENT')")
+    public ResponseEntity<ApiResponse<String>> shareLocation(
+            @RequestBody Map<String, Object> request,
+            @AuthenticationPrincipal User currentUser) {
+        log.info("Agent {} sharing location", currentUser.getEmail());
+
+        Double latitude = request.get("latitude") != null ? Double.parseDouble(request.get("latitude").toString())
+                : null;
+        Double longitude = request.get("longitude") != null ? Double.parseDouble(request.get("longitude").toString())
+                : null;
+        Long groupShipmentId = request.get("groupShipmentId") != null
+                ? Long.parseLong(request.get("groupShipmentId").toString())
+                : null;
+
+        if (latitude == null || longitude == null) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("Location coordinates required"));
+        }
+
+        agentService.updateAgentLocation(currentUser, latitude, longitude, groupShipmentId);
+        return ResponseEntity.ok(ApiResponse.success("Location shared", "Location updated successfully"));
+    }
+
+    @PostMapping(value = "/pickups/{parcelId}/verify", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasRole('DELIVERY_AGENT')")
+    public ResponseEntity<ApiResponse<String>> verifyPickupWithPhoto(
+            @PathVariable Long parcelId,
+            @RequestParam String otp,
+            @RequestParam Long groupShipmentId,
+            @RequestParam(required = false) MultipartFile pickupPhoto,
+            @AuthenticationPrincipal User currentUser) {
+        log.info("Agent {} verifying pickup for parcel {} with OTP", currentUser.getEmail(), parcelId);
+
+        try {
+            // Upload photo to Cloudinary if provided
+            String photoUrl = null;
+            if (pickupPhoto != null && !pickupPhoto.isEmpty()) {
+                photoUrl = cloudinaryService.uploadImage(pickupPhoto, "pickup_photos");
+                log.info("Pickup photo uploaded: {}", photoUrl);
+            }
+
+            // Verify OTP and update parcel status
+            agentService.verifyPickupOtp(currentUser, parcelId, groupShipmentId, otp, photoUrl);
+
+            return ResponseEntity
+                    .ok(ApiResponse.success("Pickup verified", "OTP verified and parcel picked up successfully"));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        } catch (Exception e) {
+            log.error("Pickup verification failed", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("Verification failed: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Verify delivery OTP (JSON version - for frontend that sends already-uploaded
+     * photo URL)
+     * POST /api/agent/deliveries/{parcelId}/verify
+     */
+    @PostMapping("/deliveries/{parcelId}/verify")
+    @PreAuthorize("hasRole('DELIVERY_AGENT')")
+    public ResponseEntity<ApiResponse<String>> verifyDeliveryOtp(
+            @PathVariable Long parcelId,
+            @RequestBody Map<String, Object> request,
+            @AuthenticationPrincipal User currentUser) {
+        log.info("Agent {} verifying delivery for parcel {} with OTP", currentUser.getEmail(), parcelId);
+
+        try {
+            String otp = (String) request.get("otp");
+            Long groupShipmentId = request.get("groupShipmentId") != null
+                    ? Long.parseLong(request.get("groupShipmentId").toString())
+                    : null;
+            String photoUrl = (String) request.get("photoUrl");
+
+            log.info("Delivery verify - PhotoUrl received: {}", photoUrl);
+
+            // Verify OTP and update parcel status to DELIVERED
+            agentService.verifyDeliveryOtp(currentUser, parcelId, groupShipmentId, otp, photoUrl);
+
+            return ResponseEntity
+                    .ok(ApiResponse.success("Delivery verified", "OTP verified and parcel delivered successfully"));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        } catch (Exception e) {
+            log.error("Delivery verification failed", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("Verification failed: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Verify delivery OTP with photo upload (MultipartFile version - handles photo
+     * upload directly)
+     * POST /api/agent/deliveries/{parcelId}/verify-with-photo
+     */
+    @PostMapping(value = "/deliveries/{parcelId}/verify-with-photo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasRole('DELIVERY_AGENT')")
+    public ResponseEntity<ApiResponse<String>> verifyDeliveryWithPhoto(
+            @PathVariable Long parcelId,
+            @RequestParam String otp,
+            @RequestParam Long groupShipmentId,
+            @RequestParam(required = false) MultipartFile deliveryPhoto,
+            @AuthenticationPrincipal User currentUser) {
+        log.info("Agent {} verifying delivery with photo for parcel {} with OTP", currentUser.getEmail(), parcelId);
+
+        try {
+            // Upload photo to Cloudinary if provided
+            String photoUrl = null;
+            if (deliveryPhoto != null && !deliveryPhoto.isEmpty()) {
+                photoUrl = cloudinaryService.uploadImage(deliveryPhoto, "delivery_photos");
+                log.info("Delivery photo uploaded: {}", photoUrl);
+            }
+
+            // Verify OTP and update parcel status to DELIVERED
+            agentService.verifyDeliveryOtp(currentUser, parcelId, groupShipmentId, otp, photoUrl);
+
+            return ResponseEntity
+                    .ok(ApiResponse.success("Delivery verified", "OTP verified and parcel delivered successfully"));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        } catch (Exception e) {
+            log.error("Delivery verification failed", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("Verification failed: " + e.getMessage()));
+        }
+    }
+
+    @PostMapping(value = "/warehouse-arrival", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasRole('DELIVERY_AGENT')")
+    public ResponseEntity<ApiResponse<String>> confirmWarehouseArrival(
+            @RequestParam Long groupShipmentId,
+            @RequestParam(required = false) MultipartFile warehousePhoto,
+            @AuthenticationPrincipal User currentUser) {
+        log.info("Agent {} confirming warehouse arrival for group {}", currentUser.getEmail(), groupShipmentId);
+
+        try {
+            // Upload photo to Cloudinary if provided
+            String photoUrl = null;
+            if (warehousePhoto != null && !warehousePhoto.isEmpty()) {
+                photoUrl = cloudinaryService.uploadImage(warehousePhoto, "warehouse_arrivals");
+                log.info("Warehouse arrival photo uploaded: {}", photoUrl);
+            }
+
+            // Update all parcels in group to AT_WAREHOUSE status
+            agentService.confirmWarehouseArrival(currentUser, groupShipmentId, photoUrl);
+
+            return ResponseEntity
+                    .ok(ApiResponse.success("Warehouse arrival confirmed",
+                            "All parcels have been updated to AT_WAREHOUSE status"));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        } catch (Exception e) {
+            log.error("Warehouse arrival confirmation failed", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("Confirmation failed: " + e.getMessage()));
+        }
+    }
+
     @PutMapping("/profile")
     @PreAuthorize("hasRole('DELIVERY_AGENT')")
     public ResponseEntity<ApiResponse<AgentDTO>> updateAgentProfile(
@@ -200,9 +368,11 @@ public class AgentController {
     public ResponseEntity<ApiResponse<AgentDTO>> setActiveStatus(
             @PathVariable Long id,
             @RequestParam Boolean isActive,
+            @RequestBody(required = false) Map<String, String> request,
             @AuthenticationPrincipal User currentUser) {
-        log.info("Setting agent {} active status to {}", id, isActive);
-        AgentDTO agent = agentService.updateActiveStatus(id, isActive, currentUser);
+        String reason = request != null ? request.getOrDefault("reason", null) : null;
+        log.info("Setting agent {} active status to {} (reason: {})", id, isActive, reason);
+        AgentDTO agent = agentService.updateActiveStatus(id, isActive, reason, currentUser);
         String message = isActive ? "Agent activated" : "Agent deactivated";
         return ResponseEntity.ok(ApiResponse.success(agent, message));
     }

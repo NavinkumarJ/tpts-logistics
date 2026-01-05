@@ -22,10 +22,13 @@ public enum NotificationType {
     GROUP_FILLED,
     GROUP_DEADLINE_REMINDER,
     GROUP_CANCELLED,
+    GROUP_MEMBER_LEFT,
 
     // Payment related
     PAYMENT_SUCCESS,
     PAYMENT_FAILED,
+    PAYMENT_RECEIVED,
+    PAYMENT_REQUIRED,
     REFUND_INITIATED,
     REFUND_COMPLETED,
 
@@ -49,6 +52,9 @@ public enum NotificationType {
     // Rating related
     NEW_RATING,
     RATING_RESPONSE,
+
+    // Chat related
+    CHAT_MESSAGE,
 
     // System
     SYSTEM_ALERT,
