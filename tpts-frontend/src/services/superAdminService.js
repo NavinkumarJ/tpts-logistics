@@ -66,3 +66,32 @@ export const getRevenueStats = async () => {
   const response = await apiClient.get("/super-admin/revenue");
   return response.data.data;
 };
+
+// Messaging
+export const sendBulkEmail = async (data) => {
+  const response = await apiClient.post("/super-admin/messaging/send", data);
+  return response.data.data;
+};
+
+export const getEmailHistory = async (type = null, limit = 50) => {
+  const params = { limit };
+  if (type) params.type = type;
+  const response = await apiClient.get("/super-admin/messaging/history", { params });
+  return response.data.data;
+};
+
+export const searchCompanies = async (query = "") => {
+  const response = await apiClient.get(`/super-admin/search/companies?q=${query}`);
+  return response.data.data;
+};
+
+export const searchCustomers = async (query = "") => {
+  const response = await apiClient.get(`/super-admin/search/customers?q=${query}`);
+  return response.data.data;
+};
+
+// Cancellation Analytics
+export const getCancellationStats = async () => {
+  const response = await apiClient.get("/super-admin/stats/cancellations");
+  return response.data.data;
+};

@@ -42,7 +42,7 @@ public class CreateGroupRequest {
     // ==========================================
 
     @NotNull(message = "Target members is required")
-    @Min(value = 5, message = "Minimum 5 members required")
+    @Min(value = 2, message = "Minimum 2 members required")
     @Max(value = 50, message = "Maximum 50 members allowed")
     private Integer targetMembers;
 
@@ -56,4 +56,21 @@ public class CreateGroupRequest {
     @Min(value = 6, message = "Minimum deadline is 6 hours")
     @Max(value = 168, message = "Maximum deadline is 168 hours (7 days)")
     private Integer deadlineHours;
+
+    // ==========================================
+    // Warehouse Information (Two-Agent Model)
+    // ==========================================
+
+    @NotBlank(message = "Warehouse address is required")
+    private String warehouseAddress;
+
+    @NotBlank(message = "Warehouse city is required")
+    @Size(max = 100, message = "Warehouse city cannot exceed 100 characters")
+    private String warehouseCity;
+
+    @Pattern(regexp = "^[1-9][0-9]{5}$", message = "Please provide a valid 6-digit warehouse pincode")
+    private String warehousePincode;
+
+    private BigDecimal warehouseLatitude;
+    private BigDecimal warehouseLongitude;
 }

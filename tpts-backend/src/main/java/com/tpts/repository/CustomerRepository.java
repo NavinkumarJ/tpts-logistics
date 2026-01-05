@@ -5,6 +5,7 @@ import com.tpts.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -21,4 +22,7 @@ public interface CustomerRepository extends JpaRepository<Customer, Long> {
 
     // Check if customer exists for user
     boolean existsByUserId(Long userId);
+
+    // Search by full name for messaging
+    List<Customer> findByFullNameContainingIgnoreCase(String fullName);
 }

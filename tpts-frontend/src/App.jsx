@@ -32,6 +32,8 @@ import SettingsPage from "./pages/customer/SettingsPage";
 import ProfilePage from "./pages/customer/ProfilePage";
 import CustomerRatingPage from "./pages/customer/CustomerRatingPage";
 import CustomerTrackingPage from "./pages/customer/CustomerTrackingPage";
+import MyGroupsPage from "./pages/customer/MyGroupsPage";
+import CustomerGroupTrackingPage from "./pages/customer/CustomerGroupTrackingPage";
 
 //Agent Pages
 import AgentShell from "./layouts/AgentShell";
@@ -44,6 +46,9 @@ import AgentProfilePage from "./pages/agent/AgentProfilePage";
 import AgentSettingsPage from "./pages/agent/AgentSettingsPage";
 import AgentNotificationsPage from "./pages/agent/AgentNotificationsPage";
 import AgentDeliveryDetailPage from "./pages/agent/AgentDeliveryDetailPage";
+import GroupPickupPage from "./pages/agent/GroupPickupPage";
+import GroupDeliveryAgentPage from "./pages/agent/GroupDeliveryPage";
+import AgentGroupOrdersPage from "./pages/agent/AgentGroupOrdersPage";
 
 //Company Pages
 import CompanyShell from "./layouts/CompanyShell";
@@ -59,7 +64,9 @@ import AnalyticsPage from "./pages/company/AnalyticsPage";
 import CompanyWalletPage from "./pages/company/CompanyWalletPage";
 import CompanySettingsPage from "./pages/company/CompanySettingsPage";
 import GroupDetailPage from "./pages/company/GroupDetailPage";
+import GroupTrackingPage from "./pages/company/GroupTrackingPage";
 import CompanyParcelDetailPage from "./pages/company/CompanyParcelDetailPage";
+import CompanyMessagingPage from "./pages/company/CompanyMessagingPage";
 
 //Admin Pages
 import SuperAdminShell from "./layouts/SuperAdminShell";
@@ -74,6 +81,7 @@ import AdminAnalyticsPage from "./pages/admin/AdminAnalyticsPage";
 import AdminRevenuePage from "./pages/admin/AdminRevenuePage";
 import AdminLogsPage from "./pages/admin/AdminLogsPage";
 import AdminNotificationsPage from "./pages/admin/AdminNotificationsPage";
+import AdminMessagingPage from "./pages/admin/AdminMessagingPage";
 
 function Placeholder({ title }) {
   return (
@@ -116,6 +124,8 @@ export default function App() {
         <Route path="profile" element={<ProfilePage />} />
         <Route path="rate/:parcelId" element={<CustomerRatingPage />} />
         <Route path="track/:trackingNumber" element={<CustomerTrackingPage />} />
+        <Route path="my-groups" element={<MyGroupsPage />} />
+        <Route path="group-tracking/:parcelId" element={<CustomerGroupTrackingPage />} />
       </Route>
 
       <Route path="/agent" element={<AgentShell />}>
@@ -129,12 +139,16 @@ export default function App() {
         <Route path="notifications" element={<AgentNotificationsPage />} />
         <Route path="settings" element={<AgentSettingsPage />} />
         <Route path="profile" element={<AgentProfilePage />} />
+        <Route path="group-orders" element={<AgentGroupOrdersPage />} />
+        <Route path="group-pickup/:groupId" element={<GroupPickupPage />} />
+        <Route path="group-delivery/:groupId" element={<GroupDeliveryAgentPage />} />
       </Route>
 
       <Route path="/company" element={<CompanyShell />}>
         <Route path="dashboard" element={<CompanyDashboard />} />
         <Route path="shipments" element={<CompanyShipments />} />
         <Route path="shipments/:groupId" element={<GroupDetailPage />} />
+        <Route path="shipments/:groupId/tracking" element={<GroupTrackingPage />} />
         <Route path="groups" element={<CompanyShipments />} />
         <Route path="parcels" element={<CompanyParcelsPage />} />
         <Route path="parcels/:parcelId" element={<CompanyParcelDetailPage />} />
@@ -146,6 +160,7 @@ export default function App() {
         <Route path="wallet" element={<CompanyWalletPage />} />
         <Route path="settings" element={<CompanySettingsPage />} />
         <Route path="profile" element={<CompanyProfilePage />} />
+        <Route path="messaging" element={<CompanyMessagingPage />} />
         <Route path="ratings" element={<CompanyRatingsPage />} />
       </Route>
 
@@ -158,6 +173,7 @@ export default function App() {
         <Route path="revenue" element={<AdminRevenuePage />} />
         <Route path="moderation" element={<AdminFlaggedRatingsPage />} />
         <Route path="logs" element={<AdminLogsPage />} />
+        <Route path="messaging" element={<AdminMessagingPage />} />
         <Route path="notifications" element={<AdminNotificationsPage />} />
         <Route path="settings" element={<AdminSettingsPage />} />
         <Route path="profile" element={<AdminProfilePage />} />

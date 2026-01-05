@@ -121,8 +121,8 @@ export default function SettingsPage() {
         return (
             <div className="flex items-center justify-center min-h-[400px]">
                 <div className="text-center">
-                    <div className="inline-block h-12 w-12 animate-spin rounded-full border-4 border-primary-600 border-t-transparent"></div>
-                    <p className="mt-4 text-gray-600 font-medium">Loading settings...</p>
+                    <div className="inline-block h-12 w-12 animate-spin rounded-full border-4 border-primary-400 border-t-transparent"></div>
+                    <p className="mt-4 text-white/70 font-medium">Loading settings...</p>
                 </div>
             </div>
         );
@@ -144,7 +144,7 @@ export default function SettingsPage() {
             </div>
 
             {/* User Info Card */}
-            <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-200">
+            <div className="bg-white/10 backdrop-blur-xl rounded-xl p-5 border border-white/20">
                 <div className="flex items-center gap-4">
                     {user?.profileImageUrl ? (
                         <img src={user.profileImageUrl} alt={user.fullName} className="w-14 h-14 rounded-full object-cover border-2 border-primary-500" />
@@ -154,10 +154,10 @@ export default function SettingsPage() {
                         </div>
                     )}
                     <div className="flex-1">
-                        <h3 className="font-semibold text-gray-900">{customer?.fullName || user?.fullName}</h3>
-                        <div className="flex flex-wrap gap-4 mt-1 text-sm text-gray-500">
-                            <span className="flex items-center gap-1"><FaEnvelope className="text-primary-500" /> {customer?.email}</span>
-                            <span className="flex items-center gap-1"><FaPhone className="text-green-500" /> {customer?.phone}</span>
+                        <h3 className="font-semibold text-white">{customer?.fullName || user?.fullName}</h3>
+                        <div className="flex flex-wrap gap-4 mt-1 text-sm text-white/60">
+                            <span className="flex items-center gap-1"><FaEnvelope className="text-primary-400" /> {customer?.email}</span>
+                            <span className="flex items-center gap-1"><FaPhone className="text-green-400" /> {customer?.phone}</span>
                         </div>
                     </div>
                 </div>
@@ -166,9 +166,9 @@ export default function SettingsPage() {
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
                 {/* Sidebar */}
                 <div className="lg:col-span-1">
-                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                        <div className="p-4 bg-gray-50 border-b">
-                            <h3 className="font-semibold text-gray-700">Settings Menu</h3>
+                    <div className="bg-white/10 backdrop-blur-xl rounded-xl border border-white/20 overflow-hidden">
+                        <div className="p-4 bg-white/5 border-b border-white/10">
+                            <h3 className="font-semibold text-white">Settings Menu</h3>
                         </div>
                         <nav className="p-2">
                             {sections.map((section) => (
@@ -176,8 +176,8 @@ export default function SettingsPage() {
                                     key={section.id}
                                     onClick={() => setActiveSection(section.id)}
                                     className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition ${activeSection === section.id
-                                        ? "bg-primary-50 text-primary-700 border border-primary-200"
-                                        : "text-gray-600 hover:bg-gray-50"
+                                        ? "bg-primary-500/20 text-primary-400 border border-primary-500/30"
+                                        : "text-white/70 hover:bg-white/10"
                                         }`}
                                 >
                                     <span className="text-lg">{section.emoji}</span>
@@ -192,26 +192,26 @@ export default function SettingsPage() {
                 <div className="lg:col-span-3">
                     {/* Change Password */}
                     {activeSection === "password" && (
-                        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                            <div className="p-5 bg-gradient-to-r from-blue-50 to-indigo-50 border-b flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center">
+                        <div className="bg-white/10 backdrop-blur-xl rounded-xl border border-white/20 overflow-hidden">
+                            <div className="p-5 bg-blue-500/20 border-b border-white/10 flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-xl bg-blue-500/30 flex items-center justify-center">
                                     <span className="text-xl">🔐</span>
                                 </div>
                                 <div>
-                                    <h2 className="text-lg font-semibold text-gray-900">Change Password</h2>
-                                    <p className="text-sm text-gray-500">Update your account password</p>
+                                    <h2 className="text-lg font-semibold text-white">Change Password</h2>
+                                    <p className="text-sm text-white/60">Update your account password</p>
                                 </div>
                             </div>
 
                             <form onSubmit={handleChangePassword} className="p-6 space-y-5">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">Current Password</label>
+                                    <label className="block text-sm font-medium text-white/80 mb-2">Current Password</label>
                                     <div className="relative">
-                                        <FaLock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                                        <FaLock className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40" />
                                         <input
                                             type="password"
                                             name="currentPassword"
-                                            className="input pl-10"
+                                            className="w-full pl-10 pr-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/40 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                                             value={passwordData.currentPassword}
                                             onChange={handlePasswordChange}
                                             placeholder="Enter current password"
@@ -220,13 +220,13 @@ export default function SettingsPage() {
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">New Password</label>
+                                        <label className="block text-sm font-medium text-white/80 mb-2">New Password</label>
                                         <div className="relative">
-                                            <FaLock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                                            <FaLock className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40" />
                                             <input
                                                 type="password"
                                                 name="newPassword"
-                                                className="input pl-10"
+                                                className="w-full pl-10 pr-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/40 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                                                 value={passwordData.newPassword}
                                                 onChange={handlePasswordChange}
                                                 placeholder="Enter new password"
@@ -234,13 +234,13 @@ export default function SettingsPage() {
                                         </div>
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">Confirm Password</label>
+                                        <label className="block text-sm font-medium text-white/80 mb-2">Confirm Password</label>
                                         <div className="relative">
-                                            <FaLock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                                            <FaLock className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40" />
                                             <input
                                                 type="password"
                                                 name="confirmPassword"
-                                                className="input pl-10"
+                                                className="w-full pl-10 pr-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/40 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                                                 value={passwordData.confirmPassword}
                                                 onChange={handlePasswordChange}
                                                 placeholder="Confirm new password"
@@ -270,14 +270,14 @@ export default function SettingsPage() {
 
                     {/* Notification Preferences */}
                     {activeSection === "notifications" && (
-                        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                            <div className="p-5 bg-gradient-to-r from-amber-50 to-orange-50 border-b flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center">
+                        <div className="bg-white/10 backdrop-blur-xl rounded-xl border border-white/20 overflow-hidden">
+                            <div className="p-5 bg-amber-500/20 border-b border-white/10 flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-xl bg-amber-500/30 flex items-center justify-center">
                                     <span className="text-xl">🔔</span>
                                 </div>
                                 <div>
-                                    <h2 className="text-lg font-semibold text-gray-900">Notification Preferences</h2>
-                                    <p className="text-sm text-gray-500">Choose how you want to be notified</p>
+                                    <h2 className="text-lg font-semibold text-white">Notification Preferences</h2>
+                                    <p className="text-sm text-white/60">Choose how you want to be notified</p>
                                 </div>
                             </div>
 
@@ -285,17 +285,17 @@ export default function SettingsPage() {
                                 {notificationOptions.map((pref) => (
                                     <div
                                         key={pref.name}
-                                        className="flex items-center justify-between p-4 rounded-xl bg-gray-50 hover:bg-gray-100 transition cursor-pointer"
+                                        className="flex items-center justify-between p-4 rounded-xl bg-white/5 hover:bg-white/10 transition cursor-pointer border border-white/10"
                                         onClick={() => handleNotificationChange(pref.name)}
                                     >
                                         <div className="flex items-center gap-3">
                                             <span className="text-2xl">{pref.emoji}</span>
                                             <div>
-                                                <p className="font-medium text-gray-900">{pref.label}</p>
-                                                <p className="text-sm text-gray-500">{pref.desc}</p>
+                                                <p className="font-medium text-white">{pref.label}</p>
+                                                <p className="text-sm text-white/60">{pref.desc}</p>
                                             </div>
                                         </div>
-                                        <div className={`w-12 h-7 rounded-full transition relative ${notificationPrefs[pref.name] ? "bg-primary-600" : "bg-gray-300"}`}>
+                                        <div className={`w-12 h-7 rounded-full transition relative ${notificationPrefs[pref.name] ? "bg-primary-600" : "bg-white/20"}`}>
                                             <div className={`absolute top-1 w-5 h-5 rounded-full bg-white shadow transition-all ${notificationPrefs[pref.name] ? "right-1" : "left-1"}`}></div>
                                         </div>
                                     </div>
@@ -314,56 +314,56 @@ export default function SettingsPage() {
                     {/* Security */}
                     {activeSection === "security" && (
                         <div className="space-y-6">
-                            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                                <div className="p-5 bg-gradient-to-r from-emerald-50 to-teal-50 border-b flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center">
+                            <div className="bg-white/10 backdrop-blur-xl rounded-xl border border-white/20 overflow-hidden">
+                                <div className="p-5 bg-emerald-500/20 border-b border-white/10 flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-xl bg-emerald-500/30 flex items-center justify-center">
                                         <span className="text-xl">🛡️</span>
                                     </div>
                                     <div>
-                                        <h2 className="text-lg font-semibold text-gray-900">Security & Account</h2>
-                                        <p className="text-sm text-gray-500">Manage your account security</p>
+                                        <h2 className="text-lg font-semibold text-white">Security & Account</h2>
+                                        <p className="text-sm text-white/60">Manage your account security</p>
                                     </div>
                                 </div>
 
                                 <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div className="p-4 bg-gray-50 rounded-xl">
+                                    <div className="p-4 bg-white/5 rounded-xl border border-white/10">
                                         <div className="flex items-center gap-3 mb-2">
-                                            <FaCalendar className="text-primary-500" />
-                                            <span className="font-medium text-gray-700">Account Created</span>
+                                            <FaCalendar className="text-primary-400" />
+                                            <span className="font-medium text-white/70">Account Created</span>
                                         </div>
-                                        <p className="text-gray-900 font-semibold">
+                                        <p className="text-white font-semibold">
                                             {customer?.createdAt ? new Date(customer.createdAt).toLocaleDateString("en-IN", {
                                                 day: "numeric", month: "long", year: "numeric"
                                             }) : "N/A"}
                                         </p>
                                     </div>
 
-                                    <div className="p-4 bg-green-50 rounded-xl">
+                                    <div className="p-4 bg-green-500/10 rounded-xl border border-green-500/20">
                                         <div className="flex items-center gap-3 mb-2">
-                                            <FaEnvelope className="text-green-600" />
-                                            <span className="font-medium text-gray-700">Email Verified</span>
+                                            <FaEnvelope className="text-green-400" />
+                                            <span className="font-medium text-white/70">Email Verified</span>
                                         </div>
-                                        <p className="text-green-700 font-semibold flex items-center gap-1">
+                                        <p className="text-green-400 font-semibold flex items-center gap-1">
                                             <FaCheck /> {customer?.email}
                                         </p>
                                     </div>
 
-                                    <div className="p-4 bg-green-50 rounded-xl">
+                                    <div className="p-4 bg-green-500/10 rounded-xl border border-green-500/20">
                                         <div className="flex items-center gap-3 mb-2">
-                                            <FaPhone className="text-green-600" />
-                                            <span className="font-medium text-gray-700">Phone Verified</span>
+                                            <FaPhone className="text-green-400" />
+                                            <span className="font-medium text-white/70">Phone Verified</span>
                                         </div>
-                                        <p className="text-green-700 font-semibold flex items-center gap-1">
+                                        <p className="text-green-400 font-semibold flex items-center gap-1">
                                             <FaCheck /> {customer?.phone}
                                         </p>
                                     </div>
 
-                                    <div className="p-4 bg-blue-50 rounded-xl">
+                                    <div className="p-4 bg-blue-500/10 rounded-xl border border-blue-500/20">
                                         <div className="flex items-center gap-3 mb-2">
-                                            <FaUser className="text-blue-600" />
-                                            <span className="font-medium text-gray-700">Account Status</span>
+                                            <FaUser className="text-blue-400" />
+                                            <span className="font-medium text-white/70">Account Status</span>
                                         </div>
-                                        <p className="text-blue-700 font-semibold flex items-center gap-1">
+                                        <p className="text-blue-400 font-semibold flex items-center gap-1">
                                             <FaCheck /> Active
                                         </p>
                                     </div>
@@ -371,19 +371,19 @@ export default function SettingsPage() {
                             </div>
 
                             {/* Danger Zone */}
-                            <div className="bg-white rounded-xl shadow-sm border border-red-200 overflow-hidden">
-                                <div className="p-5 bg-gradient-to-r from-red-50 to-rose-50 border-b flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center">
-                                        <FaExclamationTriangle className="text-red-600" />
+                            <div className="bg-red-500/10 backdrop-blur-xl rounded-xl border border-red-500/30 overflow-hidden">
+                                <div className="p-5 bg-red-500/20 border-b border-red-500/20 flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-xl bg-red-500/30 flex items-center justify-center">
+                                        <FaExclamationTriangle className="text-red-400" />
                                     </div>
                                     <div>
-                                        <h2 className="text-lg font-semibold text-red-700">Danger Zone</h2>
-                                        <p className="text-sm text-red-500">Irreversible actions</p>
+                                        <h2 className="text-lg font-semibold text-red-400">Danger Zone</h2>
+                                        <p className="text-sm text-red-400/70">Irreversible actions</p>
                                     </div>
                                 </div>
 
                                 <div className="p-6">
-                                    <p className="text-gray-600 mb-4">
+                                    <p className="text-white/70 mb-4">
                                         Deleting your account will permanently remove all your data including shipments, addresses, and order history. This action cannot be undone.
                                     </p>
                                     <button
@@ -401,8 +401,8 @@ export default function SettingsPage() {
 
             {/* Delete Account Modal */}
             {showDeleteModal && (
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-                    <div className="bg-white rounded-2xl max-w-md w-full mx-4 shadow-2xl overflow-hidden">
+                <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
+                    <div className="bg-slate-800 border border-white/20 rounded-2xl max-w-md w-full mx-4 shadow-2xl overflow-hidden">
                         <div className="bg-gradient-to-r from-red-500 to-rose-600 p-6 text-white">
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-3">
@@ -422,22 +422,22 @@ export default function SettingsPage() {
 
                         <div className="p-6">
                             <div className="flex items-start gap-4 mb-6">
-                                <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
-                                    <FaExclamationTriangle className="text-xl text-amber-600" />
+                                <div className="w-12 h-12 rounded-full bg-amber-500/20 flex items-center justify-center flex-shrink-0">
+                                    <FaExclamationTriangle className="text-xl text-amber-400" />
                                 </div>
                                 <div>
-                                    <p className="text-gray-900 font-medium">Are you absolutely sure?</p>
-                                    <p className="text-gray-500 text-sm mt-1">
+                                    <p className="text-white font-medium">Are you absolutely sure?</p>
+                                    <p className="text-white/60 text-sm mt-1">
                                         All your shipments, addresses, and account data will be permanently deleted.
                                     </p>
                                 </div>
                             </div>
 
                             <div className="mb-6">
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Enter your password to confirm</label>
+                                <label className="block text-sm font-medium text-white/80 mb-2">Enter your password to confirm</label>
                                 <input
                                     type="password"
-                                    className="input"
+                                    className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/40 focus:ring-2 focus:ring-red-500 focus:border-transparent"
                                     value={deletePassword}
                                     onChange={(e) => setDeletePassword(e.target.value)}
                                     placeholder="Your password"
@@ -447,7 +447,7 @@ export default function SettingsPage() {
                             <div className="flex gap-3">
                                 <button
                                     onClick={() => { setShowDeleteModal(false); setDeletePassword(""); }}
-                                    className="flex-1 px-4 py-3 rounded-xl font-medium border border-gray-300 text-gray-700 hover:bg-gray-50 transition"
+                                    className="flex-1 px-4 py-3 rounded-xl font-medium border border-white/20 text-white hover:bg-white/10 transition"
                                 >
                                     Cancel
                                 </button>

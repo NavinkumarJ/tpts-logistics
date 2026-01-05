@@ -57,7 +57,7 @@ public class ApplyJobRequest {
     private String pincode;
 
     // ==========================================
-    // Step 2: Professional Information..!!
+    // Step 2: Professional Information
     // ==========================================
 
     @NotNull(message = "Vehicle type is required")

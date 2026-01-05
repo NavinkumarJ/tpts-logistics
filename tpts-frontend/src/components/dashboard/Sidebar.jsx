@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   FaHome, FaBox, FaPlus, FaHistory, FaCog, FaBell,
-  FaMapMarkerAlt, FaWallet, FaSignOutAlt, FaUser
+  FaMapMarkerAlt, FaSignOutAlt, FaUser, FaUsers
 } from "react-icons/fa";
 import { getUser, logout } from "../../utils/auth";
 import LogoutConfirmModal from "../common/LogoutConfirmModal";
@@ -15,16 +15,17 @@ export default function Sidebar() {
 
   const menuItems = [
     { label: "Dashboard", icon: FaHome, path: "/customer/dashboard" },
-    { label: "New Shipment", icon: FaPlus, path: "/customer/new-shipment", primary: true },
+    { label: "New Shipment", icon: FaPlus, path: "/customer/new-shipment" },
     { label: "My Shipments", icon: FaBox, path: "/customer/shipments" },
+    { label: "My Groups", icon: FaUsers, path: "/customer/my-groups" },
     { label: "Order History", icon: FaHistory, path: "/customer/history" },
     { label: "Saved Addresses", icon: FaMapMarkerAlt, path: "/customer/addresses" },
     { label: "Notifications", icon: FaBell, path: "/customer/notifications" },
     { label: "Settings", icon: FaCog, path: "/customer/settings" },
   ];
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     navigate("/login");
   };
 
@@ -33,11 +34,16 @@ export default function Sidebar() {
       <aside className="fixed left-0 top-0 h-screen w-64 bg-gradient-to-b from-slate-800 to-slate-900 text-white shadow-2xl z-50 flex flex-col">
         {/* Logo */}
         <div className="p-6 border-b border-slate-700">
-          <Link to="/" className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary-600 text-white font-bold text-lg shadow-lg">
-              T
+          <Link to="/" className="flex items-center gap-3 group">
+            <img
+              src="/logo.png"
+              alt="TPTS Logo"
+              className="h-12 w-auto object-contain transition-all duration-200 group-hover:brightness-125 group-hover:scale-105"
+            />
+            <div className="flex flex-col">
+              <span className="text-lg font-bold text-white leading-tight">TPTS</span>
+              <span className="text-xs text-indigo-400 font-medium">Customer Portal</span>
             </div>
-            <span className="text-xl font-bold">TPTS</span>
           </Link>
         </div>
 
@@ -48,10 +54,10 @@ export default function Sidebar() {
               <img
                 src={user.profileImageUrl}
                 alt={user?.fullName}
-                className="h-12 w-12 rounded-full object-cover border-2 border-primary-500"
+                className="h-12 w-12 rounded-full object-cover border-2 border-indigo-500"
               />
             ) : (
-              <div className="h-12 w-12 rounded-full bg-primary-600 flex items-center justify-center text-lg font-bold">
+              <div className="h-12 w-12 rounded-full bg-indigo-600 flex items-center justify-center text-lg font-bold">
                 {user?.fullName?.charAt(0) || "U"}
               </div>
             )}
@@ -73,16 +79,14 @@ export default function Sidebar() {
         <nav className="flex-1 overflow-y-auto py-4 px-3">
           <div className="space-y-1">
             {menuItems.map((item, idx) => {
-              const isActive = location.pathname === item.path;
+              const isActive = location.pathname === item.path || location.pathname.startsWith(item.path + "/");
               return (
                 <Link
                   key={idx}
                   to={item.path}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition ${item.primary
-                    ? "bg-primary-600 hover:bg-primary-700 text-white shadow-lg"
-                    : isActive
-                      ? "bg-slate-700 text-white"
-                      : "text-slate-300 hover:bg-slate-700 hover:text-white"
+                  className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition ${isActive
+                    ? "bg-indigo-600 text-white shadow-lg"
+                    : "text-slate-300 hover:bg-slate-700 hover:text-white"
                     }`}
                 >
                   <item.icon className="text-base" />

@@ -282,6 +282,106 @@ public class WalletService {
         }
     }
 
+    /**
+     * Reverse earnings when an order is cancelled
+     * Subtracts amounts from agent, company, and platform wallets
+     */
+    @Transactional
+    public void reverseEarningsForParcel(Parcel parcel) {
+        // Find earning record for this parcel
+        var earningOpt = earningRepository.findByParcelId(parcel.getId());
+
+        if (earningOpt.isEmpty()) {
+            log.info("No earning record found for parcel {} - nothing to reverse", parcel.getTrackingNumber());
+            return;
+        }
+
+        Earning earning = earningOpt.get();
+
+        // Skip if already cancelled
+        if (earning.getStatus() == EarningStatus.CANCELLED) {
+            log.info("Earning for parcel {} already cancelled", parcel.getTrackingNumber());
+            return;
+        }
+
+        boolean wasCleared = earning.getStatus() == EarningStatus.CLEARED;
+
+        // Reverse company wallet
+        Wallet companyWallet = walletRepository.findByUser(earning.getCompany().getUser()).orElse(null);
+        if (companyWallet != null) {
+            if (wasCleared) {
+                // Subtract from available balance
+                companyWallet.setAvailableBalance(
+                        companyWallet.getAvailableBalance().subtract(earning.getCompanyNetEarning()));
+            } else {
+                // Subtract from pending balance
+                companyWallet.setPendingBalance(
+                        companyWallet.getPendingBalance().subtract(earning.getCompanyNetEarning()));
+            }
+            companyWallet.setTotalEarnings(
+                    companyWallet.getTotalEarnings().subtract(earning.getCompanyNetEarning()));
+            walletRepository.save(companyWallet);
+            log.info("Reversed company earning: -{}", earning.getCompanyNetEarning());
+        }
+
+        // Reverse agent wallet
+        if (earning.getAgent() != null) {
+            Wallet agentWallet = walletRepository.findByUser(earning.getAgent().getUser()).orElse(null);
+            if (agentWallet != null) {
+                if (wasCleared) {
+                    agentWallet.setAvailableBalance(
+                            agentWallet.getAvailableBalance().subtract(earning.getTotalAgentEarning()));
+                } else {
+                    agentWallet.setPendingBalance(
+                            agentWallet.getPendingBalance().subtract(earning.getTotalAgentEarning()));
+                }
+                agentWallet.setTotalEarnings(
+                        agentWallet.getTotalEarnings().subtract(earning.getTotalAgentEarning()));
+                walletRepository.save(agentWallet);
+                log.info("Reversed agent earning: -{}", earning.getTotalAgentEarning());
+            }
+        }
+
+        // Reverse platform wallet
+        User platformUser = userRepository.findByUserType(UserType.SUPER_ADMIN)
+                .stream().findFirst().orElse(null);
+        if (platformUser != null) {
+            Wallet platformWallet = walletRepository.findByUser(platformUser).orElse(null);
+            if (platformWallet != null) {
+                if (wasCleared) {
+                    platformWallet.setAvailableBalance(
+                            platformWallet.getAvailableBalance().subtract(earning.getPlatformCommission()));
+                } else {
+                    platformWallet.setPendingBalance(
+                            platformWallet.getPendingBalance().subtract(earning.getPlatformCommission()));
+                }
+                platformWallet.setTotalEarnings(
+                        platformWallet.getTotalEarnings().subtract(earning.getPlatformCommission()));
+                walletRepository.save(platformWallet);
+                log.info("Reversed platform commission: -{}", earning.getPlatformCommission());
+            }
+        }
+
+        // Mark earning as cancelled
+        earning.setStatus(EarningStatus.CANCELLED);
+        earning.setNotes("Cancelled due to order cancellation: " + parcel.getCancellationReason());
+        earningRepository.save(earning);
+
+        // Mark related transactions as reversed
+        List<Transaction> transactions = transactionRepository
+                .findByReferenceTypeAndReferenceId("PARCEL", parcel.getId());
+        for (Transaction txn : transactions) {
+            txn.setStatus(TransactionStatus.REVERSED);
+            transactionRepository.save(txn);
+        }
+
+        log.info("Reversed all earnings for cancelled parcel {}: Platform={}, Company={}, Agent={}",
+                parcel.getTrackingNumber(),
+                earning.getPlatformCommission(),
+                earning.getCompanyNetEarning(),
+                earning.getTotalAgentEarning());
+    }
+
     // ==========================================
     // Payout Management
     // ==========================================

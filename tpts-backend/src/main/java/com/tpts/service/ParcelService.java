@@ -11,6 +11,7 @@ import com.tpts.exception.TptsExceptions.*;
 import com.tpts.repository.CompanyAdminRepository;
 import com.tpts.repository.CustomerRepository;
 import com.tpts.repository.DeliveryAgentRepository;
+import com.tpts.repository.GroupShipmentRepository;
 import com.tpts.repository.ParcelRepository;
 import com.tpts.repository.PaymentRepository;
 import com.tpts.repository.RatingRepository;
@@ -40,6 +41,7 @@ public class ParcelService {
     private final CustomerRepository customerRepository;
     private final CompanyAdminRepository companyRepository;
     private final DeliveryAgentRepository agentRepository;
+    private final GroupShipmentRepository groupShipmentRepository;
     private final NotificationService notificationService;
     private final SmsService smsService;
     private final RatingRepository ratingRepository;
@@ -81,11 +83,25 @@ public class ParcelService {
         BigDecimal weightKg = request.getWeightKg() != null ? request.getWeightKg() : BigDecimal.ONE;
 
         BigDecimal basePrice = calculatePrice(company, distanceKm, weightKg);
-        BigDecimal discountAmount = BigDecimal.ZERO; // Will be set if group shipment
+
+        // Apply group discount if this is a group shipment
+        BigDecimal discountAmount = BigDecimal.ZERO;
+        BigDecimal discountPercentage = BigDecimal.ZERO;
+        if (request.getGroupShipmentId() != null) {
+            GroupShipment group = groupShipmentRepository.findById(request.getGroupShipmentId())
+                    .orElse(null);
+            if (group != null && group.getDiscountPercentage() != null) {
+                discountPercentage = group.getDiscountPercentage();
+                discountAmount = basePrice.multiply(discountPercentage)
+                        .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+                log.info("Applied {}% group discount: ₹{}", discountPercentage, discountAmount);
+            }
+        }
+
         BigDecimal priceAfterDiscount = basePrice.subtract(discountAmount);
         // Add 18% GST to get final price (matching Razorpay charge)
-        BigDecimal gstAmount = priceAfterDiscount.multiply(new BigDecimal("0.18"));
-        BigDecimal finalPrice = priceAfterDiscount.add(gstAmount);
+        BigDecimal gstAmount = priceAfterDiscount.multiply(new BigDecimal("0.18")).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal finalPrice = priceAfterDiscount.add(gstAmount).setScale(2, RoundingMode.HALF_UP);
 
         // Calculate estimated delivery
         LocalDateTime estimatedDelivery = calculateEstimatedDelivery(
@@ -444,9 +460,6 @@ public class ParcelService {
                 if (request.getPhotoUrl() != null) {
                     parcel.setDeliveryPhotoUrl(request.getPhotoUrl());
                 }
-                if (request.getSignatureUrl() != null) {
-                    parcel.setSignatureUrl(request.getSignatureUrl());
-                }
                 if (request.getNotes() != null) {
                     parcel.setDeliveryNotes(request.getNotes());
                 }
@@ -472,12 +485,27 @@ public class ParcelService {
                 }
                 parcel.setCancelledAt(LocalDateTime.now());
                 parcel.setCancellationReason(request.getCancellationReason());
+
+                // Determine who is cancelling based on user role
+                String cancelledBy = "ADMIN"; // Default to admin
+                if (currentUser.getUserType() == UserType.COMPANY_ADMIN) {
+                    cancelledBy = "COMPANY";
+                } else if (currentUser.getUserType() == UserType.DELIVERY_AGENT) {
+                    cancelledBy = "AGENT";
+                } else if (currentUser.getUserType() == UserType.CUSTOMER) {
+                    cancelledBy = "CUSTOMER";
+                }
+                parcel.setCancelledBy(cancelledBy);
+
                 // Release agent if assigned
                 if (parcel.getAgent() != null) {
                     DeliveryAgent agent = parcel.getAgent();
                     agent.setCurrentOrdersCount(Math.max(0, agent.getCurrentOrdersCount() - 1));
                     agentRepository.save(agent);
                 }
+
+                // Reverse any earnings that were credited for this parcel
+                walletService.reverseEarningsForParcel(parcel);
                 break;
 
             default:
@@ -574,6 +602,7 @@ public class ParcelService {
     // ==========================================
 
     /**
+     * /**
      * Cancel parcel (by customer)
      */
     @Transactional
@@ -596,20 +625,81 @@ public class ParcelService {
             throw new BadRequestException("Cannot cancel parcel after pickup");
         }
 
+        // Block cancellation if parcel is in a group that has closed (FULL or beyond)
+        if (parcel.getGroupShipmentId() != null) {
+            var groupOpt = groupShipmentRepository.findById(parcel.getGroupShipmentId());
+            if (groupOpt.isPresent()) {
+                GroupStatus groupStatus = groupOpt.get().getStatus();
+                if (groupStatus == GroupStatus.FULL ||
+                        groupStatus == GroupStatus.PICKUP_IN_PROGRESS ||
+                        groupStatus == GroupStatus.PICKUP_COMPLETE ||
+                        groupStatus == GroupStatus.DELIVERY_IN_PROGRESS ||
+                        groupStatus == GroupStatus.COMPLETED) {
+                    throw new BadRequestException(
+                            "Cannot cancel order after group has closed. Please contact support.");
+                }
+            }
+        }
+
+        // Store agent reference before clearing
+        DeliveryAgent assignedAgent = parcel.getAgent();
+
         parcel.setStatus(ParcelStatus.CANCELLED);
         parcel.setCancelledAt(LocalDateTime.now());
         parcel.setCancellationReason(reason != null ? reason : "Cancelled by customer");
+        parcel.setCancelledBy("CUSTOMER"); // Track who cancelled
 
         // Release agent if assigned
-        if (parcel.getAgent() != null) {
-            DeliveryAgent agent = parcel.getAgent();
-            agent.setCurrentOrdersCount(Math.max(0, agent.getCurrentOrdersCount() - 1));
-            agentRepository.save(agent);
+        if (assignedAgent != null) {
+            assignedAgent.setCurrentOrdersCount(Math.max(0, assignedAgent.getCurrentOrdersCount() - 1));
+            agentRepository.save(assignedAgent);
         }
+
+        // Handle group shipment - update member count (only possible for OPEN groups
+        // now)
+        if (parcel.getGroupShipmentId() != null) {
+            groupShipmentRepository.findById(parcel.getGroupShipmentId()).ifPresent(group -> {
+                group.setCurrentMembers(Math.max(0, group.getCurrentMembers() - 1));
+                groupShipmentRepository.save(group);
+                log.info("Updated group {} member count after parcel cancellation", group.getGroupCode());
+            });
+        }
+
+        // Reverse any earnings that were credited for this parcel
+        walletService.reverseEarningsForParcel(parcel);
 
         parcel = parcelRepository.save(parcel);
 
-        log.info("Cancelled parcel {}", parcel.getTrackingNumber());
+        // Send notifications
+        String cancellationMessage = "Order " + parcel.getTrackingNumber() + " has been cancelled by customer. Reason: "
+                + parcel.getCancellationReason();
+
+        // Notify company
+        if (parcel.getCompany() != null) {
+            String companyMessage = parcel.getGroupShipmentId() != null
+                    ? "Group order " + parcel.getTrackingNumber() + " has been cancelled by customer. Reason: "
+                            + parcel.getCancellationReason()
+                    : cancellationMessage;
+            notificationService.sendNotification(
+                    parcel.getCompany().getUser(),
+                    parcel.getGroupShipmentId() != null ? "Group Order Cancelled" : "Order Cancelled",
+                    companyMessage,
+                    "ORDER_CANCELLED",
+                    parcel.getId());
+        }
+
+        // Notify agent if was assigned
+        if (assignedAgent != null) {
+            notificationService.sendNotification(
+                    assignedAgent.getUser(),
+                    "Assigned Order Cancelled",
+                    "Order " + parcel.getTrackingNumber()
+                            + " that was assigned to you has been cancelled by the customer.",
+                    "ORDER_CANCELLED",
+                    parcel.getId());
+        }
+
+        log.info("Cancelled parcel {} - notified company and agent", parcel.getTrackingNumber());
 
         return mapToDTO(parcel);
     }
@@ -708,6 +798,9 @@ public class ParcelService {
             case OUT_FOR_DELIVERY:
                 valid = (to == ParcelStatus.DELIVERED || to == ParcelStatus.RETURNED);
                 break;
+            case AT_WAREHOUSE:
+                valid = (to == ParcelStatus.IN_TRANSIT || to == ParcelStatus.CANCELLED);
+                break;
             case DELIVERED:
             case CANCELLED:
             case RETURNED:
@@ -773,18 +866,26 @@ public class ParcelService {
                         ? parcel.getFinalPrice().multiply(new BigDecimal("1.18")).setScale(2,
                                 java.math.RoundingMode.HALF_UP)
                         : BigDecimal.ZERO)
+                // Balance Payment (for partial groups)
+                .balanceAmount(parcel.getBalanceAmount())
+                .balancePaid(parcel.getBalancePaid())
+                .balancePaymentMethod(parcel.getBalancePaymentMethod())
+                .balancePaidAt(parcel.getBalancePaidAt())
+                .balanceCashPhotoUrl(parcel.getBalanceCashPhotoUrl())
+                .originalDiscountPercentage(parcel.getOriginalDiscountPercentage())
+                .effectiveDiscountPercentage(parcel.getEffectiveDiscountPercentage())
                 // Status
                 .status(parcel.getStatus())
                 .paymentStatus(parcel.getPaymentStatus())
-                // Get payment method from Payment entity
-                .paymentMethod(paymentRepository.findByParcelId(parcel.getId())
+                // Get payment method from Payment entity (use first/most recent payment since
+                // balance payments can create multiple records)
+                .paymentMethod(paymentRepository.findFirstByParcelIdOrderByCreatedAtDesc(parcel.getId())
                         .map(p -> p.getPaymentMethod() != null ? p.getPaymentMethod().name() : "RAZORPAY")
                         .orElse(null))
                 .pickupOtp(parcel.getPickupOtp())
                 .deliveryOtp(parcel.getDeliveryOtp())
                 .pickupPhotoUrl(parcel.getPickupPhotoUrl())
                 .deliveryPhotoUrl(parcel.getDeliveryPhotoUrl())
-                .signatureUrl(parcel.getSignatureUrl())
                 .deliveryNotes(parcel.getDeliveryNotes())
                 // Timestamps
                 .estimatedDelivery(parcel.getEstimatedDelivery())
@@ -798,6 +899,9 @@ public class ParcelService {
                 .updatedAt(parcel.getUpdatedAt())
                 // Rating status
                 .hasRated(ratingRepository.existsByParcelId(parcel.getId()))
+                .hasRatedPickupAgent(ratingRepository.existsPickupAgentRatingByParcelId(parcel.getId()))
+                .hasRatedDeliveryAgent(ratingRepository.existsDeliveryAgentRatingByParcelId(parcel.getId()))
+                .hasRatedCompany(ratingRepository.existsCompanyRatedByParcelId(parcel.getId()))
                 // Agent details for tracking
                 .agentPhone(parcel.getAgent() != null ? parcel.getAgent().getUser().getPhone() : null)
                 .agentVehicleType(parcel.getAgent() != null && parcel.getAgent().getVehicleType() != null
@@ -835,24 +939,46 @@ public class ParcelService {
                     .vehicleType(agent.getVehicleType())
                     .vehicleNumber(agent.getVehicleNumber())
                     .ratingAvg(agent.getRatingAvg())
+                    .totalDeliveries(agent.getTotalDeliveries())
                     .currentLatitude(agent.getCurrentLatitude())
                     .currentLongitude(agent.getCurrentLongitude())
                     .build();
         }
 
+        // Company info
+        CompanyAdmin company = parcel.getCompany();
+
         return ParcelTrackingDTO.builder()
                 .trackingNumber(parcel.getTrackingNumber())
                 .status(parcel.getStatus())
                 .statusDescription(getStatusDescription(parcel.getStatus()))
+                // Route
                 .pickupCity(parcel.getPickupCity())
                 .deliveryCity(parcel.getDeliveryCity())
+                // Sender details
+                .pickupName(parcel.getPickupName())
+                .pickupPhone(parcel.getPickupPhone())
+                .pickupAddress(parcel.getPickupAddress())
+                .pickupPincode(parcel.getPickupPincode())
+                // Receiver details
                 .deliveryName(parcel.getDeliveryName())
-                .companyName(parcel.getCompany().getCompanyName())
+                .deliveryPhone(parcel.getDeliveryPhone())
+                .deliveryAddress(parcel.getDeliveryAddress())
+                .deliveryPincode(parcel.getDeliveryPincode())
+                // Company
+                .companyName(company != null ? company.getCompanyName() : null)
+                .companyRating(company != null ? company.getRatingAvg() : null)
+                // Agent
                 .agent(agentDTO)
+                // Timestamps
                 .estimatedDelivery(parcel.getEstimatedDelivery())
                 .createdAt(parcel.getCreatedAt())
+                .confirmedAt(parcel.getConfirmedAt())
+                .assignedAt(parcel.getAssignedAt())
                 .pickedUpAt(parcel.getPickedUpAt())
                 .deliveredAt(parcel.getDeliveredAt())
+                .updatedAt(parcel.getUpdatedAt())
+                // Timeline
                 .timeline(timeline)
                 .build();
     }

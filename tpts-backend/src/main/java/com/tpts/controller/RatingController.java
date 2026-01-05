@@ -49,257 +49,332 @@ import java.util.Map;
 @Slf4j
 public class RatingController {
 
-    private final RatingService ratingService;
+        private final RatingService ratingService;
 
-    // ==========================================
-    // Public Endpoints
-    // ==========================================
+        // ==========================================
+        // Public Endpoints
+        // ==========================================
 
-    /**
-     * Get rating by ID
-     * GET /api/ratings/{id}
-     */
-    @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<RatingDTO>> getRatingById(@PathVariable Long id) {
-        log.info("Getting rating: {}", id);
+        /**
+         * Get rating by ID
+         * GET /api/ratings/{id}
+         */
+        @GetMapping("/{id}")
+        public ResponseEntity<ApiResponse<RatingDTO>> getRatingById(@PathVariable Long id) {
+                log.info("Getting rating: {}", id);
 
-        RatingDTO rating = ratingService.getRatingById(id);
+                RatingDTO rating = ratingService.getRatingById(id);
 
-        return ResponseEntity.ok(ApiResponse.success(rating, "Rating retrieved"));
-    }
+                return ResponseEntity.ok(ApiResponse.success(rating, "Rating retrieved"));
+        }
 
-    /**
-     * Get public ratings for company
-     * GET /api/ratings/company/{companyId}
-     */
-    @GetMapping("/company/{companyId}")
-    public ResponseEntity<ApiResponse<List<RatingDTO>>> getCompanyPublicRatings(
-            @PathVariable Long companyId) {
+        /**
+         * Get public ratings for company
+         * GET /api/ratings/company/{companyId}
+         */
+        @GetMapping("/company/{companyId}")
+        public ResponseEntity<ApiResponse<List<RatingDTO>>> getCompanyPublicRatings(
+                        @PathVariable Long companyId) {
 
-        log.info("Getting public ratings for company: {}", companyId);
+                log.info("Getting public ratings for company: {}", companyId);
 
-        List<RatingDTO> ratings = ratingService.getCompanyPublicRatings(companyId);
+                List<RatingDTO> ratings = ratingService.getCompanyPublicRatings(companyId);
 
-        return ResponseEntity.ok(ApiResponse.success(ratings,
-                "Retrieved " + ratings.size() + " ratings"));
-    }
+                return ResponseEntity.ok(ApiResponse.success(ratings,
+                                "Retrieved " + ratings.size() + " ratings"));
+        }
 
-    /**
-     * Get company rating summary
-     * GET /api/ratings/company/{companyId}/summary
-     */
-    @GetMapping("/company/{companyId}/summary")
-    public ResponseEntity<ApiResponse<RatingSummaryDTO>> getCompanyRatingSummary(
-            @PathVariable Long companyId) {
+        /**
+         * Get company rating summary
+         * GET /api/ratings/company/{companyId}/summary
+         */
+        @GetMapping("/company/{companyId}/summary")
+        public ResponseEntity<ApiResponse<RatingSummaryDTO>> getCompanyRatingSummary(
+                        @PathVariable Long companyId) {
 
-        log.info("Getting rating summary for company: {}", companyId);
+                log.info("Getting rating summary for company: {}", companyId);
 
-        RatingSummaryDTO summary = ratingService.getCompanyRatingSummary(companyId);
+                RatingSummaryDTO summary = ratingService.getCompanyRatingSummary(companyId);
 
-        return ResponseEntity.ok(ApiResponse.success(summary, "Rating summary retrieved"));
-    }
+                return ResponseEntity.ok(ApiResponse.success(summary, "Rating summary retrieved"));
+        }
 
-    /**
-     * Get public ratings for agent
-     * GET /api/ratings/agent/{agentId}
-     */
-    @GetMapping("/agent/{agentId}")
-    public ResponseEntity<ApiResponse<List<RatingDTO>>> getAgentPublicRatings(
-            @PathVariable Long agentId) {
+        /**
+         * Rate a company (for group shipments when parcel is delivered)
+         * POST /api/ratings/company/{companyId}
+         */
+        @PostMapping("/company/{companyId}")
+        @PreAuthorize("hasRole('CUSTOMER')")
+        public ResponseEntity<ApiResponse<Map<String, Object>>> rateCompany(
+                        @PathVariable Long companyId,
+                        @RequestBody Map<String, Object> request,
+                        @AuthenticationPrincipal User currentUser) {
 
-        log.info("Getting public ratings for agent: {}", agentId);
+                Long parcelId = Long.valueOf(request.get("parcelId").toString());
+                Integer rating = Integer.valueOf(request.get("rating").toString());
+                String comment = request.get("comment") != null ? request.get("comment").toString() : "";
 
-        List<RatingDTO> ratings = ratingService.getAgentPublicRatings(agentId);
+                log.info("Customer {} rating company {} with {} stars for parcel {}",
+                                currentUser.getEmail(), companyId, rating, parcelId);
 
-        return ResponseEntity.ok(ApiResponse.success(ratings,
-                "Retrieved " + ratings.size() + " ratings"));
-    }
+                ratingService.rateCompany(parcelId, companyId, rating, comment, currentUser);
 
-    /**
-     * Get agent rating summary
-     * GET /api/ratings/agent/{agentId}/summary
-     */
-    @GetMapping("/agent/{agentId}/summary")
-    public ResponseEntity<ApiResponse<RatingSummaryDTO>> getAgentRatingSummary(
-            @PathVariable Long agentId) {
+                return ResponseEntity.ok(ApiResponse.success(
+                                Map.of("success", true, "message", "Company rated successfully"),
+                                "Thank you for rating the company!"));
+        }
 
-        log.info("Getting rating summary for agent: {}", agentId);
+        /**
+         * Get public ratings for agent
+         * GET /api/ratings/agent/{agentId}
+         */
+        @GetMapping("/agent/{agentId}")
+        public ResponseEntity<ApiResponse<List<RatingDTO>>> getAgentPublicRatings(
+                        @PathVariable Long agentId) {
 
-        RatingSummaryDTO summary = ratingService.getAgentRatingSummary(agentId);
+                log.info("Getting public ratings for agent: {}", agentId);
 
-        return ResponseEntity.ok(ApiResponse.success(summary, "Rating summary retrieved"));
-    }
+                List<RatingDTO> ratings = ratingService.getAgentPublicRatings(agentId);
 
-    // ==========================================
-    // Customer Endpoints
-    // ==========================================
+                return ResponseEntity.ok(ApiResponse.success(ratings,
+                                "Retrieved " + ratings.size() + " ratings"));
+        }
 
-    /**
-     * Create a new rating
-     * POST /api/ratings
-     */
-    @PostMapping
-    @PreAuthorize("hasRole('CUSTOMER')")
-    public ResponseEntity<ApiResponse<RatingDTO>> createRating(
-            @Valid @RequestBody CreateRatingRequest request,
-            @AuthenticationPrincipal User currentUser) {
+        /**
+         * Get agent rating summary
+         * GET /api/ratings/agent/{agentId}/summary
+         */
+        @GetMapping("/agent/{agentId}/summary")
+        public ResponseEntity<ApiResponse<RatingSummaryDTO>> getAgentRatingSummary(
+                        @PathVariable Long agentId) {
 
-        log.info("Creating rating for parcel: {} by user: {}",
-                request.getParcelId(), currentUser.getEmail());
+                log.info("Getting rating summary for agent: {}", agentId);
 
-        RatingDTO rating = ratingService.createRating(request, currentUser);
+                RatingSummaryDTO summary = ratingService.getAgentRatingSummary(agentId);
 
-        return ResponseEntity
-                .status(HttpStatus.CREATED)
-                .body(ApiResponse.success(rating, "Thank you for your feedback!"));
-    }
+                return ResponseEntity.ok(ApiResponse.success(summary, "Rating summary retrieved"));
+        }
 
-    /**
-     * Update a rating (within 24 hours)
-     * PUT /api/ratings/{id}
-     */
-    @PutMapping("/{id}")
-    @PreAuthorize("hasRole('CUSTOMER')")
-    public ResponseEntity<ApiResponse<RatingDTO>> updateRating(
-            @PathVariable Long id,
-            @Valid @RequestBody UpdateRatingRequest request,
-            @AuthenticationPrincipal User currentUser) {
+        /**
+         * Rate pickup agent (for group shipments when parcel reaches warehouse)
+         * POST /api/ratings/agent/{agentId}/pickup
+         */
+        @PostMapping("/agent/{agentId}/pickup")
+        @PreAuthorize("hasRole('CUSTOMER')")
+        public ResponseEntity<ApiResponse<Map<String, Object>>> ratePickupAgent(
+                        @PathVariable Long agentId,
+                        @RequestBody Map<String, Object> request,
+                        @AuthenticationPrincipal User currentUser) {
 
-        log.info("Updating rating: {}", id);
+                Long parcelId = Long.valueOf(request.get("parcelId").toString());
+                Integer rating = Integer.valueOf(request.get("rating").toString());
+                String comment = request.get("comment") != null ? request.get("comment").toString() : "";
 
-        RatingDTO rating = ratingService.updateRating(id, request, currentUser);
+                log.info("Customer {} rating pickup agent {} with {} stars for parcel {}",
+                                currentUser.getEmail(), agentId, rating, parcelId);
 
-        return ResponseEntity.ok(ApiResponse.success(rating, "Rating updated"));
-    }
+                ratingService.ratePickupAgent(parcelId, agentId, rating, comment, currentUser);
 
-    /**
-     * Get my ratings
-     * GET /api/ratings/my-ratings
-     */
-    @GetMapping("/my-ratings")
-    @PreAuthorize("hasRole('CUSTOMER')")
-    public ResponseEntity<ApiResponse<List<RatingDTO>>> getMyRatings(
-            @AuthenticationPrincipal User currentUser) {
+                return ResponseEntity.ok(ApiResponse.success(
+                                Map.of("success", true, "message", "Pickup agent rated successfully"),
+                                "Thank you for rating the pickup agent!"));
+        }
 
-        log.info("Getting ratings for customer: {}", currentUser.getEmail());
+        /**
+         * Rate delivery agent (for group shipments when parcel is delivered)
+         * POST /api/ratings/agent/{agentId}/delivery
+         */
+        @PostMapping("/agent/{agentId}/delivery")
+        @PreAuthorize("hasRole('CUSTOMER')")
+        public ResponseEntity<ApiResponse<Map<String, Object>>> rateDeliveryAgent(
+                        @PathVariable Long agentId,
+                        @RequestBody Map<String, Object> request,
+                        @AuthenticationPrincipal User currentUser) {
 
-        List<RatingDTO> ratings = ratingService.getCustomerRatings(currentUser);
+                Long parcelId = Long.valueOf(request.get("parcelId").toString());
+                Integer rating = Integer.valueOf(request.get("rating").toString());
+                String comment = request.get("comment") != null ? request.get("comment").toString() : "";
 
-        return ResponseEntity.ok(ApiResponse.success(ratings,
-                "Retrieved " + ratings.size() + " ratings"));
-    }
+                log.info("Customer {} rating delivery agent {} with {} stars for parcel {}",
+                                currentUser.getEmail(), agentId, rating, parcelId);
 
-    /**
-     * Get rating by parcel ID
-     * GET /api/ratings/parcel/{parcelId}
-     */
-    @GetMapping("/parcel/{parcelId}")
-    @PreAuthorize("hasAnyRole('CUSTOMER', 'COMPANY_ADMIN')")
-    public ResponseEntity<ApiResponse<RatingDTO>> getRatingByParcelId(
-            @PathVariable Long parcelId) {
+                ratingService.rateDeliveryAgent(parcelId, agentId, rating, comment, currentUser);
 
-        log.info("Getting rating for parcel: {}", parcelId);
+                return ResponseEntity.ok(ApiResponse.success(
+                                Map.of("success", true, "message", "Delivery agent rated successfully"),
+                                "Thank you for rating the delivery agent!"));
+        }
 
-        RatingDTO rating = ratingService.getRatingByParcelId(parcelId);
+        // ==========================================
+        // Customer Endpoints
+        // ==========================================
 
-        return ResponseEntity.ok(ApiResponse.success(rating, "Rating retrieved"));
-    }
+        /**
+         * Create a new rating
+         * POST /api/ratings
+         */
+        @PostMapping
+        @PreAuthorize("hasRole('CUSTOMER')")
+        public ResponseEntity<ApiResponse<RatingDTO>> createRating(
+                        @Valid @RequestBody CreateRatingRequest request,
+                        @AuthenticationPrincipal User currentUser) {
 
-    // ==========================================
-    // Company Admin Endpoints
-    // ==========================================
+                log.info("Creating rating for parcel: {} by user: {}",
+                                request.getParcelId(), currentUser.getEmail());
 
-    /**
-     * Get all ratings for company (including private)
-     * GET /api/ratings/company/all
-     */
-    @GetMapping("/company/all")
-    @PreAuthorize("hasRole('COMPANY_ADMIN')")
-    public ResponseEntity<ApiResponse<List<RatingDTO>>> getCompanyAllRatings(
-            @AuthenticationPrincipal User currentUser) {
+                RatingDTO rating = ratingService.createRating(request, currentUser);
 
-        log.info("Getting all ratings for company admin: {}", currentUser.getEmail());
+                return ResponseEntity
+                                .status(HttpStatus.CREATED)
+                                .body(ApiResponse.success(rating, "Thank you for your feedback!"));
+        }
 
-        List<RatingDTO> ratings = ratingService.getCompanyAllRatings(currentUser);
+        /**
+         * Update a rating (within 24 hours)
+         * PUT /api/ratings/{id}
+         */
+        @PutMapping("/{id}")
+        @PreAuthorize("hasRole('CUSTOMER')")
+        public ResponseEntity<ApiResponse<RatingDTO>> updateRating(
+                        @PathVariable Long id,
+                        @Valid @RequestBody UpdateRatingRequest request,
+                        @AuthenticationPrincipal User currentUser) {
 
-        return ResponseEntity.ok(ApiResponse.success(ratings,
-                "Retrieved " + ratings.size() + " ratings"));
-    }
+                log.info("Updating rating: {}", id);
 
-    /**
-     * Get unresponded ratings
-     * GET /api/ratings/company/unresponded
-     */
-    @GetMapping("/company/unresponded")
-    @PreAuthorize("hasRole('COMPANY_ADMIN')")
-    public ResponseEntity<ApiResponse<List<RatingDTO>>> getUnrespondedRatings(
-            @AuthenticationPrincipal User currentUser) {
+                RatingDTO rating = ratingService.updateRating(id, request, currentUser);
 
-        log.info("Getting unresponded ratings for company");
+                return ResponseEntity.ok(ApiResponse.success(rating, "Rating updated"));
+        }
 
-        List<RatingDTO> ratings = ratingService.getUnrespondedRatings(currentUser);
+        /**
+         * Get my ratings
+         * GET /api/ratings/my-ratings
+         */
+        @GetMapping("/my-ratings")
+        @PreAuthorize("hasRole('CUSTOMER')")
+        public ResponseEntity<ApiResponse<List<RatingDTO>>> getMyRatings(
+                        @AuthenticationPrincipal User currentUser) {
 
-        return ResponseEntity.ok(ApiResponse.success(ratings,
-                ratings.size() + " ratings awaiting response"));
-    }
+                log.info("Getting ratings for customer: {}", currentUser.getEmail());
 
-    /**
-     * Respond to a rating
-     * POST /api/ratings/{id}/respond
-     */
-    @PostMapping("/{id}/respond")
-    @PreAuthorize("hasRole('COMPANY_ADMIN')")
-    public ResponseEntity<ApiResponse<RatingDTO>> respondToRating(
-            @PathVariable Long id,
-            @Valid @RequestBody CompanyResponseRequest request,
-            @AuthenticationPrincipal User currentUser) {
+                List<RatingDTO> ratings = ratingService.getCustomerRatings(currentUser);
 
-        log.info("Company responding to rating: {}", id);
+                return ResponseEntity.ok(ApiResponse.success(ratings,
+                                "Retrieved " + ratings.size() + " ratings"));
+        }
 
-        RatingDTO rating = ratingService.respondToRating(id, request, currentUser);
+        /**
+         * Get rating by parcel ID
+         * GET /api/ratings/parcel/{parcelId}
+         */
+        @GetMapping("/parcel/{parcelId}")
+        @PreAuthorize("hasAnyRole('CUSTOMER', 'COMPANY_ADMIN')")
+        public ResponseEntity<ApiResponse<RatingDTO>> getRatingByParcelId(
+                        @PathVariable Long parcelId) {
 
-        return ResponseEntity.ok(ApiResponse.success(rating, "Response added to rating"));
-    }
+                log.info("Getting rating for parcel: {}", parcelId);
 
-    /**
-     * Flag a rating for review
-     * POST /api/ratings/{id}/flag
-     */
-    @PostMapping("/{id}/flag")
-    @PreAuthorize("hasRole('COMPANY_ADMIN')")
-    public ResponseEntity<ApiResponse<RatingDTO>> flagRating(
-            @PathVariable Long id,
-            @RequestBody Map<String, String> request,
-            @AuthenticationPrincipal User currentUser) {
+                RatingDTO rating = ratingService.getRatingByParcelId(parcelId);
 
-        String reason = request.getOrDefault("reason", "Flagged for review");
+                return ResponseEntity.ok(ApiResponse.success(rating, "Rating retrieved"));
+        }
 
-        log.info("Flagging rating: {}, reason: {}", id, reason);
+        // ==========================================
+        // Company Admin Endpoints
+        // ==========================================
 
-        RatingDTO rating = ratingService.flagRating(id, reason, currentUser);
+        /**
+         * Get all ratings for company (including private)
+         * GET /api/ratings/company/all
+         */
+        @GetMapping("/company/all")
+        @PreAuthorize("hasRole('COMPANY_ADMIN')")
+        public ResponseEntity<ApiResponse<List<RatingDTO>>> getCompanyAllRatings(
+                        @AuthenticationPrincipal User currentUser) {
 
-        return ResponseEntity.ok(ApiResponse.success(rating, "Rating flagged for review"));
-    }
+                log.info("Getting all ratings for company admin: {}", currentUser.getEmail());
 
-    // ==========================================
-    // Check if Parcel Can Be Rated
-    // ==========================================
+                List<RatingDTO> ratings = ratingService.getCompanyAllRatings(currentUser);
 
-    /**
-     * Check if a parcel can be rated
-     * GET /api/ratings/can-rate/{parcelId}
-     */
-    @GetMapping("/can-rate/{parcelId}")
-    @PreAuthorize("hasRole('CUSTOMER')")
-    public ResponseEntity<ApiResponse<Map<String, Object>>> canRateParcel(
-            @PathVariable Long parcelId,
-            @AuthenticationPrincipal User currentUser) {
+                return ResponseEntity.ok(ApiResponse.success(ratings,
+                                "Retrieved " + ratings.size() + " ratings"));
+        }
 
-        // Get parcel info and check rating status
-        Map<String, Object> result = ratingService.canRateParcel(parcelId, currentUser);
+        /**
+         * Get unresponded ratings
+         * GET /api/ratings/company/unresponded
+         */
+        @GetMapping("/company/unresponded")
+        @PreAuthorize("hasRole('COMPANY_ADMIN')")
+        public ResponseEntity<ApiResponse<List<RatingDTO>>> getUnrespondedRatings(
+                        @AuthenticationPrincipal User currentUser) {
 
-        boolean canRate = (boolean) result.getOrDefault("canRate", false);
-        return ResponseEntity.ok(ApiResponse.success(result,
-                canRate ? "Can be rated" : "Cannot rate this parcel"));
-    }
+                log.info("Getting unresponded ratings for company");
+
+                List<RatingDTO> ratings = ratingService.getUnrespondedRatings(currentUser);
+
+                return ResponseEntity.ok(ApiResponse.success(ratings,
+                                ratings.size() + " ratings awaiting response"));
+        }
+
+        /**
+         * Respond to a rating
+         * POST /api/ratings/{id}/respond
+         */
+        @PostMapping("/{id}/respond")
+        @PreAuthorize("hasRole('COMPANY_ADMIN')")
+        public ResponseEntity<ApiResponse<RatingDTO>> respondToRating(
+                        @PathVariable Long id,
+                        @Valid @RequestBody CompanyResponseRequest request,
+                        @AuthenticationPrincipal User currentUser) {
+
+                log.info("Company responding to rating: {}", id);
+
+                RatingDTO rating = ratingService.respondToRating(id, request, currentUser);
+
+                return ResponseEntity.ok(ApiResponse.success(rating, "Response added to rating"));
+        }
+
+        /**
+         * Flag a rating for review
+         * POST /api/ratings/{id}/flag
+         */
+        @PostMapping("/{id}/flag")
+        @PreAuthorize("hasRole('COMPANY_ADMIN')")
+        public ResponseEntity<ApiResponse<RatingDTO>> flagRating(
+                        @PathVariable Long id,
+                        @RequestBody Map<String, String> request,
+                        @AuthenticationPrincipal User currentUser) {
+
+                String reason = request.getOrDefault("reason", "Flagged for review");
+
+                log.info("Flagging rating: {}, reason: {}", id, reason);
+
+                RatingDTO rating = ratingService.flagRating(id, reason, currentUser);
+
+                return ResponseEntity.ok(ApiResponse.success(rating, "Rating flagged for review"));
+        }
+
+        // ==========================================
+        // Check if Parcel Can Be Rated
+        // ==========================================
+
+        /**
+         * Check if a parcel can be rated
+         * GET /api/ratings/can-rate/{parcelId}
+         */
+        @GetMapping("/can-rate/{parcelId}")
+        @PreAuthorize("hasRole('CUSTOMER')")
+        public ResponseEntity<ApiResponse<Map<String, Object>>> canRateParcel(
+                        @PathVariable Long parcelId,
+                        @AuthenticationPrincipal User currentUser) {
+
+                // Get parcel info and check rating status
+                Map<String, Object> result = ratingService.canRateParcel(parcelId, currentUser);
+
+                boolean canRate = (boolean) result.getOrDefault("canRate", false);
+                return ResponseEntity.ok(ApiResponse.success(result,
+                                canRate ? "Can be rated" : "Cannot rate this parcel"));
+        }
 }

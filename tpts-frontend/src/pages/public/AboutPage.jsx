@@ -1,156 +1,214 @@
 import { Link } from 'react-router-dom';
-import { FaTruck, FaGlobe, FaLeaf, FaUsers, FaAward, FaHeartbeat } from 'react-icons/fa';
+import { FaTruck, FaUsers, FaAward, FaArrowLeft, FaMapMarkerAlt, FaShieldAlt, FaHandshake, FaLightbulb, FaUserTie, FaStar, FaCamera, FaBuilding, FaUserCheck, FaMobileAlt, FaCreditCard, FaComments, FaBriefcase } from 'react-icons/fa';
 
 export default function AboutPage() {
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-primary-900 to-indigo-900 relative overflow-hidden">
+      {/* Background decorations */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-40 -right-40 w-96 h-96 bg-primary-500/20 rounded-full blur-3xl" />
+        <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-indigo-500/20 rounded-full blur-3xl" />
+        <div className="absolute top-1/3 right-1/4 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl" />
+      </div>
+
+      {/* Back Button */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 relative z-10">
+        <Link
+          to="/"
+          className="inline-flex items-center gap-2 text-white/70 hover:text-white transition-colors group"
+        >
+          <FaArrowLeft className="text-sm group-hover:-translate-x-1 transition-transform" />
+          <span>Back to Home</span>
+        </Link>
+      </div>
+
       {/* Hero Section */}
-      <section className="bg-gradient-to-br from-primary-50 via-white to-indigo-50 py-20">
+      <section className="py-20 relative z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
-            <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6">
-              About <span className="text-primary-600">TPTS</span>
+            <h1 className="text-5xl md:text-6xl font-bold text-white mb-6">
+              About <span className="text-primary-400">TPTS</span>
             </h1>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Revolutionizing logistics through group buying, sustainable delivery, and transparent pricing
+            <p className="text-xl text-white/60 max-w-3xl mx-auto">
+              Revolutionizing logistics through group buying, transparent pricing, and verified delivery
             </p>
           </div>
         </div>
       </section>
 
       {/* Mission & Vision */}
-      <section className="py-16 bg-white">
+      <section className="py-16 relative z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <div>
-              <h2 className="text-4xl font-bold text-gray-900 mb-6">Our Mission</h2>
-              <p className="text-lg text-gray-600 mb-4">
-                To make logistics affordable, sustainable, and transparent for everyone. We believe that group buying power can transform the delivery industry by reducing costs, improving efficiency, and creating positive environmental impact.
+              <h2 className="text-4xl font-bold text-white mb-6">Our Mission</h2>
+              <p className="text-lg text-white/70 mb-4">
+                To make logistics affordable and transparent for everyone. We believe that group buying power can transform the delivery industry by reducing costs and improving efficiency.
               </p>
-              <p className="text-lg text-gray-600">
-                TPTS (Trail Parcel Tracking System) is India's first platform that combines group shipments with real-time tracking, giving customers unprecedented control and savings over their logistics costs.
+              <p className="text-lg text-white/70">
+                TPTS (Trail Parcel Tracking System) is India's innovative platform that combines group shipments with real-time OTP-verified tracking, giving customers unprecedented control and savings over their logistics costs.
               </p>
             </div>
-            <div className="grid grid-cols-2 gap-6">
-              <div className="bg-gradient-to-br from-primary-50 to-primary-100 p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
-                <FaTruck className="text-4xl text-primary-600 mb-4" />
-                <h3 className="text-xl font-bold text-gray-900 mb-2">Smart Logistics</h3>
-                <p className="text-sm text-gray-600">Intelligent routing and grouping</p>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-white/10 backdrop-blur-xl p-6 rounded-2xl border border-white/20 hover:bg-white/15 transition-all group">
+                <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center mb-4 shadow-lg shadow-blue-500/30 group-hover:shadow-blue-500/50 transition-shadow">
+                  <FaTruck className="text-2xl text-white" />
+                </div>
+                <h3 className="text-lg font-bold text-white mb-1">Smart Logistics</h3>
+                <p className="text-sm text-white/60">Group shipping & route optimization</p>
               </div>
-              <div className="bg-gradient-to-br from-green-50 to-green-100 p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
-                <FaLeaf className="text-4xl text-green-600 mb-4" />
-                <h3 className="text-xl font-bold text-gray-900 mb-2">Eco-Friendly</h3>
-                <p className="text-sm text-gray-600">Carbon neutral deliveries</p>
+              <div className="bg-white/10 backdrop-blur-xl p-6 rounded-2xl border border-white/20 hover:bg-white/15 transition-all group">
+                <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center mb-4 shadow-lg shadow-green-500/30 group-hover:shadow-green-500/50 transition-shadow">
+                  <FaShieldAlt className="text-2xl text-white" />
+                </div>
+                <h3 className="text-lg font-bold text-white mb-1">Verified Delivery</h3>
+                <p className="text-sm text-white/60">OTP & photo proof verification</p>
               </div>
-              <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
-                <FaGlobe className="text-4xl text-purple-600 mb-4" />
-                <h3 className="text-xl font-bold text-gray-900 mb-2">Pan-India</h3>
-                <p className="text-sm text-gray-600">Coverage across major cities</p>
+              <div className="bg-white/10 backdrop-blur-xl p-6 rounded-2xl border border-white/20 hover:bg-white/15 transition-all group">
+                <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center mb-4 shadow-lg shadow-purple-500/30 group-hover:shadow-purple-500/50 transition-shadow">
+                  <FaStar className="text-2xl text-white" />
+                </div>
+                <h3 className="text-lg font-bold text-white mb-1">Rated Service</h3>
+                <p className="text-sm text-white/60">Review companies & agents</p>
               </div>
-              <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
-                <FaAward className="text-4xl text-yellow-600 mb-4" />
-                <h3 className="text-xl font-bold text-gray-900 mb-2">Transparent</h3>
-                <p className="text-sm text-gray-600">Clear pricing, no hidden charges</p>
+              <div className="bg-white/10 backdrop-blur-xl p-6 rounded-2xl border border-white/20 hover:bg-white/15 transition-all group">
+                <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-yellow-500 to-yellow-600 flex items-center justify-center mb-4 shadow-lg shadow-yellow-500/30 group-hover:shadow-yellow-500/50 transition-shadow">
+                  <FaAward className="text-2xl text-white" />
+                </div>
+                <h3 className="text-lg font-bold text-white mb-1">Transparent</h3>
+                <p className="text-sm text-white/60">Clear pricing with GST breakdown</p>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Why Choose Us */}
-      <section className="py-16 bg-gradient-to-r from-primary-50 to-indigo-50">
+      {/* Why Choose Us - Updated with actual features */}
+      <section className="py-16 relative z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-4xl font-bold text-center text-gray-900 mb-12">Why Choose TPTS?</h2>
-          <div className="grid md:grid-cols-3 gap-8">
-            <div className="bg-white p-8 rounded-lg shadow-md hover:shadow-xl transition-shadow">
-              <div className="text-4xl mb-4">💰</div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-4">Save Up to 40%</h3>
-              <p className="text-gray-600">
-                Group your shipments with others and unlock massive savings on delivery costs. The more you ship, the more you save.
-              </p>
-            </div>
-            <div className="bg-white p-8 rounded-lg shadow-md hover:shadow-xl transition-shadow">
-              <div className="text-4xl mb-4">📍</div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-4">Real-Time Tracking</h3>
-              <p className="text-gray-600">
-                Track your parcels in real-time with GPS enabled delivery agents. Know exactly where your shipment is at all times.
-              </p>
-            </div>
-            <div className="bg-white p-8 rounded-lg shadow-md hover:shadow-xl transition-shadow">
-              <div className="text-4xl mb-4">🌱</div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-4">Eco Impact</h3>
-              <p className="text-gray-600">
-                Every group shipment reduces carbon emissions. Join our sustainability mission and earn eco-points while shipping.
-              </p>
-            </div>
-            <div className="bg-white p-8 rounded-lg shadow-md hover:shadow-xl transition-shadow">
-              <div className="text-4xl mb-4">👥</div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-4">Trusted Network</h3>
-              <p className="text-gray-600">
-                Partner with verified companies and professional delivery agents across India.
-              </p>
-            </div>
-            <div className="bg-white p-8 rounded-lg shadow-md hover:shadow-xl transition-shadow">
-              <div className="text-4xl mb-4">⚡</div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-4">Fast Delivery</h3>
-              <p className="text-gray-600">
-                Optimized routes and professional agents ensure your parcels reach on time, every time.
-              </p>
-            </div>
-            <div className="bg-white p-8 rounded-lg shadow-md hover:shadow-xl transition-shadow">
-              <div className="text-4xl mb-4">🛡️</div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-4">Secure & Safe</h3>
-              <p className="text-gray-600">
-                Insurance coverage for all shipments. Your parcels are protected throughout their journey.
-              </p>
-            </div>
+          <h2 className="text-4xl font-bold text-center text-white mb-12">Why Choose TPTS?</h2>
+          <div className="grid md:grid-cols-3 gap-6">
+            {[
+              { icon: "💰", title: "Save Up to 40%", desc: "Group your shipments with others heading to the same destination and unlock massive savings on delivery costs.", gradient: "from-green-500 to-emerald-600" },
+              { icon: "📍", title: "OTP Verified Tracking", desc: "Secure pickup and delivery with OTP verification. Track your parcels in real-time with photo proof at every step.", gradient: "from-blue-500 to-cyan-600" },
+              { icon: "⭐", title: "Rate & Review", desc: "Rate delivery agents and companies. Make informed decisions based on authentic customer reviews and ratings.", gradient: "from-yellow-500 to-orange-600" },
+              { icon: "👥", title: "Trusted Network", desc: "Partner with verified companies and professional delivery agents who apply through our job portal.", gradient: "from-purple-500 to-violet-600" },
+              { icon: "💳", title: "Secure Payments", desc: "Pay online via Razorpay or cash on delivery. Balance payments collected with photo proof for group orders.", gradient: "from-indigo-500 to-purple-600" },
+              { icon: "💬", title: "In-App Messaging", desc: "Communicate directly with companies and agents through our built-in messaging system.", gradient: "from-teal-500 to-cyan-600" },
+            ].map((item, idx) => (
+              <div key={idx} className="bg-white/10 backdrop-blur-xl p-8 rounded-2xl border border-white/20 hover:bg-white/15 hover:scale-[1.02] transition-all duration-300 group">
+                <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${item.gradient} flex items-center justify-center mb-6 text-3xl shadow-lg group-hover:scale-110 transition-transform`}>
+                  {item.icon}
+                </div>
+                <h3 className="text-xl font-bold text-white mb-3">{item.title}</h3>
+                <p className="text-white/60">
+                  {item.desc}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Platform Features */}
+      <section className="py-16 relative z-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <h2 className="text-4xl font-bold text-center text-white mb-12">Platform Features</h2>
+          <div className="grid md:grid-cols-4 gap-6">
+            {[
+              { icon: FaUsers, title: "For Customers", desc: "Create orders, join group shipments, track parcels, and rate your experience", color: "from-blue-500 to-blue-600" },
+              { icon: FaBuilding, title: "For Companies", desc: "Manage orders, create group shipments, hire agents, and grow your business", color: "from-green-500 to-green-600" },
+              { icon: FaUserCheck, title: "For Agents", desc: "Accept deliveries, verify with OTP, upload photo proof, and complete pickups & deliveries", color: "from-orange-500 to-orange-600" },
+              { icon: FaUserTie, title: "For Admins", desc: "Monitor platform, approve companies, manage users, and view analytics", color: "from-purple-500 to-purple-600" },
+            ].map((item, idx) => {
+              const IconComponent = item.icon;
+              return (
+                <div key={idx} className="bg-white/10 backdrop-blur-xl p-6 rounded-2xl border border-white/20 hover:bg-white/15 transition-all text-center group">
+                  <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${item.color} flex items-center justify-center mx-auto mb-4 shadow-lg group-hover:scale-110 transition-transform`}>
+                    <IconComponent className="text-2xl text-white" />
+                  </div>
+                  <h3 className="text-lg font-bold text-white mb-2">{item.title}</h3>
+                  <p className="text-sm text-white/60">{item.desc}</p>
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>
 
       {/* Our Story */}
-      <section className="py-16 bg-white">
+      <section className="py-16 relative z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-4xl font-bold text-center text-gray-900 mb-12">Our Story</h2>
-          <div className="bg-gradient-to-r from-primary-50 to-indigo-50 p-12 rounded-lg shadow-md">
-            <p className="text-lg text-gray-700 leading-relaxed mb-6">
+          <h2 className="text-4xl font-bold text-center text-white mb-12">Our Story</h2>
+          <div className="bg-white/10 backdrop-blur-xl p-10 md:p-12 rounded-3xl border border-white/20 hover:bg-white/15 transition-all">
+            <p className="text-lg text-white leading-relaxed mb-6">
               TPTS was founded with a simple vision: to democratize logistics in India. We saw how businesses and individuals were overpaying for delivery services due to fragmented supply chains and inefficient routes.
             </p>
-            <p className="text-lg text-gray-700 leading-relaxed mb-6">
-              Our solution? Group buying power applied to logistics. By combining multiple shipments heading in the same direction, we achieve economies of scale that benefit everyone involved - customers save money, delivery agents earn more, and the environment benefits from reduced emissions.
+            <p className="text-lg text-white leading-relaxed mb-6">
+              Our solution? <span className="font-bold text-primary-400">Group buying power applied to logistics.</span> By combining multiple shipments heading in the same direction, we achieve economies of scale that benefit everyone involved - customers save money and delivery agents earn more.
             </p>
-            <p className="text-lg text-gray-700 leading-relaxed">
-              Today, we're proud to serve thousands of customers across major Indian cities, partner with trusted courier companies, and employ professional delivery agents. But this is just the beginning. We're on a mission to transform how India ships.
+            <p className="text-lg text-white leading-relaxed">
+              With features like OTP-verified pickups and deliveries, photo proof, integrated payments, and a comprehensive rating system, <span className="font-bold text-primary-400">we're building a transparent and efficient logistics ecosystem.</span>
             </p>
           </div>
         </div>
       </section>
 
-      {/* Team Values */}
-      <section className="py-16 bg-gradient-to-r from-primary-50 to-indigo-50">
+      {/* Key Capabilities */}
+      <section className="py-16 relative z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-4xl font-bold text-center text-gray-900 mb-12">Our Values</h2>
-          <div className="grid md:grid-cols-4 gap-8">
-            <div className="text-center">
-              <div className="text-5xl mb-4">🤝</div>
-              <h3 className="text-xl font-bold text-gray-900 mb-2">Transparency</h3>
-              <p className="text-gray-600">Clear communication and honest pricing in everything we do</p>
-            </div>
-            <div className="text-center">
-              <div className="text-5xl mb-4">💡</div>
-              <h3 className="text-xl font-bold text-gray-900 mb-2">Innovation</h3>
-              <p className="text-gray-600">Constantly improving our platform with latest technology</p>
-            </div>
-            <div className="text-center">
-              <div className="text-5xl mb-4">🌍</div>
-              <h3 className="text-xl font-bold text-gray-900 mb-2">Sustainability</h3>
-              <p className="text-gray-600">Committed to reducing our environmental footprint</p>
-            </div>
-            <div className="text-center">
-              <div className="text-5xl mb-4">👨‍💼</div>
-              <h3 className="text-xl font-bold text-gray-900 mb-2">Responsibility</h3>
-              <p className="text-gray-600">Accountable to our users, partners, and community</p>
-            </div>
+          <h2 className="text-4xl font-bold text-center text-white mb-12">Key Capabilities</h2>
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[
+              { icon: FaTruck, title: "Group Buy Shipping", desc: "Join existing groups or create new ones to save up to 40% on shipping" },
+              { icon: FaMobileAlt, title: "OTP Verification", desc: "Secure pickup and delivery with one-time password verification" },
+              { icon: FaCamera, title: "Photo Proof", desc: "Capture proof photos at pickup and delivery for complete transparency" },
+              { icon: FaCreditCard, title: "Razorpay Integration", desc: "Secure online payments with multiple payment options" },
+              { icon: FaHandshake, title: "Cash Collection", desc: "Agents can collect balance payments in cash with photo proof" },
+              { icon: FaComments, title: "In-App Chat", desc: "Direct messaging between customers, companies, and agents" },
+              { icon: FaStar, title: "Rating System", desc: "Rate and review companies and agents after delivery" },
+              { icon: FaBriefcase, title: "Job Portal", desc: "Companies can post jobs and hire delivery agents" },
+              { icon: FaMapMarkerAlt, title: "Real-Time Tracking", desc: "Track your parcels with live status updates" },
+            ].map((item, idx) => {
+              const IconComponent = item.icon;
+              return (
+                <div key={idx} className="bg-white/10 backdrop-blur-xl p-6 rounded-2xl border border-white/20 hover:bg-white/15 transition-all flex items-start gap-4 group">
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center flex-shrink-0 shadow-lg group-hover:scale-110 transition-transform">
+                    <IconComponent className="text-xl text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-white mb-1">{item.title}</h3>
+                    <p className="text-sm text-white/60">{item.desc}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* Team Values */}
+      <section className="py-16 pb-24 relative z-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <h2 className="text-4xl font-bold text-center text-white mb-12">Our Values</h2>
+          <div className="grid md:grid-cols-4 gap-6">
+            {[
+              { icon: FaHandshake, title: "Transparency", desc: "Clear communication and honest pricing with full GST breakdown", color: "from-blue-500 to-blue-600" },
+              { icon: FaLightbulb, title: "Innovation", desc: "Constantly improving with OTP verification and group shipping", color: "from-yellow-500 to-yellow-600" },
+              { icon: FaShieldAlt, title: "Security", desc: "Photo proof, OTP verification, and secure payment processing", color: "from-green-500 to-green-600" },
+              { icon: FaUserTie, title: "Accountability", desc: "Rating system ensures quality service from all partners", color: "from-purple-500 to-purple-600" },
+            ].map((item, idx) => {
+              const IconComponent = item.icon;
+              return (
+                <div key={idx} className="text-center group">
+                  <div className={`w-20 h-20 rounded-2xl bg-gradient-to-br ${item.color} flex items-center justify-center mx-auto mb-6 shadow-lg group-hover:scale-110 transition-transform`}>
+                    <IconComponent className="text-3xl text-white" />
+                  </div>
+                  <h3 className="text-xl font-bold text-white mb-2">{item.title}</h3>
+                  <p className="text-white/60">{item.desc}</p>
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>

@@ -36,6 +36,7 @@ public class CompanyDashboardDTO {
         private Integer totalOrders;
         private Integer activeOrders;
         private Integer completedOrders;
+        private Integer cancelledOrders;
         private Integer pendingOrders;
         private BigDecimal totalRevenue; // Company's net revenue
         private BigDecimal totalOrderAmount; // Full customer payment (basePrice + GST = 100%)

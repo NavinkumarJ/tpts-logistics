@@ -143,6 +143,41 @@ public class Parcel {
     private BigDecimal finalPrice = BigDecimal.ZERO;
 
     // ==========================================
+    // Balance Payment (for Partial Groups)
+    // ==========================================
+    // Balance amount due when group is partially filled
+    @Column(name = "balance_amount", precision = 10, scale = 2)
+    @Builder.Default
+    private BigDecimal balanceAmount = BigDecimal.ZERO;
+
+    // Whether the balance has been paid
+    @Column(name = "balance_paid")
+    @Builder.Default
+    private Boolean balancePaid = false;
+
+    // Payment method for balance (RAZORPAY / CASH)
+    @Column(name = "balance_payment_method", length = 20)
+    private String balancePaymentMethod;
+
+    // When balance was paid
+    @Column(name = "balance_paid_at")
+    private LocalDateTime balancePaidAt;
+
+    // Proof photo URL for cash collection by agent
+    @Column(name = "balance_cash_photo_url", length = 500)
+    private String balanceCashPhotoUrl;
+
+    // Original discount percentage promised (before pro-rating)
+    @Column(name = "original_discount_percentage", precision = 5, scale = 2)
+    @Builder.Default
+    private BigDecimal originalDiscountPercentage = BigDecimal.ZERO;
+
+    // Effective discount percentage (after pro-rating for partial groups)
+    @Column(name = "effective_discount_percentage", precision = 5, scale = 2)
+    @Builder.Default
+    private BigDecimal effectiveDiscountPercentage = BigDecimal.ZERO;
+
+    // ==========================================
     // Status & Tracking
     // ==========================================
     @Enumerated(EnumType.STRING)
@@ -169,9 +204,6 @@ public class Parcel {
     @Column(name = "delivery_photo_url", length = 500)
     private String deliveryPhotoUrl;
 
-    @Column(name = "signature_url", length = 500)
-    private String signatureUrl;
-
     @Column(name = "delivery_notes", columnDefinition = "TEXT")
     private String deliveryNotes;
 
@@ -193,11 +225,17 @@ public class Parcel {
     @Column(name = "delivered_at")
     private LocalDateTime deliveredAt;
 
+    @Column(name = "warehouse_arrived_at")
+    private LocalDateTime warehouseArrivedAt;
+
     @Column(name = "cancelled_at")
     private LocalDateTime cancelledAt;
 
     @Column(name = "cancellation_reason", columnDefinition = "TEXT")
     private String cancellationReason;
+
+    @Column(name = "cancelled_by", length = 20)
+    private String cancelledBy; // CUSTOMER, COMPANY, AGENT, ADMIN
 
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

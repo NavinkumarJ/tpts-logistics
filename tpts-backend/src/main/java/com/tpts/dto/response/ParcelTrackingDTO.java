@@ -28,11 +28,22 @@ public class ParcelTrackingDTO {
     private String pickupCity;
     private String deliveryCity;
 
-    // Receiver info (partial for privacy)
+    // Sender info
+    private String pickupName;
+    private String pickupPhone;
+    private String pickupAddress;
+    private String pickupPincode;
+
+    // Receiver info
     private String deliveryName;
+    private String deliveryPhone;
+    private String deliveryAddress;
+    private String deliveryPincode;
 
     // Company info
     private String companyName;
+    private BigDecimal companyRating;
+    private Integer companyTotalRatings;
 
     // Agent info (when assigned)
     private AgentPublicDTO agent;
@@ -40,8 +51,11 @@ public class ParcelTrackingDTO {
     // Timestamps
     private LocalDateTime estimatedDelivery;
     private LocalDateTime createdAt;
+    private LocalDateTime confirmedAt;
+    private LocalDateTime assignedAt;
     private LocalDateTime pickedUpAt;
     private LocalDateTime deliveredAt;
+    private LocalDateTime updatedAt;
 
     // Tracking timeline
     private List<TrackingEvent> timeline;

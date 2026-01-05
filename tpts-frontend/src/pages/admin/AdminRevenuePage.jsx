@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { getPlatformStats, getApprovedCompanies } from "../../services/adminService";
 import { logout } from "../../utils/auth";
 import toast from "react-hot-toast";
-import { FaRupeeSign, FaBuilding, FaChartPie, FaPercent, FaArrowUp, FaChartLine, FaTrophy, FaExchangeAlt } from "react-icons/fa";
+import { FaRupeeSign, FaBuilding, FaChartPie, FaPercent, FaArrowUp, FaChartLine, FaTrophy, FaExchangeAlt, FaSync } from "react-icons/fa";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, AreaChart, Area, ComposedChart, Line } from "recharts";
 
 const COLORS = ["#6366f1", "#22c55e", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899"];
@@ -69,16 +69,18 @@ export default function AdminRevenuePage() {
     const companiesWithRevenue = topCompanies.filter(c => c.revenue > 0);
 
     const totalRevenue = Number(stats?.totalRevenue) || 0;
-    const platformCommission = Number(stats?.commissionEarned) || totalRevenue * 0.10;
+    const platformCommission = totalRevenue * 0.10; // 10% platform commission
     const avgOrderValue = stats?.totalParcels > 0 ? totalRevenue / stats.totalParcels : 0;
     const totalOrders = stats?.totalParcels || 0;
     const deliveredOrders = stats?.deliveredParcels || 0;
 
-    // Commission split breakdown
+    // Commission split breakdown - 10% platform, 20% agent, 70% company
+    const agentShare = totalRevenue * 0.20;
+    const companyShare = totalRevenue * 0.70;
     const commissionSplit = [
-        { name: "Platform (10%)", value: totalRevenue * 0.10, fill: "#6366f1" },
-        { name: "Agent (20%)", value: totalRevenue * 0.20, fill: "#f59e0b" },
-        { name: "Company (70%)", value: totalRevenue * 0.70, fill: "#22c55e" },
+        { name: "Platform (10%)", value: platformCommission, fill: "#6366f1" },
+        { name: "Agent (20%)", value: agentShare, fill: "#f59e0b" },
+        { name: "Company (70%)", value: companyShare, fill: "#22c55e" },
     ];
 
     if (loading) {
@@ -98,9 +100,19 @@ export default function AdminRevenuePage() {
                     <h1 className="text-3xl font-bold text-gray-900">Revenue & Financials</h1>
                     <p className="text-sm text-gray-500 mt-1">Platform financial overview and commission breakdown</p>
                 </div>
-                <div className="flex items-center gap-2 px-4 py-2 bg-indigo-50 rounded-lg">
-                    <FaExchangeAlt className="text-indigo-600" />
-                    <span className="text-sm text-indigo-700 font-medium">Split: Platform 10% | Agent 20% | Company 70%</span>
+                <div className="flex items-center gap-3">
+                    <button
+                        onClick={fetchData}
+                        disabled={loading}
+                        className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition text-sm font-medium shadow-sm disabled:opacity-50"
+                    >
+                        <FaSync className={loading ? "animate-spin" : ""} />
+                        Refresh
+                    </button>
+                    <div className="flex items-center gap-2 px-4 py-2 bg-indigo-50 rounded-lg">
+                        <FaExchangeAlt className="text-indigo-600" />
+                        <span className="text-sm text-indigo-700 font-medium">Split: Platform 10% | Agent 20% | Company 70%</span>
+                    </div>
                 </div>
             </div>
 
@@ -272,9 +284,9 @@ export default function AdminRevenuePage() {
                                     <tr key={idx} className="hover:bg-gray-50 transition">
                                         <td className="px-4 py-4 whitespace-nowrap">
                                             <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shadow-sm ${idx === 0 ? "bg-gradient-to-br from-yellow-300 to-yellow-500 text-yellow-900" :
-                                                    idx === 1 ? "bg-gradient-to-br from-gray-200 to-gray-400 text-gray-700" :
-                                                        idx === 2 ? "bg-gradient-to-br from-orange-200 to-orange-400 text-orange-800" :
-                                                            "bg-gray-100 text-gray-600"
+                                                idx === 1 ? "bg-gradient-to-br from-gray-200 to-gray-400 text-gray-700" :
+                                                    idx === 2 ? "bg-gradient-to-br from-orange-200 to-orange-400 text-orange-800" :
+                                                        "bg-gray-100 text-gray-600"
                                                 }`}>
                                                 {idx + 1}
                                             </span>

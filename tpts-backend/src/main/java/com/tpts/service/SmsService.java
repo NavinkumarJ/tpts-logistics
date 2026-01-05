@@ -82,6 +82,19 @@ public class SmsService {
     }
 
     /**
+     * Send picked up notification to sender
+     */
+    public void sendPickedUpToSender(String toPhoneNumber, String trackingNumber,
+            String senderName, String agentName) {
+        String messageText = String.format(
+                "[TPTS] Hi %s! Your parcel %s has been picked up by %s. Track delivery: https://tpts.in/track/%s",
+                senderName, trackingNumber, agentName, trackingNumber);
+
+        sendSms(toPhoneNumber, messageText);
+        log.info("Picked up notification sent to sender {}", maskPhone(toPhoneNumber));
+    }
+
+    /**
      * Send in-transit notification to receiver
      */
     public void sendInTransitToReceiver(String toPhoneNumber, String trackingNumber,

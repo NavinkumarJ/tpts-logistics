@@ -83,12 +83,20 @@ public interface ParcelRepository extends JpaRepository<Parcel, Long> {
 
         long countByAgentIdAndStatus(Long agentId, ParcelStatus status);
 
+        // Count regular deliveries by agent (not part of group shipment)
+        @Query("SELECT COUNT(p) FROM Parcel p WHERE p.agent.id = :agentId AND p.status = :status AND p.groupShipmentId IS NULL")
+        long countByAgentIdAndStatusAndGroupShipmentIdIsNull(@Param("agentId") Long agentId,
+                        @Param("status") ParcelStatus status);
+
         // ==========================================
         // Group Shipment Queries
         // ==========================================
         List<Parcel> findByGroupShipmentId(Long groupShipmentId);
 
         long countByGroupShipmentId(Long groupShipmentId);
+
+        // Find customer's parcels that are part of a group
+        List<Parcel> findByCustomerIdAndGroupShipmentIdIsNotNull(Long customerId);
 
         // ==========================================
         // Status Updates
@@ -123,4 +131,45 @@ public interface ParcelRepository extends JpaRepository<Parcel, Long> {
         List<Parcel> findByStatusAndDeliveredAtBetween(@Param("status") ParcelStatus status,
                         @Param("start") LocalDateTime start,
                         @Param("end") LocalDateTime end);
+
+        // Find parcels by status ordered by created date (for cancellation analytics)
+        List<Parcel> findByStatusOrderByCreatedAtDesc(ParcelStatus status);
+
+        // ==========================================
+        // Cancellation Statistics
+        // ==========================================
+        @Query("SELECT COUNT(p) FROM Parcel p WHERE p.status = 'CANCELLED'")
+        long countCancelledParcels();
+
+        @Query("SELECT COUNT(p) FROM Parcel p WHERE p.status = 'CANCELLED' AND p.cancelledBy = :cancelledBy")
+        long countCancelledByType(@Param("cancelledBy") String cancelledBy);
+
+        @Query("SELECT COUNT(p) FROM Parcel p WHERE p.company.id = :companyId AND p.status = 'CANCELLED'")
+        long countCancelledByCompanyId(@Param("companyId") Long companyId);
+
+        @Query("SELECT COUNT(p) FROM Parcel p WHERE p.company.id = :companyId AND p.status = 'CANCELLED' AND p.cancelledBy = :cancelledBy")
+        long countCancelledByCompanyIdAndType(@Param("companyId") Long companyId,
+                        @Param("cancelledBy") String cancelledBy);
+
+        // Find cancelled parcels with details for history
+        @Query("SELECT p FROM Parcel p WHERE p.status = 'CANCELLED' ORDER BY p.cancelledAt DESC")
+        List<Parcel> findCancelledParcelsOrderByCancelledAtDesc();
+
+        @Query("SELECT p FROM Parcel p WHERE p.company.id = :companyId AND p.status = 'CANCELLED' ORDER BY p.cancelledAt DESC")
+        List<Parcel> findCancelledByCompanyIdOrderByCancelledAtDesc(@Param("companyId") Long companyId);
+
+        // ==========================================
+        // Platform-wide Order Statistics (for Super Admin)
+        // ==========================================
+        // Count regular orders (parcels not in any group)
+        @Query("SELECT COUNT(p) FROM Parcel p WHERE p.groupShipmentId IS NULL")
+        long countRegularOrders();
+
+        // Count regular orders by status
+        @Query("SELECT COUNT(p) FROM Parcel p WHERE p.groupShipmentId IS NULL AND p.status = :status")
+        long countRegularOrdersByStatus(@Param("status") ParcelStatus status);
+
+        // Count cancelled regular orders
+        @Query("SELECT COUNT(p) FROM Parcel p WHERE p.groupShipmentId IS NULL AND p.status = 'CANCELLED'")
+        long countCancelledRegularOrders();
 }

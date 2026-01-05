@@ -39,8 +39,9 @@ public class AuthService {
     private final OtpUtil otpUtil;
     private final AuthenticationManager authenticationManager;
     private final ObjectMapper objectMapper;
-    private final NotificationService notificationService; // ← ADD THIS
-    private final EmailService emailService; // ✅ ADD THIS
+    private final NotificationService notificationService;
+    private final EmailService emailService;
+    private final LoginActivityService loginActivityService;
 
     @Value("${otp.expiration-minutes:10}")
     private int otpExpirationMinutes;
@@ -260,6 +261,14 @@ public class AuthService {
         user.setRefreshTokenExpiry(LocalDateTime.now().plusSeconds(jwtUtil.getRefreshTokenExpiration() / 1000));
         user.setLastLogin(LocalDateTime.now());
         userRepository.save(user);
+
+        // Record login activity
+        try {
+            loginActivityService.recordLogin(user, null);
+        } catch (Exception e) {
+            // Log but don't fail login if activity recording fails
+            log.warn("Failed to record login activity for user: {}", user.getEmail(), e);
+        }
 
         // Get profile info based on user type
         Long profileId = null;
@@ -574,6 +583,13 @@ public class AuthService {
     @Transactional
     public void logout(User user) {
         log.info("Logging out user: {}", user.getEmail());
+
+        // Record logout activity
+        try {
+            loginActivityService.recordLogout(user, null);
+        } catch (Exception e) {
+            log.warn("Failed to record logout activity for user: {}", user.getEmail(), e);
+        }
 
         user.setRefreshToken(null);
         user.setRefreshTokenExpiry(null);

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { FaUser, FaBuilding, FaArrowLeft, FaCheck, FaBox, FaUsers, FaChartLine, FaMapMarkerAlt, FaStar, FaRoute, FaMoneyBillWave, FaTruck } from "react-icons/fa";
 import CustomerRegister from "../../components/auth/CustomerRegister";
 import CompanyRegister from "../../components/auth/CompanyRegister";
 
@@ -9,28 +10,37 @@ export default function RegisterPage() {
 
   if (!accountType) {
     return (
-      <main className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-indigo-50 flex items-center justify-center py-12 px-4">
-        <div className="w-full max-w-4xl">
+      <main className="min-h-screen bg-gradient-to-br from-slate-900 via-primary-900 to-indigo-900 flex items-center justify-center py-12 px-4 relative overflow-hidden">
+        {/* Background decorations */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary-500/20 rounded-full blur-3xl" />
+          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-indigo-500/20 rounded-full blur-3xl" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary-600/10 rounded-full blur-3xl" />
+        </div>
+
+        <div className="w-full max-w-4xl relative z-10">
           {/* Back Button */}
-          <div className="mb-4">
+          <div className="mb-6">
             <button
               onClick={() => navigate("/")}
-              className="text-sm text-gray-600 hover:text-gray-900 flex items-center gap-1"
+              className="text-sm text-white/70 hover:text-white flex items-center gap-2 transition-colors group"
             >
-              <span>←</span> Back to Home
+              <FaArrowLeft className="text-xs group-hover:-translate-x-1 transition-transform" />
+              <span>Back to Home</span>
             </button>
           </div>
 
           {/* Header */}
-          <div className="text-center mb-8">
-            <Link to="/" className="inline-flex items-center gap-2 mb-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary-600 text-white font-bold text-xl shadow-lg">
-                T
-              </div>
-              <span className="text-2xl font-bold text-gray-900">TPTS</span>
+          <div className="text-center mb-10">
+            <Link to="/" className="inline-flex items-center gap-3 mb-6 group">
+              <img
+                src="/logo.png"
+                alt="TPTS Logo"
+                className="h-24 w-auto object-contain transition-all duration-200 group-hover:brightness-125 group-hover:scale-105"
+              />
             </Link>
-            <h2 className="text-2xl font-bold text-gray-900">Create an Account</h2>
-            <p className="mt-2 text-sm text-gray-600">
+            <h2 className="text-3xl font-bold text-white mb-2">Create an Account</h2>
+            <p className="text-white/60">
               Choose your account type to get started
             </p>
           </div>
@@ -40,91 +50,129 @@ export default function RegisterPage() {
             {/* Customer */}
             <button
               onClick={() => setAccountType("customer")}
-              className="card p-8 hover:shadow-xl transition text-left group"
+              className="bg-white/10 backdrop-blur-xl rounded-2xl border border-white/20 p-8 hover:bg-white/15 hover:border-white/30 hover:scale-[1.02] transition-all duration-300 text-left group"
             >
               <div className="flex items-start gap-4">
-                <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-primary-50 text-primary-600 text-3xl group-hover:bg-primary-600 group-hover:text-white transition">
-                  👤
+                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 text-white text-2xl shadow-lg shadow-blue-500/30 group-hover:shadow-blue-500/50 transition-shadow">
+                  <FaUser />
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                  <h3 className="text-xl font-bold text-white mb-2">
                     Customer Account
                   </h3>
-                  <p className="text-sm text-gray-600 mb-4">
+                  <p className="text-sm text-white/60 mb-4">
                     Book shipments, track parcels, and manage deliveries
                   </p>
-                  <ul className="space-y-1.5 text-sm text-gray-600">
-                    <li className="flex items-center gap-2">
-                      <span className="text-green-500">✓</span>
-                      Book and track parcels
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <span className="text-green-500">✓</span>
-                      Join group shipments
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <span className="text-green-500">✓</span>
-                      Rate and review services
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <span className="text-green-500">✓</span>
-                      Manage multiple addresses
-                    </li>
-                  </ul>
                 </div>
               </div>
-              <div className="mt-6 text-primary-600 font-medium flex items-center gap-2 group-hover:gap-3 transition-all">
-                Register as Customer →
+
+              <ul className="space-y-2.5 text-sm text-white/80 mt-6 pl-1">
+                <li className="flex items-center gap-3">
+                  <div className="w-5 h-5 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0">
+                    <FaCheck className="text-green-400 text-[10px]" />
+                  </div>
+                  <span className="flex items-center gap-2">
+                    <FaBox className="text-blue-400 text-xs" /> Book and track parcels
+                  </span>
+                </li>
+                <li className="flex items-center gap-3">
+                  <div className="w-5 h-5 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0">
+                    <FaCheck className="text-green-400 text-[10px]" />
+                  </div>
+                  <span className="flex items-center gap-2">
+                    <FaUsers className="text-blue-400 text-xs" /> Join group shipments
+                  </span>
+                </li>
+                <li className="flex items-center gap-3">
+                  <div className="w-5 h-5 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0">
+                    <FaCheck className="text-green-400 text-[10px]" />
+                  </div>
+                  <span className="flex items-center gap-2">
+                    <FaStar className="text-blue-400 text-xs" /> Rate and review services
+                  </span>
+                </li>
+                <li className="flex items-center gap-3">
+                  <div className="w-5 h-5 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0">
+                    <FaCheck className="text-green-400 text-[10px]" />
+                  </div>
+                  <span className="flex items-center gap-2">
+                    <FaMapMarkerAlt className="text-blue-400 text-xs" /> Manage multiple addresses
+                  </span>
+                </li>
+              </ul>
+
+              <div className="mt-8 py-3 px-4 bg-gradient-to-r from-blue-600 to-blue-500 rounded-xl text-white font-semibold flex items-center justify-center gap-2 group-hover:from-blue-500 group-hover:to-blue-400 shadow-lg shadow-blue-500/30 transition-all">
+                Register as Customer
+                <span className="group-hover:translate-x-1 transition-transform">→</span>
               </div>
             </button>
 
             {/* Company */}
             <button
               onClick={() => setAccountType("company")}
-              className="card p-8 hover:shadow-xl transition text-left group"
+              className="bg-white/10 backdrop-blur-xl rounded-2xl border border-white/20 p-8 hover:bg-white/15 hover:border-white/30 hover:scale-[1.02] transition-all duration-300 text-left group"
             >
               <div className="flex items-start gap-4">
-                <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 text-3xl group-hover:bg-indigo-600 group-hover:text-white transition">
-                  🏢
+                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-purple-500 to-purple-600 text-white text-2xl shadow-lg shadow-purple-500/30 group-hover:shadow-purple-500/50 transition-shadow">
+                  <FaBuilding />
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                  <h3 className="text-xl font-bold text-white mb-2">
                     Company Account
                   </h3>
-                  <p className="text-sm text-gray-600 mb-4">
+                  <p className="text-sm text-white/60 mb-4">
                     Register your courier company and manage deliveries
                   </p>
-                  <ul className="space-y-1.5 text-sm text-gray-600">
-                    <li className="flex items-center gap-2">
-                      <span className="text-green-500">✓</span>
-                      Create group shipments
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <span className="text-green-500">✓</span>
-                      Hire delivery agents
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <span className="text-green-500">✓</span>
-                      Manage pricing & routes
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <span className="text-green-500">✓</span>
-                      Track earnings & analytics
-                    </li>
-                  </ul>
                 </div>
               </div>
-              <div className="mt-6 text-indigo-600 font-medium flex items-center gap-2 group-hover:gap-3 transition-all">
-                Register as Company →
+
+              <ul className="space-y-2.5 text-sm text-white/80 mt-6 pl-1">
+                <li className="flex items-center gap-3">
+                  <div className="w-5 h-5 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0">
+                    <FaCheck className="text-green-400 text-[10px]" />
+                  </div>
+                  <span className="flex items-center gap-2">
+                    <FaRoute className="text-purple-400 text-xs" /> Create group shipments
+                  </span>
+                </li>
+                <li className="flex items-center gap-3">
+                  <div className="w-5 h-5 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0">
+                    <FaCheck className="text-green-400 text-[10px]" />
+                  </div>
+                  <span className="flex items-center gap-2">
+                    <FaTruck className="text-purple-400 text-xs" /> Hire delivery agents
+                  </span>
+                </li>
+                <li className="flex items-center gap-3">
+                  <div className="w-5 h-5 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0">
+                    <FaCheck className="text-green-400 text-[10px]" />
+                  </div>
+                  <span className="flex items-center gap-2">
+                    <FaMoneyBillWave className="text-purple-400 text-xs" /> Manage pricing & routes
+                  </span>
+                </li>
+                <li className="flex items-center gap-3">
+                  <div className="w-5 h-5 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0">
+                    <FaCheck className="text-green-400 text-[10px]" />
+                  </div>
+                  <span className="flex items-center gap-2">
+                    <FaChartLine className="text-purple-400 text-xs" /> Track earnings & analytics
+                  </span>
+                </li>
+              </ul>
+
+              <div className="mt-8 py-3 px-4 bg-gradient-to-r from-purple-600 to-purple-500 rounded-xl text-white font-semibold flex items-center justify-center gap-2 group-hover:from-purple-500 group-hover:to-purple-400 shadow-lg shadow-purple-500/30 transition-all">
+                Register as Company
+                <span className="group-hover:translate-x-1 transition-transform">→</span>
               </div>
             </button>
           </div>
 
           {/* Login Link */}
-          <div className="mt-8 text-center">
-            <p className="text-sm text-gray-600">
+          <div className="mt-10 text-center">
+            <p className="text-lg text-white/80">
               Already have an account?{" "}
-              <Link to="/login" className="font-medium text-primary-600 hover:text-primary-700">
+              <Link to="/login" className="font-bold text-cyan-400 hover:text-cyan-300 text-xl hover:underline transition-colors">
                 Sign in
               </Link>
             </p>

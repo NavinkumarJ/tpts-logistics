@@ -28,10 +28,10 @@ export const uploadProfileImage = async (customerId, imageFile) => {
   const formData = new FormData();
   formData.append("image", imageFile);
 
+  // Don't set Content-Type for FormData - browser will set it with the correct boundary
   const response = await apiClient.post(
     `/customers/${customerId}/upload-image`,
-    formData,
-    { headers: { "Content-Type": "multipart/form-data" } }
+    formData
   );
   return response.data.data.profileImageUrl;
 };

@@ -19,7 +19,9 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -36,7 +38,18 @@ public class GroupService {
     private final CompanyAdminRepository companyRepository;
     private final DeliveryAgentRepository agentRepository;
     private final CustomerRepository customerRepository;
+    private final EarningRepository earningRepository;
     private final OtpUtil otpUtil;
+    private final NotificationService notificationService;
+    private final SmsService smsService;
+    private final WalletService walletService;
+
+    // Group earnings split rates (Platform 10%, Pickup Agent 10%, Delivery Agent
+    // 10%, Company 70%)
+    private static final BigDecimal PLATFORM_RATE = new BigDecimal("10.00");
+    private static final BigDecimal PICKUP_AGENT_RATE = new BigDecimal("10.00");
+    private static final BigDecimal DELIVERY_AGENT_RATE = new BigDecimal("10.00");
+    private static final BigDecimal COMPANY_RATE = new BigDecimal("70.00");
 
     // ==========================================
     // Create Group (Company Admin)
@@ -69,6 +82,11 @@ public class GroupService {
                 .targetCity(request.getTargetCity())
                 .sourcePincode(request.getSourcePincode())
                 .targetPincode(request.getTargetPincode())
+                .warehouseAddress(request.getWarehouseAddress())
+                .warehouseCity(request.getWarehouseCity())
+                .warehousePincode(request.getWarehousePincode())
+                .warehouseLatitude(request.getWarehouseLatitude())
+                .warehouseLongitude(request.getWarehouseLongitude())
                 .targetMembers(request.getTargetMembers())
                 .currentMembers(0)
                 .discountPercentage(request.getDiscountPercentage())
@@ -170,6 +188,145 @@ public class GroupService {
     }
 
     // ==========================================
+    // Customer Group Management
+    // ==========================================
+
+    /**
+     * Get customer's group shipments with detailed info
+     */
+    public List<Map<String, Object>> getCustomerGroups(User currentUser) {
+        Customer customer = customerRepository.findByUser(currentUser)
+                .orElseThrow(() -> new ResourceNotFoundException("Customer profile not found"));
+
+        // Get all parcels for this customer that are part of a group
+        List<Parcel> groupParcels = parcelRepository.findByCustomerIdAndGroupShipmentIdIsNotNull(customer.getId());
+
+        return groupParcels.stream().map(parcel -> {
+            Map<String, Object> result = new HashMap<>();
+            GroupShipment group = groupRepository.findById(parcel.getGroupShipmentId()).orElse(null);
+            if (group == null)
+                return result;
+
+            // Group basic info
+            result.put("id", group.getId());
+            result.put("groupCode", group.getGroupCode());
+            result.put("status", group.getStatus().name());
+            result.put("sourceCity", group.getSourceCity());
+            result.put("targetCity", group.getTargetCity());
+            result.put("currentMembers", group.getCurrentMembers());
+            result.put("targetMembers", group.getTargetMembers());
+            result.put("remainingSlots", group.getTargetMembers() - group.getCurrentMembers());
+            result.put("discountPercentage", group.getDiscountPercentage());
+            result.put("deadline", group.getDeadline());
+            result.put("createdAt", group.getCreatedAt());
+
+            // Company info
+            if (group.getCompany() != null) {
+                result.put("companyName", group.getCompany().getCompanyName());
+                result.put("companyId", group.getCompany().getId());
+            }
+
+            // Customer's parcel info
+            result.put("parcelId", parcel.getId());
+            result.put("trackingNumber", parcel.getTrackingNumber());
+            result.put("parcelStatus", parcel.getStatus().name());
+
+            // Sender/Pickup details
+            result.put("pickupName", parcel.getPickupName());
+            result.put("pickupPhone", parcel.getPickupPhone());
+            result.put("pickupAddress", parcel.getPickupAddress());
+            result.put("pickupCity", parcel.getPickupCity());
+            result.put("pickupPincode", parcel.getPickupPincode());
+
+            // Receiver/Delivery details
+            result.put("deliveryName", parcel.getDeliveryName());
+            result.put("deliveryPhone", parcel.getDeliveryPhone());
+            result.put("deliveryAddress", parcel.getDeliveryAddress());
+            result.put("deliveryCity", parcel.getDeliveryCity());
+            result.put("deliveryPincode", parcel.getDeliveryPincode());
+
+            // Parcel details
+            result.put("packageType", parcel.getPackageType());
+            result.put("weightKg", parcel.getWeightKg());
+            result.put("packageDescription", parcel.getSpecialInstructions());
+
+            // Amount breakdown
+            BigDecimal basePrice = parcel.getBasePrice() != null ? parcel.getBasePrice() : BigDecimal.ZERO;
+            BigDecimal discount = parcel.getDiscountAmount() != null ? parcel.getDiscountAmount() : BigDecimal.ZERO;
+            BigDecimal finalPrice = parcel.getFinalPrice() != null ? parcel.getFinalPrice() : basePrice;
+
+            result.put("basePrice", basePrice);
+            result.put("discountAmount", discount);
+            result.put("finalPrice", finalPrice);
+
+            // Calculate savings
+            BigDecimal savings = basePrice.subtract(finalPrice);
+            result.put("yourSavings", savings.compareTo(BigDecimal.ZERO) > 0 ? savings : BigDecimal.ZERO);
+
+            // Balance payment info (for partial groups with pro-rated discount)
+            result.put("balanceAmount", parcel.getBalanceAmount());
+            result.put("balancePaid", parcel.getBalancePaid());
+            result.put("balancePaymentMethod", parcel.getBalancePaymentMethod());
+            result.put("balancePaidAt", parcel.getBalancePaidAt());
+            result.put("originalDiscountPercentage", parcel.getOriginalDiscountPercentage());
+            result.put("effectiveDiscountPercentage", parcel.getEffectiveDiscountPercentage());
+
+            // Revenue split breakdown (for completed orders)
+            if (group.getStatus() == GroupStatus.COMPLETED) {
+                BigDecimal platformFee = finalPrice.multiply(PLATFORM_RATE).divide(new BigDecimal("100"), 2,
+                        java.math.RoundingMode.HALF_UP);
+                BigDecimal pickupAgentFee = finalPrice.multiply(PICKUP_AGENT_RATE).divide(new BigDecimal("100"), 2,
+                        java.math.RoundingMode.HALF_UP);
+                BigDecimal deliveryAgentFee = finalPrice.multiply(DELIVERY_AGENT_RATE).divide(new BigDecimal("100"), 2,
+                        java.math.RoundingMode.HALF_UP);
+                BigDecimal companyEarning = finalPrice.multiply(COMPANY_RATE).divide(new BigDecimal("100"), 2,
+                        java.math.RoundingMode.HALF_UP);
+
+                Map<String, Object> revenueSplit = new HashMap<>();
+                revenueSplit.put("platformFee", platformFee);
+                revenueSplit.put("platformRate", "10%");
+                revenueSplit.put("pickupAgentFee", pickupAgentFee);
+                revenueSplit.put("pickupAgentRate", "10%");
+                revenueSplit.put("deliveryAgentFee", deliveryAgentFee);
+                revenueSplit.put("deliveryAgentRate", "10%");
+                revenueSplit.put("companyEarning", companyEarning);
+                revenueSplit.put("companyRate", "70%");
+                result.put("revenueSplit", revenueSplit);
+            }
+
+            // Agent info if assigned
+            if (group.getPickupAgent() != null) {
+                Map<String, Object> pickupAgentInfo = new HashMap<>();
+                pickupAgentInfo.put("id", group.getPickupAgent().getId());
+                pickupAgentInfo.put("name", group.getPickupAgent().getFullName());
+                pickupAgentInfo.put("phone",
+                        group.getPickupAgent().getUser() != null ? group.getPickupAgent().getUser().getPhone() : null);
+                result.put("pickupAgent", pickupAgentInfo);
+            }
+
+            if (group.getDeliveryAgent() != null) {
+                Map<String, Object> deliveryAgentInfo = new HashMap<>();
+                deliveryAgentInfo.put("id", group.getDeliveryAgent().getId());
+                deliveryAgentInfo.put("name", group.getDeliveryAgent().getFullName());
+                deliveryAgentInfo.put("phone",
+                        group.getDeliveryAgent().getUser() != null ? group.getDeliveryAgent().getUser().getPhone()
+                                : null);
+                result.put("deliveryAgent", deliveryAgentInfo);
+            }
+
+            // Warehouse info
+            result.put("warehouseAddress", group.getWarehouseAddress());
+            result.put("warehouseCity", group.getWarehouseCity());
+
+            // Timestamps
+            result.put("pickedUpAt", parcel.getPickedUpAt());
+            result.put("deliveredAt", parcel.getDeliveredAt());
+
+            return result;
+        }).collect(Collectors.toList());
+    }
+
+    // ==========================================
     // Join Group (Customer)
     // ==========================================
 
@@ -230,6 +387,14 @@ public class GroupService {
         // Add parcel to group
         parcel.setGroupShipmentId(group.getId());
 
+        // Generate OTPs if not already set
+        if (parcel.getPickupOtp() == null || parcel.getPickupOtp().isEmpty()) {
+            parcel.setPickupOtp(otpUtil.generateOtp());
+        }
+        if (parcel.getDeliveryOtp() == null || parcel.getDeliveryOtp().isEmpty()) {
+            parcel.setDeliveryOtp(otpUtil.generateOtp());
+        }
+
         // Apply discount
         BigDecimal discountMultiplier = BigDecimal.ONE.subtract(
                 group.getDiscountPercentage().divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP));
@@ -261,6 +426,8 @@ public class GroupService {
 
     /**
      * Customer leaves a group (removes their parcel)
+     * Parcel becomes regular order, customer must pay balance (difference between
+     * discounted price paid and full price)
      */
     @Transactional
     public GroupDTO leaveGroup(Long groupId, Long parcelId, User currentUser) {
@@ -288,11 +455,40 @@ public class GroupService {
             throw new BadRequestException("Parcel is not part of this group");
         }
 
+        // Calculate balance amount (customer paid discounted price, now needs to pay
+        // the difference)
+        BigDecimal paidAmount = parcel.getFinalPrice(); // What customer paid (discounted)
+        BigDecimal fullPrice = parcel.getBasePrice(); // Full price without discount
+        BigDecimal balanceDue = fullPrice.subtract(paidAmount); // Difference to be paid
+
         // Remove from group
         parcel.setGroupShipmentId(null);
         parcel.setDiscountAmount(BigDecimal.ZERO);
-        parcel.setFinalPrice(parcel.getBasePrice());
+        parcel.setFinalPrice(fullPrice);
+
+        // Set balance amount that customer needs to pay
+        if (balanceDue.compareTo(BigDecimal.ZERO) > 0) {
+            parcel.setBalanceAmount(balanceDue);
+            parcel.setBalancePaid(false);
+            log.info("Balance due for parcel {}: ₹{} (paid ₹{}, full price ₹{})",
+                    parcel.getTrackingNumber(), balanceDue, paidAmount, fullPrice);
+        }
+
         parcelRepository.save(parcel);
+
+        // Capture group code before lambda (since group is reassigned later)
+        final String groupCode = group.getGroupCode();
+
+        // Reverse/Cancel any existing earning record for this parcel
+        earningRepository.findByParcelId(parcelId).ifPresent(earning -> {
+            if (earning.getStatus() != EarningStatus.CANCELLED) {
+                earning.setStatus(EarningStatus.CANCELLED);
+                earning.setNotes("Earning cancelled - customer left group " + groupCode);
+                earningRepository.save(earning);
+                log.info("Cancelled earning {} for parcel {} due to customer leaving group",
+                        earning.getId(), parcel.getTrackingNumber());
+            }
+        });
 
         // Decrement member count
         group.setCurrentMembers(Math.max(0, group.getCurrentMembers() - 1));
@@ -304,8 +500,23 @@ public class GroupService {
 
         group = groupRepository.save(group);
 
-        log.info("Customer {} left group {} with parcel {}",
-                customer.getId(), group.getGroupCode(), parcel.getTrackingNumber());
+        // Notify company that a customer left the group
+        if (group.getCompany() != null) {
+            String balanceInfo = balanceDue.compareTo(BigDecimal.ZERO) > 0
+                    ? " Balance due: ₹" + balanceDue
+                    : "";
+            notificationService.sendNotification(
+                    group.getCompany().getUser(),
+                    "Customer Left Group",
+                    "A customer left group " + group.getGroupCode() + " (" + group.getSourceCity() + " → "
+                            + group.getTargetCity() + "). Current members: " + group.getCurrentMembers() + "/"
+                            + group.getTargetMembers() + "." + balanceInfo,
+                    "GROUP_MEMBER_LEFT",
+                    group.getId());
+        }
+
+        log.info("Customer {} left group {} with parcel {}. Balance due: ₹{}",
+                customer.getId(), group.getGroupCode(), parcel.getTrackingNumber(), balanceDue);
 
         return mapToDTO(group);
     }
@@ -411,12 +622,37 @@ public class GroupService {
 
         group = groupRepository.save(group);
 
-        // Update parcels - assign delivery agent
+        // Update parcels - assign delivery agent and send SMS with OTP
         List<Parcel> parcels = parcelRepository.findByGroupShipmentId(groupId);
+        String agentName = agent.getFullName();
+
         for (Parcel parcel : parcels) {
             parcel.setAgent(agent); // Switch to delivery agent
             parcel.setStatus(ParcelStatus.OUT_FOR_DELIVERY);
             parcelRepository.save(parcel);
+
+            // Send SMS to receiver with delivery OTP
+            try {
+                String receiverPhone = parcel.getDeliveryPhone();
+                String trackingNumber = parcel.getTrackingNumber();
+                String receiverName = parcel.getDeliveryName();
+                String deliveryOtp = parcel.getDeliveryOtp();
+                smsService.sendDeliveryNotification(receiverPhone, trackingNumber, receiverName, deliveryOtp);
+            } catch (Exception e) {
+                log.warn("Failed to send delivery OTP SMS for parcel {}: {}", parcel.getTrackingNumber(),
+                        e.getMessage());
+            }
+
+            // Send in-app notification to customer
+            try {
+                notificationService.sendDeliveryUpdate(
+                        parcel.getCustomer().getUser(),
+                        parcel.getTrackingNumber(),
+                        ParcelStatus.OUT_FOR_DELIVERY);
+            } catch (Exception e) {
+                log.warn("Failed to send out for delivery notification for parcel {}: {}", parcel.getTrackingNumber(),
+                        e.getMessage());
+            }
         }
 
         log.info("Assigned delivery agent {} to group {} ({} parcels)",
@@ -451,12 +687,47 @@ public class GroupService {
         group.setPickupCompletedAt(LocalDateTime.now());
         group = groupRepository.save(group);
 
-        // Update all parcels to PICKED_UP
+        // Update all parcels to PICKED_UP and send SMS notifications
         List<Parcel> parcels = parcelRepository.findByGroupShipmentId(groupId);
+        String agentName = group.getPickupAgent() != null ? group.getPickupAgent().getFullName() : "Agent";
+
         for (Parcel parcel : parcels) {
             parcel.setStatus(ParcelStatus.PICKED_UP);
             parcel.setPickedUpAt(LocalDateTime.now());
             parcelRepository.save(parcel);
+
+            // Send SMS to sender (pickup person)
+            try {
+                String senderPhone = parcel.getPickupPhone();
+                String trackingNumber = parcel.getTrackingNumber();
+                String senderName = parcel.getPickupName();
+                smsService.sendPickedUpToSender(senderPhone, trackingNumber, senderName, agentName);
+            } catch (Exception e) {
+                log.warn("Failed to send pickup SMS to sender for parcel {}: {}", parcel.getTrackingNumber(),
+                        e.getMessage());
+            }
+
+            // Send SMS to receiver
+            try {
+                String receiverPhone = parcel.getDeliveryPhone();
+                String trackingNumber = parcel.getTrackingNumber();
+                String receiverName = parcel.getDeliveryName();
+                smsService.sendPickedUpToReceiver(receiverPhone, trackingNumber, receiverName, agentName);
+            } catch (Exception e) {
+                log.warn("Failed to send pickup SMS to receiver for parcel {}: {}", parcel.getTrackingNumber(),
+                        e.getMessage());
+            }
+
+            // Send in-app notification to customer
+            try {
+                notificationService.sendDeliveryUpdate(
+                        parcel.getCustomer().getUser(),
+                        parcel.getTrackingNumber(),
+                        ParcelStatus.PICKED_UP);
+            } catch (Exception e) {
+                log.warn("Failed to send pickup notification for parcel {}: {}", parcel.getTrackingNumber(),
+                        e.getMessage());
+            }
         }
 
         log.info("Pickup completed for group {} ({} parcels)", group.getGroupCode(), parcels.size());
@@ -485,20 +756,141 @@ public class GroupService {
         group.setDeliveryCompletedAt(LocalDateTime.now());
         group = groupRepository.save(group);
 
-        // Update all parcels to DELIVERED
+        // Get agents
+        DeliveryAgent pickupAgent = group.getPickupAgent();
+        DeliveryAgent deliveryAgent = group.getDeliveryAgent();
+
+        // Update all parcels to DELIVERED and calculate earnings
         List<Parcel> parcels = parcelRepository.findByGroupShipmentId(groupId);
+        BigDecimal totalGroupAmount = BigDecimal.ZERO;
+
         for (Parcel parcel : parcels) {
             parcel.setStatus(ParcelStatus.DELIVERED);
             parcel.setDeliveredAt(LocalDateTime.now());
             parcelRepository.save(parcel);
+
+            // Calculate and save earnings for this parcel with group split
+            // Include balance payment amount if any (for partial groups with pro-rated
+            // discount)
+            BigDecimal baseOrderAmount = parcel.getFinalPrice() != null ? parcel.getFinalPrice()
+                    : (parcel.getBasePrice() != null ? parcel.getBasePrice() : BigDecimal.ZERO);
+            BigDecimal balanceAmount = parcel.getBalanceAmount() != null ? parcel.getBalanceAmount() : BigDecimal.ZERO;
+
+            // Total order amount = finalPrice + balanceAmount (if paid)
+            // This ensures full revenue is split among all roles
+            BigDecimal orderAmount = baseOrderAmount.add(balanceAmount);
+
+            log.info("Parcel {} revenue split calculation: basePrice={}, balanceAmount={}, totalOrderAmount={}",
+                    parcel.getTrackingNumber(), baseOrderAmount, balanceAmount, orderAmount);
+
+            totalGroupAmount = totalGroupAmount.add(orderAmount);
+
+            // Create earning record for pickup agent (10%)
+            if (pickupAgent != null) {
+                BigDecimal pickupEarning = orderAmount.multiply(PICKUP_AGENT_RATE)
+                        .divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP);
+                Earning pickupAgentEarning = Earning.builder()
+                        .parcel(parcel)
+                        .company(group.getCompany())
+                        .agent(pickupAgent)
+                        .orderAmount(orderAmount)
+                        .platformCommissionRate(PLATFORM_RATE)
+                        .platformCommission(orderAmount.multiply(PLATFORM_RATE).divide(new BigDecimal("100"), 2,
+                                RoundingMode.HALF_UP))
+                        .agentCommissionRate(PICKUP_AGENT_RATE)
+                        .agentEarning(pickupEarning)
+                        .companyEarning(orderAmount.multiply(COMPANY_RATE).divide(new BigDecimal("100"), 2,
+                                RoundingMode.HALF_UP))
+                        .companyNetEarning(orderAmount.multiply(COMPANY_RATE).divide(new BigDecimal("100"), 2,
+                                RoundingMode.HALF_UP))
+                        .status(EarningStatus.PENDING)
+                        .notes("Group pickup earnings - " + group.getGroupCode())
+                        .build();
+                earningRepository.save(pickupAgentEarning);
+
+                // Add to pickup agent wallet
+                walletService.addToPendingBalance(
+                        pickupAgent.getUser(), pickupEarning,
+                        "PARCEL", parcel.getId(),
+                        "Pickup earning from group " + group.getGroupCode());
+            }
+
+            // Create earning record for delivery agent (10%)
+            if (deliveryAgent != null) {
+                BigDecimal deliveryEarning = orderAmount.multiply(DELIVERY_AGENT_RATE)
+                        .divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP);
+                Earning deliveryAgentEarning = Earning.builder()
+                        .parcel(parcel)
+                        .company(group.getCompany())
+                        .agent(deliveryAgent)
+                        .orderAmount(orderAmount)
+                        .platformCommissionRate(PLATFORM_RATE)
+                        .platformCommission(orderAmount.multiply(PLATFORM_RATE).divide(new BigDecimal("100"), 2,
+                                RoundingMode.HALF_UP))
+                        .agentCommissionRate(DELIVERY_AGENT_RATE)
+                        .agentEarning(deliveryEarning)
+                        .companyEarning(orderAmount.multiply(COMPANY_RATE).divide(new BigDecimal("100"), 2,
+                                RoundingMode.HALF_UP))
+                        .companyNetEarning(orderAmount.multiply(COMPANY_RATE).divide(new BigDecimal("100"), 2,
+                                RoundingMode.HALF_UP))
+                        .status(EarningStatus.PENDING)
+                        .notes("Group delivery earnings - " + group.getGroupCode())
+                        .build();
+                earningRepository.save(deliveryAgentEarning);
+
+                // Add to delivery agent wallet
+                walletService.addToPendingBalance(
+                        deliveryAgent.getUser(), deliveryEarning,
+                        "PARCEL", parcel.getId(),
+                        "Delivery earning from group " + group.getGroupCode());
+            }
+
+            // Add company earnings (70%) - done once per parcel
+            BigDecimal companyEarning = orderAmount.multiply(COMPANY_RATE)
+                    .divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP);
+            walletService.addToPendingBalance(
+                    group.getCompany().getUser(), companyEarning,
+                    "PARCEL", parcel.getId(),
+                    "Company earning from group " + group.getGroupCode());
+
+            // Add platform commission (10%) - done once per parcel
+            BigDecimal platformCommission = orderAmount.multiply(PLATFORM_RATE)
+                    .divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP);
+            walletService.addPlatformCommission(platformCommission, parcel.getId(),
+                    "Platform commission from group " + group.getGroupCode());
         }
 
-        // Update company stats
+        // Save agent stats - increment totalDeliveries ONCE per group (not per parcel)
+        // Handle case where same agent might be both pickup and delivery agent
+        if (pickupAgent != null && deliveryAgent != null && pickupAgent.getId().equals(deliveryAgent.getId())) {
+            // Same agent did both pickup and delivery - only increment once
+            pickupAgent.setTotalDeliveries(pickupAgent.getTotalDeliveries() + 1);
+            agentRepository.save(pickupAgent);
+        } else {
+            // Different agents - increment each
+            if (pickupAgent != null) {
+                pickupAgent.setTotalDeliveries(pickupAgent.getTotalDeliveries() + 1);
+                agentRepository.save(pickupAgent);
+            }
+            if (deliveryAgent != null) {
+                deliveryAgent.setTotalDeliveries(deliveryAgent.getTotalDeliveries() + 1);
+                agentRepository.save(deliveryAgent);
+            }
+        }
+
+        // Update company stats - one group = one delivery
         CompanyAdmin company = group.getCompany();
-        company.setTotalDeliveries(company.getTotalDeliveries() + parcels.size());
+        company.setTotalDeliveries(company.getTotalDeliveries() + 1);
         companyRepository.save(company);
 
-        log.info("Delivery completed for group {} ({} parcels delivered)", group.getGroupCode(), parcels.size());
+        log.info("Delivery completed for group {} - {} parcels delivered, total amount: {}",
+                group.getGroupCode(), parcels.size(), totalGroupAmount);
+        log.info(
+                "Group earnings split - Company 70%: {}, Pickup Agent 10%: {}, Delivery Agent 10%: {}, Platform 10%: {}",
+                totalGroupAmount.multiply(COMPANY_RATE).divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP),
+                totalGroupAmount.multiply(PICKUP_AGENT_RATE).divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP),
+                totalGroupAmount.multiply(DELIVERY_AGENT_RATE).divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP),
+                totalGroupAmount.multiply(PLATFORM_RATE).divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP));
 
         return mapToDTO(group);
     }
@@ -572,6 +964,167 @@ public class GroupService {
         return mapToDTO(group);
     }
 
+    /**
+     * Reopen a closed group (by company)
+     * Notifies all members that they can now cancel if they wish
+     */
+    @Transactional
+    public GroupDTO reopenGroup(Long groupId, User currentUser) {
+        CompanyAdmin company = companyRepository.findByUser(currentUser)
+                .orElseThrow(() -> new ResourceNotFoundException("Company profile not found"));
+
+        GroupShipment group = groupRepository.findById(groupId)
+                .orElseThrow(() -> new ResourceNotFoundException("Group", "id", groupId));
+
+        // Verify company owns the group
+        if (!group.getCompany().getId().equals(company.getId())) {
+            throw new ForbiddenException("Access denied");
+        }
+
+        // Can only reopen if FULL (not past pickup)
+        if (group.getStatus() != GroupStatus.FULL) {
+            throw new BadRequestException("Can only reopen groups that are FULL. Current status: " + group.getStatus());
+        }
+
+        // Reopen the group
+        group.setStatus(GroupStatus.OPEN);
+        group = groupRepository.save(group);
+
+        // Notify all members that they can now cancel if they want
+        List<Parcel> parcels = parcelRepository.findByGroupShipmentId(groupId);
+        for (Parcel parcel : parcels) {
+            if (parcel.getCustomer() != null && parcel.getCustomer().getUser() != null) {
+                notificationService.sendNotification(
+                        parcel.getCustomer().getUser(),
+                        "Group Reopened - You Can Cancel",
+                        "Group " + group.getGroupCode() + " has been reopened by the company. " +
+                                "You can now cancel your order and get a refund if you wish. " +
+                                "If you don't cancel, your order will proceed once the group fills up again.",
+                        "GROUP_REOPENED",
+                        parcel.getId());
+            }
+        }
+
+        log.info("Reopened group {} - {} members notified", group.getGroupCode(), parcels.size());
+
+        return mapToDTO(group);
+    }
+
+    /**
+     * Close group early and proceed (when more than 50% of target members joined)
+     * Changes status to FULL so company can assign agents
+     * Recalculates discount based on actual vs target members and updates balance
+     * amounts
+     */
+    @Transactional
+    public GroupDTO closeGroupEarly(Long groupId, User currentUser) {
+        CompanyAdmin company = companyRepository.findByUser(currentUser)
+                .orElseThrow(() -> new ResourceNotFoundException("Company profile not found"));
+
+        GroupShipment group = groupRepository.findById(groupId)
+                .orElseThrow(() -> new ResourceNotFoundException("Group", "id", groupId));
+
+        // Verify company owns the group
+        if (!group.getCompany().getId().equals(company.getId())) {
+            throw new ForbiddenException("Access denied");
+        }
+
+        // Can only close early if OPEN
+        if (group.getStatus() != GroupStatus.OPEN) {
+            throw new BadRequestException("Can only close groups that are OPEN. Current status: " + group.getStatus());
+        }
+
+        // Check if more than 50% of target members have joined
+        int minMembers = (int) Math.ceil(group.getTargetMembers() / 2.0);
+        if (group.getCurrentMembers() < minMembers) {
+            throw new BadRequestException("Cannot close early. Need at least " + minMembers +
+                    " members (50%+). Current: " + group.getCurrentMembers() + "/" + group.getTargetMembers());
+        }
+
+        // Calculate effective discount (pro-rated based on actual members)
+        // If original discount was 25% for 5 members, and only 3 joined:
+        // Effective discount = 25% * (3/5) = 15%
+        BigDecimal fillPercentage = BigDecimal.valueOf(group.getCurrentMembers())
+                .divide(BigDecimal.valueOf(group.getTargetMembers()), 4, RoundingMode.HALF_UP)
+                .multiply(BigDecimal.valueOf(100));
+
+        BigDecimal originalDiscount = group.getDiscountPercentage();
+        BigDecimal effectiveDiscount = originalDiscount
+                .multiply(fillPercentage)
+                .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+
+        group.setFillPercentage(fillPercentage);
+        group.setEffectiveDiscountPercentage(effectiveDiscount);
+
+        log.info("Group {} closing early: {}/{} members, fill {}%, original discount {}%, effective discount {}%",
+                group.getGroupCode(), group.getCurrentMembers(), group.getTargetMembers(),
+                fillPercentage, originalDiscount, effectiveDiscount);
+
+        // Update all parcels with new pricing and balance amounts
+        List<Parcel> parcels = parcelRepository.findByGroupShipmentId(groupId);
+        for (Parcel parcel : parcels) {
+            BigDecimal basePrice = parcel.getBasePrice();
+            BigDecimal originalPaid = parcel.getFinalPrice(); // What customer already paid (with original discount)
+
+            // Calculate new discount amount with effective (reduced) discount
+            BigDecimal newDiscountAmount = basePrice
+                    .multiply(effectiveDiscount)
+                    .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+            BigDecimal newFinalPrice = basePrice.subtract(newDiscountAmount);
+
+            // Calculate balance due (difference between new price and what was already
+            // paid)
+            BigDecimal balanceDue = newFinalPrice.subtract(originalPaid);
+
+            // Update parcel
+            parcel.setDiscountAmount(newDiscountAmount);
+            parcel.setFinalPrice(newFinalPrice);
+
+            if (balanceDue.compareTo(BigDecimal.ZERO) > 0) {
+                parcel.setBalanceAmount(balanceDue);
+                parcel.setBalancePaid(false);
+                log.info("Parcel {} balance due: ₹{} (base ₹{}, paid ₹{}, new price ₹{}, effective discount {}%)",
+                        parcel.getTrackingNumber(), balanceDue, basePrice, originalPaid, newFinalPrice,
+                        effectiveDiscount);
+            }
+
+            parcelRepository.save(parcel);
+
+            // Notify customer about balance amount
+            if (balanceDue.compareTo(BigDecimal.ZERO) > 0 && parcel.getCustomer() != null
+                    && parcel.getCustomer().getUser() != null) {
+                notificationService.sendNotification(
+                        parcel.getCustomer().getUser(),
+                        "Group Closed Early - Balance Due ₹" + balanceDue,
+                        "Group " + group.getGroupCode() + " closed with " + group.getCurrentMembers() + "/" +
+                                group.getTargetMembers() + " members. Your discount has been adjusted from " +
+                                originalDiscount + "% to " + effectiveDiscount + "%. Balance due: ₹" + balanceDue +
+                                ". Please pay the balance to complete your order.",
+                        "PAYMENT_REQUIRED",
+                        parcel.getId());
+            } else if (parcel.getCustomer() != null && parcel.getCustomer().getUser() != null) {
+                notificationService.sendNotification(
+                        parcel.getCustomer().getUser(),
+                        "Group Closed - Proceeding with Delivery",
+                        "Group " + group.getGroupCode() + " has been closed with " +
+                                group.getCurrentMembers() + "/" + group.getTargetMembers() +
+                                " members. Your order will now be processed for delivery.",
+                        "GROUP_FILLED",
+                        parcel.getId());
+            }
+        }
+
+        // Close the group by setting status to FULL
+        group.setStatus(GroupStatus.FULL);
+        group = groupRepository.save(group);
+
+        log.info("Closed group {} early with {}/{} members, effective discount {}% - {} members notified",
+                group.getGroupCode(), group.getCurrentMembers(), group.getTargetMembers(),
+                effectiveDiscount, parcels.size());
+
+        return mapToDTO(group);
+    }
+
     // ==========================================
     // Helper Methods
     // ==========================================
@@ -611,6 +1164,17 @@ public class GroupService {
                     throw new ForbiddenException("Access denied");
                 }
             }
+            case CUSTOMER -> {
+                // Customer can access if they have a parcel in this group
+                Customer customer = customerRepository.findByUser(currentUser)
+                        .orElseThrow(() -> new ForbiddenException("Access denied"));
+                boolean hasParcelInGroup = parcelRepository.findByGroupShipmentId(group.getId())
+                        .stream()
+                        .anyMatch(p -> p.getCustomer().getId().equals(customer.getId()));
+                if (!hasParcelInGroup) {
+                    throw new ForbiddenException("Access denied");
+                }
+            }
             case SUPER_ADMIN -> {
                 // Super admin can access all
             }
@@ -625,6 +1189,15 @@ public class GroupService {
     public GroupDTO mapToDTO(GroupShipment group) {
         long timeRemaining = Duration.between(LocalDateTime.now(), group.getDeadline()).toMinutes();
 
+        // Calculate total group value from all parcels
+        List<Parcel> parcels = parcelRepository.findByGroupShipmentId(group.getId());
+        BigDecimal totalValue = parcels.stream()
+                .map(p -> p.getFinalPrice() != null ? p.getFinalPrice() : BigDecimal.ZERO)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        // Agent earnings: 10% each for pickup and delivery
+        BigDecimal agentCommission = totalValue.multiply(new BigDecimal("0.10")).setScale(2, RoundingMode.HALF_UP);
+
         return GroupDTO.builder()
                 .id(group.getId())
                 .groupCode(group.getGroupCode())
@@ -635,6 +1208,11 @@ public class GroupService {
                 .targetCity(group.getTargetCity())
                 .sourcePincode(group.getSourcePincode())
                 .targetPincode(group.getTargetPincode())
+                .warehouseAddress(group.getWarehouseAddress())
+                .warehouseCity(group.getWarehouseCity())
+                .warehousePincode(group.getWarehousePincode())
+                .warehouseLatitude(group.getWarehouseLatitude())
+                .warehouseLongitude(group.getWarehouseLongitude())
                 .targetMembers(group.getTargetMembers())
                 .currentMembers(group.getCurrentMembers())
                 .remainingSlots(group.getRemainingSlots())
@@ -643,8 +1221,21 @@ public class GroupService {
                 .timeRemainingMinutes(Math.max(0, timeRemaining))
                 .pickupAgentId(group.getPickupAgent() != null ? group.getPickupAgent().getId() : null)
                 .pickupAgentName(group.getPickupAgent() != null ? group.getPickupAgent().getFullName() : null)
+                .pickupAgentPhone(group.getPickupAgent() != null && group.getPickupAgent().getUser() != null
+                        ? group.getPickupAgent().getUser().getPhone()
+                        : null)
+                .pickupAgentLatitude(group.getPickupAgentLatitude())
+                .pickupAgentLongitude(group.getPickupAgentLongitude())
                 .deliveryAgentId(group.getDeliveryAgent() != null ? group.getDeliveryAgent().getId() : null)
                 .deliveryAgentName(group.getDeliveryAgent() != null ? group.getDeliveryAgent().getFullName() : null)
+                .deliveryAgentPhone(group.getDeliveryAgent() != null && group.getDeliveryAgent().getUser() != null
+                        ? group.getDeliveryAgent().getUser().getPhone()
+                        : null)
+                .deliveryAgentLatitude(group.getDeliveryAgentLatitude())
+                .deliveryAgentLongitude(group.getDeliveryAgentLongitude())
+                .totalGroupValue(totalValue)
+                .pickupAgentEarnings(agentCommission)
+                .deliveryAgentEarnings(agentCommission)
                 .status(group.getStatus())
                 .canJoin(group.canJoin())
                 .isFull(group.isFull())
@@ -670,8 +1261,11 @@ public class GroupService {
         return GroupPublicDTO.builder()
                 .id(group.getId())
                 .groupCode(group.getGroupCode())
+                .companyId(group.getCompany().getId())
                 .companyName(group.getCompany().getCompanyName())
                 .companyRating(group.getCompany().getRatingAvg())
+                .baseRatePerKm(group.getCompany().getBaseRatePerKm())
+                .baseRatePerKg(group.getCompany().getBaseRatePerKg())
                 .sourceCity(group.getSourceCity())
                 .targetCity(group.getTargetCity())
                 .targetMembers(group.getTargetMembers())
@@ -710,11 +1304,15 @@ public class GroupService {
                 .pickupAddress(parcel.getPickupAddress())
                 .pickupCity(parcel.getPickupCity())
                 .pickupPincode(parcel.getPickupPincode())
+                .pickupLatitude(parcel.getPickupLatitude())
+                .pickupLongitude(parcel.getPickupLongitude())
                 .deliveryName(parcel.getDeliveryName())
                 .deliveryPhone(parcel.getDeliveryPhone())
                 .deliveryAddress(parcel.getDeliveryAddress())
                 .deliveryCity(parcel.getDeliveryCity())
                 .deliveryPincode(parcel.getDeliveryPincode())
+                .deliveryLatitude(parcel.getDeliveryLatitude())
+                .deliveryLongitude(parcel.getDeliveryLongitude())
                 .packageType(parcel.getPackageType())
                 .weightKg(parcel.getWeightKg())
                 .basePrice(parcel.getBasePrice())
@@ -724,6 +1322,10 @@ public class GroupService {
                 .paymentStatus(parcel.getPaymentStatus())
                 .pickupOtp(parcel.getPickupOtp())
                 .deliveryOtp(parcel.getDeliveryOtp())
+                .pickupPhotoUrl(parcel.getPickupPhotoUrl())
+                .deliveryPhotoUrl(parcel.getDeliveryPhotoUrl())
+                .pickedUpAt(parcel.getPickedUpAt())
+                .deliveredAt(parcel.getDeliveredAt())
                 .groupShipmentId(parcel.getGroupShipmentId())
                 .createdAt(parcel.getCreatedAt())
                 .build();

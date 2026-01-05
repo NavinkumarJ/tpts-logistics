@@ -72,120 +72,120 @@ export default function CompanyParcelDetailPage() {
 
             <div className="grid lg:grid-cols-2 gap-6">
                 {/* Sender Info */}
-                <div className="bg-white rounded-xl p-6 shadow-md border border-gray-200">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                        <FaUser className="text-green-500" /> Sender Details
+                <div className="bg-white/10 backdrop-blur-xl rounded-xl p-6 border border-white/20">
+                    <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                        <FaUser className="text-green-400" /> Sender Details
                     </h3>
                     <div className="space-y-3 text-sm">
                         <div className="flex justify-between">
-                            <span className="text-gray-500">Name:</span>
-                            <span className="font-medium">{parcel.pickupName}</span>
+                            <span className="text-white/60">Name:</span>
+                            <span className="font-medium text-white">{parcel.pickupName}</span>
                         </div>
                         <div className="flex justify-between">
-                            <span className="text-gray-500">Phone:</span>
-                            <span className="font-medium">{parcel.pickupPhone}</span>
+                            <span className="text-white/60">Phone:</span>
+                            <span className="font-medium text-white">{parcel.pickupPhone}</span>
                         </div>
                         <div className="flex justify-between">
-                            <span className="text-gray-500">Address:</span>
-                            <span className="font-medium text-right max-w-[200px]">{parcel.pickupAddress}</span>
+                            <span className="text-white/60">Address:</span>
+                            <span className="font-medium text-white text-right max-w-[200px]">{parcel.pickupAddress}</span>
                         </div>
                         <div className="flex justify-between">
-                            <span className="text-gray-500">City:</span>
-                            <span className="font-medium">{parcel.pickupCity} - {parcel.pickupPincode}</span>
+                            <span className="text-white/60">City:</span>
+                            <span className="font-medium text-white">{parcel.pickupCity} - {parcel.pickupPincode}</span>
                         </div>
                     </div>
                 </div>
 
                 {/* Receiver Info */}
-                <div className="bg-white rounded-xl p-6 shadow-md border border-gray-200">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                        <FaMapMarkerAlt className="text-red-500" /> Receiver Details
+                <div className="bg-white/10 backdrop-blur-xl rounded-xl p-6 border border-white/20">
+                    <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                        <FaMapMarkerAlt className="text-red-400" /> Receiver Details
                     </h3>
                     <div className="space-y-3 text-sm">
                         <div className="flex justify-between">
-                            <span className="text-gray-500">Name:</span>
-                            <span className="font-medium">{parcel.deliveryName}</span>
+                            <span className="text-white/60">Name:</span>
+                            <span className="font-medium text-white">{parcel.deliveryName}</span>
                         </div>
                         <div className="flex justify-between">
-                            <span className="text-gray-500">Phone:</span>
-                            <span className="font-medium">{parcel.deliveryPhone}</span>
+                            <span className="text-white/60">Phone:</span>
+                            <span className="font-medium text-white">{parcel.deliveryPhone}</span>
                         </div>
                         <div className="flex justify-between">
-                            <span className="text-gray-500">Address:</span>
-                            <span className="font-medium text-right max-w-[200px]">{parcel.deliveryAddress}</span>
+                            <span className="text-white/60">Address:</span>
+                            <span className="font-medium text-white text-right max-w-[200px]">{parcel.deliveryAddress}</span>
                         </div>
                         <div className="flex justify-between">
-                            <span className="text-gray-500">City:</span>
-                            <span className="font-medium">{parcel.deliveryCity} - {parcel.deliveryPincode}</span>
+                            <span className="text-white/60">City:</span>
+                            <span className="font-medium text-white">{parcel.deliveryCity} - {parcel.deliveryPincode}</span>
                         </div>
                     </div>
                 </div>
 
                 {/* Package Details */}
-                <div className="bg-white rounded-xl p-6 shadow-md border border-gray-200">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                        <FaBox className="text-indigo-500" /> Package Details
+                <div className="bg-white/10 backdrop-blur-xl rounded-xl p-6 border border-white/20">
+                    <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                        <FaBox className="text-orange-400" /> Package Details
                     </h3>
                     <div className="space-y-3 text-sm">
                         <div className="flex justify-between">
-                            <span className="text-gray-500">Weight:</span>
-                            <span className="font-medium">{parcel.weightKg} kg</span>
+                            <span className="text-white/60">Weight:</span>
+                            <span className="font-medium text-white">{parcel.weightKg} kg</span>
                         </div>
                         <div className="flex justify-between">
-                            <span className="text-gray-500">Dimensions:</span>
-                            <span className="font-medium">{parcel.dimensions || "N/A"}</span>
+                            <span className="text-white/60">Dimensions:</span>
+                            <span className="font-medium text-white">{parcel.dimensions || "N/A"}</span>
                         </div>
                         <div className="flex justify-between">
-                            <span className="text-gray-500">Package Type:</span>
-                            <span className="font-medium">{parcel.packageType || "Standard"}</span>
+                            <span className="text-white/60">Package Type:</span>
+                            <span className="font-medium text-white">{parcel.packageType || "Standard"}</span>
                         </div>
                         <div className="flex justify-between">
-                            <span className="text-gray-500">Fragile:</span>
-                            <span className={`font-medium ${parcel.isFragile ? "text-red-600" : "text-green-600"}`}>
+                            <span className="text-white/60">Fragile:</span>
+                            <span className={`font-medium ${parcel.isFragile ? "text-red-400" : "text-green-400"}`}>
                                 {parcel.isFragile ? "Yes - Handle with care" : "No"}
                             </span>
                         </div>
                         {parcel.specialInstructions && (
-                            <div className="pt-2 border-t">
-                                <p className="text-gray-500 mb-1">Special Instructions:</p>
-                                <p className="font-medium text-orange-600">{parcel.specialInstructions}</p>
+                            <div className="pt-2 border-t border-white/20">
+                                <p className="text-white/60 mb-1">Special Instructions:</p>
+                                <p className="font-medium text-orange-400">{parcel.specialInstructions}</p>
                             </div>
                         )}
                     </div>
                 </div>
 
                 {/* Agent & Payment */}
-                <div className="bg-white rounded-xl p-6 shadow-md border border-gray-200">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                        <FaTruck className="text-purple-500" /> Delivery Info
+                <div className="bg-white/10 backdrop-blur-xl rounded-xl p-6 border border-white/20">
+                    <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                        <FaTruck className="text-purple-400" /> Delivery Info
                     </h3>
                     <div className="space-y-3 text-sm">
                         <div className="flex justify-between">
-                            <span className="text-gray-500">Assigned Agent:</span>
-                            <span className="font-medium">{parcel.agentName || parcel.assignedAgentName || "Not assigned"}</span>
+                            <span className="text-white/60">Assigned Agent:</span>
+                            <span className="font-medium text-white">{parcel.agentName || parcel.assignedAgentName || "Not assigned"}</span>
                         </div>
                         <div className="flex justify-between">
-                            <span className="text-gray-500">Amount:</span>
-                            <span className="font-medium text-green-600">₹{parcel.finalPrice || parcel.totalAmount || 0}</span>
+                            <span className="text-white/60">Amount:</span>
+                            <span className="font-medium text-green-400">₹{parcel.finalPrice || parcel.totalAmount || 0}</span>
                         </div>
                         <div className="flex justify-between">
-                            <span className="text-gray-500">Payment Status:</span>
-                            <span className={`font-medium ${["PAID", "SUCCESS"].includes(parcel.paymentStatus) ? "text-green-600" : "text-orange-600"}`}>
+                            <span className="text-white/60">Payment Status:</span>
+                            <span className={`font-medium ${["PAID", "SUCCESS"].includes(parcel.paymentStatus) ? "text-green-400" : "text-orange-400"}`}>
                                 {["PAID", "SUCCESS"].includes(parcel.paymentStatus) ? "✓ Paid" : parcel.paymentStatus || "Pending"}
                             </span>
                         </div>
                         <div className="flex justify-between">
-                            <span className="text-gray-500">Created:</span>
-                            <span className="font-medium">{new Date(parcel.createdAt).toLocaleString("en-IN")}</span>
+                            <span className="text-white/60">Created:</span>
+                            <span className="font-medium text-white">{new Date(parcel.createdAt).toLocaleString("en-IN")}</span>
                         </div>
                     </div>
                 </div>
             </div>
 
             {/* Live Status Timeline */}
-            <div className="bg-white rounded-xl p-6 shadow-md border border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-2">
-                    <FaClock className="text-indigo-500" /> Delivery Timeline
+            <div className="bg-white/10 backdrop-blur-xl rounded-xl p-6 border border-white/20">
+                <h3 className="text-lg font-semibold text-white mb-6 flex items-center gap-2">
+                    <FaClock className="text-indigo-400" /> Delivery Timeline
                 </h3>
                 <div className="relative">
                     {/* Timeline Steps */}
@@ -235,21 +235,21 @@ export default function CompanyParcelDetailPage() {
 
                                             {/* Label and Time */}
                                             <div className="ml-3 md:ml-0 md:mt-2 text-center">
-                                                <p className={`text-sm font-medium ${isCompleted ? "text-green-600" :
-                                                    isCurrent ? "text-indigo-600" :
-                                                        "text-gray-400"
+                                                <p className={`text-sm font-medium ${isCompleted ? "text-green-400" :
+                                                    isCurrent ? "text-indigo-400" :
+                                                        "text-white/40"
                                                     }`}>
                                                     {step.label}
                                                 </p>
                                                 {step.time && isCompleted && (
-                                                    <p className="text-xs text-gray-400 mt-1">
+                                                    <p className="text-xs text-white/50 mt-1">
                                                         {new Date(step.time).toLocaleString("en-IN", {
                                                             day: "numeric", month: "short", hour: "2-digit", minute: "2-digit"
                                                         })}
                                                     </p>
                                                 )}
                                                 {isCurrent && (
-                                                    <span className="inline-block mt-1 px-2 py-0.5 text-xs bg-indigo-100 text-indigo-600 rounded-full">
+                                                    <span className="inline-block mt-1 px-2 py-0.5 text-xs bg-indigo-500/30 text-indigo-300 rounded-full">
                                                         Current
                                                     </span>
                                                 )}
@@ -263,20 +263,96 @@ export default function CompanyParcelDetailPage() {
 
                     {/* Cancelled Status */}
                     {parcel.status === "CANCELLED" && (
-                        <div className="mt-4 p-4 bg-red-50 rounded-lg border border-red-200 text-center">
-                            <p className="text-red-600 font-medium">❌ Order Cancelled</p>
+                        <div className="mt-4 p-4 bg-red-500/20 rounded-lg border border-red-500/30 text-center">
+                            <p className="text-red-400 font-medium">❌ Order Cancelled</p>
                             {parcel.cancelledAt && (
-                                <p className="text-sm text-red-500 mt-1">
+                                <p className="text-sm text-red-300 mt-1">
                                     {new Date(parcel.cancelledAt).toLocaleString("en-IN")}
                                 </p>
                             )}
                             {parcel.cancellationReason && (
-                                <p className="text-sm text-gray-600 mt-2">Reason: {parcel.cancellationReason}</p>
+                                <p className="text-sm text-white/60 mt-2">Reason: {parcel.cancellationReason}</p>
                             )}
                         </div>
                     )}
                 </div>
             </div>
+
+            {/* Proof of Pickup & Delivery */}
+            {(parcel.pickupPhotoUrl || parcel.deliveryPhotoUrl || parcel.deliveryNotes) && (
+                <div className="bg-white/10 backdrop-blur-xl rounded-xl p-6 border border-white/20">
+                    <h3 className="text-lg font-semibold text-white mb-6 flex items-center gap-2">
+                        📸 Proof of Pickup & Delivery
+                    </h3>
+                    <div className="grid md:grid-cols-2 gap-6">
+                        {/* Pickup Photo */}
+                        {parcel.pickupPhotoUrl && (
+                            <div className="space-y-3">
+                                <h4 className="font-medium text-white/80 flex items-center gap-2">
+                                    📦 Pickup Photo
+                                </h4>
+                                <div className="relative group">
+                                    <img
+                                        src={parcel.pickupPhotoUrl}
+                                        alt="Pickup proof"
+                                        className="w-full h-48 object-cover rounded-lg border border-white/20"
+                                    />
+                                    <a
+                                        href={parcel.pickupPhotoUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="absolute inset-0 flex items-center justify-center bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg"
+                                    >
+                                        <span className="text-white font-medium">🔍 View Full Size</span>
+                                    </a>
+                                </div>
+                                {parcel.pickedUpAt && (
+                                    <p className="text-xs text-white/50">
+                                        Picked up: {new Date(parcel.pickedUpAt).toLocaleString("en-IN")}
+                                    </p>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Delivery Photo */}
+                        {parcel.deliveryPhotoUrl && (
+                            <div className="space-y-3">
+                                <h4 className="font-medium text-white/80 flex items-center gap-2">
+                                    ✅ Delivery Photo
+                                </h4>
+                                <div className="relative group">
+                                    <img
+                                        src={parcel.deliveryPhotoUrl}
+                                        alt="Delivery proof"
+                                        className="w-full h-48 object-cover rounded-lg border border-white/20"
+                                    />
+                                    <a
+                                        href={parcel.deliveryPhotoUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="absolute inset-0 flex items-center justify-center bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg"
+                                    >
+                                        <span className="text-white font-medium">🔍 View Full Size</span>
+                                    </a>
+                                </div>
+                                {parcel.deliveredAt && (
+                                    <p className="text-xs text-white/50">
+                                        Delivered: {new Date(parcel.deliveredAt).toLocaleString("en-IN")}
+                                    </p>
+                                )}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Delivery Notes */}
+                    {parcel.deliveryNotes && (
+                        <div className="mt-4 pt-4 border-t border-white/20">
+                            <h4 className="font-medium text-white/80 mb-2">📝 Delivery Notes</h4>
+                            <p className="text-sm p-3 rounded-lg bg-white/10 text-white/70">{parcel.deliveryNotes}</p>
+                        </div>
+                    )}
+                </div>
+            )}
 
             {/* Actions */}
             <div className="flex gap-3">

@@ -4,7 +4,7 @@ import { getCompanyDashboard } from "../../services/companyService";
 import { logout } from "../../utils/auth";
 import {
     FaChartLine, FaBox, FaTruck, FaWallet, FaUsers, FaSync, FaStar,
-    FaClock, FaArrowUp, FaArrowDown, FaCheckCircle, FaMapMarkerAlt
+    FaClock, FaArrowUp, FaArrowDown, FaCheckCircle, FaMapMarkerAlt, FaBan
 } from "react-icons/fa";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, AreaChart, Area } from 'recharts';
 import toast from "react-hot-toast";
@@ -86,8 +86,8 @@ export default function AnalyticsPage() {
     if (loading) {
         return (
             <div className="text-center py-12">
-                <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-primary-600 border-t-transparent"></div>
-                <p className="mt-3 text-sm text-gray-600">Loading analytics...</p>
+                <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-indigo-500 border-t-transparent"></div>
+                <p className="mt-3 text-sm text-white/60">Loading analytics...</p>
             </div>
         );
     }
@@ -97,18 +97,18 @@ export default function AnalyticsPage() {
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold text-gray-900">Analytics Dashboard</h1>
-                    <p className="text-sm text-gray-500 mt-1">Track your company performance and revenue</p>
+                    <h1 className="text-3xl font-bold text-white">Analytics Dashboard</h1>
+                    <p className="text-sm text-white/60 mt-1">Track your company performance and revenue</p>
                 </div>
                 <div className="flex items-center gap-3">
-                    <div className="flex bg-gray-100 rounded-lg p-1">
+                    <div className="flex bg-white/10 backdrop-blur-sm rounded-lg p-1 border border-white/20">
                         {["week", "month", "year"].map((p) => (
                             <button
                                 key={p}
                                 onClick={() => setPeriod(p)}
                                 className={`px-4 py-2 rounded-lg text-sm font-medium transition capitalize ${period === p
                                     ? "bg-white text-gray-900 shadow-sm"
-                                    : "text-gray-600 hover:text-gray-900"
+                                    : "text-white/70 hover:text-white hover:bg-white/10"
                                     }`}
                             >
                                 This {p}
@@ -118,9 +118,9 @@ export default function AnalyticsPage() {
                     <button
                         onClick={fetchAnalytics}
                         disabled={loading}
-                        className="p-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition"
+                        className="p-2 bg-white/10 border border-white/20 rounded-lg hover:bg-white/20 transition"
                     >
-                        <FaSync className={loading ? "animate-spin text-gray-400" : "text-gray-600"} />
+                        <FaSync className={loading ? "animate-spin text-white/50" : "text-white"} />
                     </button>
                 </div>
             </div>
@@ -218,27 +218,28 @@ export default function AnalyticsPage() {
             {/* Charts Row */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Deliveries Bar Chart */}
-                <div className="bg-white rounded-xl p-6 shadow-md border border-gray-200">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">📊 Delivery Status</h3>
+                <div className="bg-white/10 backdrop-blur-xl rounded-xl p-6 border border-white/20">
+                    <h3 className="text-lg font-semibold text-white mb-4">📊 Delivery Status</h3>
                     <div className="h-64">
                         <ResponsiveContainer width="100%" height="100%">
                             <BarChart data={[
                                 { name: 'Pending', value: stats.pendingDeliveries || 0 },
                                 { name: 'Active', value: stats.activeDeliveries || 0 },
                                 { name: 'Completed', value: stats.completedDeliveries || 0 },
-                                { name: 'Total', value: stats.totalShipments || 0 },
+                                { name: 'Cancelled', value: stats.cancelledDeliveries || 0 },
                             ]}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                                <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-                                <YAxis tick={{ fontSize: 12 }} />
+                                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                                <XAxis dataKey="name" tick={{ fontSize: 12, fill: 'rgba(255,255,255,0.7)' }} stroke="rgba(255,255,255,0.3)" />
+                                <YAxis tick={{ fontSize: 12, fill: 'rgba(255,255,255,0.7)' }} stroke="rgba(255,255,255,0.3)" />
                                 <Tooltip
-                                    contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px' }}
+                                    contentStyle={{ backgroundColor: 'rgba(30,41,59,0.95)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '8px', color: '#fff' }}
+                                    labelStyle={{ color: '#fff' }}
                                 />
                                 <Bar dataKey="value" radius={[8, 8, 0, 0]}>
                                     <Cell fill="#f59e0b" />
                                     <Cell fill="#3b82f6" />
                                     <Cell fill="#22c55e" />
-                                    <Cell fill="#6366f1" />
+                                    <Cell fill="#ef4444" />
                                 </Bar>
                             </BarChart>
                         </ResponsiveContainer>
@@ -246,8 +247,8 @@ export default function AnalyticsPage() {
                 </div>
 
                 {/* Revenue Pie Chart */}
-                <div className="bg-white rounded-xl p-6 shadow-md border border-gray-200">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">🥧 Revenue Distribution</h3>
+                <div className="bg-white/10 backdrop-blur-xl rounded-xl p-6 border border-white/20">
+                    <h3 className="text-lg font-semibold text-white mb-4">🥧 Revenue Distribution</h3>
                     <div className="h-64">
                         <ResponsiveContainer width="100%" height="100%">
                             <PieChart>
@@ -270,9 +271,9 @@ export default function AnalyticsPage() {
                                 </Pie>
                                 <Tooltip
                                     formatter={(value) => [`₹${Number(value).toLocaleString('en-IN')}`, 'Amount']}
-                                    contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px' }}
+                                    contentStyle={{ backgroundColor: 'rgba(30,41,59,0.95)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '8px', color: '#fff' }}
                                 />
-                                <Legend verticalAlign="bottom" height={36} />
+                                <Legend verticalAlign="bottom" height={36} wrapperStyle={{ color: 'rgba(255,255,255,0.8)' }} />
                             </PieChart>
                         </ResponsiveContainer>
                     </div>
@@ -280,8 +281,8 @@ export default function AnalyticsPage() {
             </div>
 
             {/* Trend Chart */}
-            <div className="bg-white rounded-xl p-6 shadow-md border border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">📈 Monthly Trend</h3>
+            <div className="bg-white/10 backdrop-blur-xl rounded-xl p-6 border border-white/20">
+                <h3 className="text-lg font-semibold text-white mb-4">📈 Monthly Trend</h3>
                 <div className="h-64">
                     <ResponsiveContainer width="100%" height="100%">
                         <AreaChart data={trendData}>
@@ -291,14 +292,15 @@ export default function AnalyticsPage() {
                                     <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
                                 </linearGradient>
                             </defs>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                            <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-                            <YAxis tick={{ fontSize: 12 }} />
+                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                            <XAxis dataKey="name" tick={{ fontSize: 12, fill: 'rgba(255,255,255,0.7)' }} stroke="rgba(255,255,255,0.3)" />
+                            <YAxis tick={{ fontSize: 12, fill: 'rgba(255,255,255,0.7)' }} stroke="rgba(255,255,255,0.3)" />
                             <Tooltip
                                 formatter={(value, name) => [name === 'revenue' ? `₹${value.toLocaleString()}` : value, name === 'revenue' ? 'Revenue' : 'Deliveries']}
-                                contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px' }}
+                                contentStyle={{ backgroundColor: 'rgba(30,41,59,0.95)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '8px', color: '#fff' }}
+                                labelStyle={{ color: '#fff' }}
                             />
-                            <Area type="monotone" dataKey="deliveries" stroke="#6366f1" fill="#e0e7ff" strokeWidth={2} />
+                            <Area type="monotone" dataKey="deliveries" stroke="#6366f1" fill="#6366f1" fillOpacity={0.2} strokeWidth={2} />
                             <Area type="monotone" dataKey="revenue" stroke="#10b981" fillOpacity={1} fill="url(#colorRevenue)" strokeWidth={2} />
                         </AreaChart>
                     </ResponsiveContainer>
@@ -308,35 +310,35 @@ export default function AnalyticsPage() {
             {/* Bottom Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Top Agents */}
-                <div className="bg-white rounded-xl p-6 shadow-md border border-gray-200">
+                <div className="bg-white/10 backdrop-blur-xl rounded-xl p-6 border border-white/20">
                     <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-lg font-semibold text-gray-900">🏆 Top Performing Agents</h3>
-                        <Link to="/company/agents" className="text-sm text-primary-600 hover:text-primary-700 font-medium">
+                        <h3 className="text-lg font-semibold text-white">🏆 Top Performing Agents</h3>
+                        <Link to="/company/agents" className="text-sm text-indigo-400 hover:text-indigo-300 font-medium">
                             View All →
                         </Link>
                     </div>
                     {topAgents.length === 0 ? (
                         <div className="text-center py-8">
-                            <FaUsers className="text-4xl text-gray-300 mx-auto mb-2" />
-                            <p className="text-sm text-gray-500">No agents data available</p>
+                            <FaUsers className="text-4xl text-white/30 mx-auto mb-2" />
+                            <p className="text-sm text-white/50">No agents data available</p>
                         </div>
                     ) : (
                         <div className="space-y-3">
                             {topAgents.slice(0, 5).map((agent, idx) => (
-                                <div key={agent.id || idx} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
+                                <div key={agent.id || idx} className="flex items-center justify-between p-3 bg-white/5 rounded-lg hover:bg-white/10 transition border border-white/10">
                                     <div className="flex items-center gap-3">
                                         <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold ${idx === 0 ? 'bg-yellow-500' : idx === 1 ? 'bg-gray-400' : idx === 2 ? 'bg-orange-400' : 'bg-indigo-500'
                                             }`}>
                                             {agent.fullName?.charAt(0) || "A"}
                                         </div>
                                         <div>
-                                            <p className="font-medium text-gray-900">{agent.fullName}</p>
-                                            <p className="text-xs text-gray-500">{agent.phone || 'Agent'}</p>
+                                            <p className="font-medium text-white">{agent.fullName}</p>
+                                            <p className="text-xs text-white/50">{agent.phone || 'Agent'}</p>
                                         </div>
                                     </div>
                                     <div className="text-right">
-                                        <p className="text-sm font-bold text-gray-900">{agent.totalDeliveries || 0}</p>
-                                        <div className="flex items-center gap-1 text-xs text-yellow-600">
+                                        <p className="text-sm font-bold text-white">{agent.totalDeliveries || 0}</p>
+                                        <div className="flex items-center gap-1 text-xs text-yellow-400">
                                             <FaStar /> {Number(agent.ratingAvg || 5).toFixed(1)}
                                         </div>
                                     </div>
@@ -347,40 +349,40 @@ export default function AnalyticsPage() {
                 </div>
 
                 {/* Recent Shipments */}
-                <div className="bg-white rounded-xl p-6 shadow-md border border-gray-200">
+                <div className="bg-white/10 backdrop-blur-xl rounded-xl p-6 border border-white/20">
                     <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-lg font-semibold text-gray-900">📦 Recent Shipments</h3>
-                        <Link to="/company/parcels" className="text-sm text-primary-600 hover:text-primary-700 font-medium">
+                        <h3 className="text-lg font-semibold text-white">📦 Recent Shipments</h3>
+                        <Link to="/company/parcels" className="text-sm text-indigo-400 hover:text-indigo-300 font-medium">
                             View All →
                         </Link>
                     </div>
                     {recentActivity.length === 0 ? (
                         <div className="text-center py-8">
-                            <FaBox className="text-4xl text-gray-300 mx-auto mb-2" />
-                            <p className="text-sm text-gray-500">No recent shipments</p>
+                            <FaBox className="text-4xl text-white/30 mx-auto mb-2" />
+                            <p className="text-sm text-white/50">No recent shipments</p>
                         </div>
                     ) : (
                         <div className="space-y-3">
                             {recentActivity.map((shipment, idx) => (
-                                <div key={shipment.id || idx} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
+                                <div key={shipment.id || idx} className="flex items-center justify-between p-3 bg-white/5 rounded-lg hover:bg-white/10 transition border border-white/10">
                                     <div className="flex items-center gap-3">
-                                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${shipment.status === "COMPLETED" || shipment.status === "DELIVERED" ? 'bg-green-100 text-green-600' :
-                                                shipment.status === "IN_PROGRESS" || shipment.status === "IN_TRANSIT" ? 'bg-blue-100 text-blue-600' :
-                                                    'bg-yellow-100 text-yellow-600'
+                                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${shipment.status === "COMPLETED" || shipment.status === "DELIVERED" ? 'bg-green-500/20 text-green-400' :
+                                            shipment.status === "IN_PROGRESS" || shipment.status === "IN_TRANSIT" ? 'bg-blue-500/20 text-blue-400' :
+                                                'bg-yellow-500/20 text-yellow-400'
                                             }`}>
                                             <FaBox />
                                         </div>
                                         <div>
-                                            <p className="font-medium text-gray-900">Group #{shipment.groupId || shipment.id}</p>
-                                            <p className="text-xs text-gray-500 flex items-center gap-1">
+                                            <p className="font-medium text-white">Group #{shipment.groupId || shipment.id}</p>
+                                            <p className="text-xs text-white/50 flex items-center gap-1">
                                                 <FaMapMarkerAlt className="text-[10px]" />
                                                 {shipment.pickupCity} → {shipment.deliveryCity}
                                             </p>
                                         </div>
                                     </div>
-                                    <span className={`text-xs px-3 py-1 rounded-full font-medium ${shipment.status === "COMPLETED" || shipment.status === "DELIVERED" ? "bg-green-100 text-green-700" :
-                                            shipment.status === "IN_PROGRESS" || shipment.status === "IN_TRANSIT" ? "bg-blue-100 text-blue-700" :
-                                                "bg-yellow-100 text-yellow-700"
+                                    <span className={`text-xs px-3 py-1 rounded-full font-medium ${shipment.status === "COMPLETED" || shipment.status === "DELIVERED" ? "bg-green-500/20 text-green-400" :
+                                        shipment.status === "IN_PROGRESS" || shipment.status === "IN_TRANSIT" ? "bg-blue-500/20 text-blue-400" :
+                                            "bg-yellow-500/20 text-yellow-400"
                                         }`}>
                                         {shipment.status}
                                     </span>
@@ -396,27 +398,27 @@ export default function AnalyticsPage() {
 
 function StatCard({ title, value, subtitle, icon: Icon, color, trend }) {
     const colorClasses = {
-        indigo: { bg: "bg-indigo-50", icon: "bg-indigo-100 text-indigo-600" },
-        green: { bg: "bg-green-50", icon: "bg-green-100 text-green-600" },
-        emerald: { bg: "bg-emerald-50", icon: "bg-emerald-100 text-emerald-600" },
-        orange: { bg: "bg-orange-50", icon: "bg-orange-100 text-orange-600" },
-        purple: { bg: "bg-purple-50", icon: "bg-purple-100 text-purple-600" },
-        blue: { bg: "bg-blue-50", icon: "bg-blue-100 text-blue-600" },
-        yellow: { bg: "bg-yellow-50", icon: "bg-yellow-100 text-yellow-600" },
+        indigo: { bg: "bg-indigo-500/20", icon: "bg-indigo-500 text-white" },
+        green: { bg: "bg-green-500/20", icon: "bg-green-500 text-white" },
+        emerald: { bg: "bg-emerald-500/20", icon: "bg-emerald-500 text-white" },
+        orange: { bg: "bg-orange-500/20", icon: "bg-orange-500 text-white" },
+        purple: { bg: "bg-purple-500/20", icon: "bg-purple-500 text-white" },
+        blue: { bg: "bg-blue-500/20", icon: "bg-blue-500 text-white" },
+        yellow: { bg: "bg-yellow-500/20", icon: "bg-yellow-500 text-white" },
     };
 
     const c = colorClasses[color] || colorClasses.indigo;
 
     return (
-        <div className="bg-white rounded-xl p-5 shadow-md border border-gray-100 hover:shadow-lg transition">
+        <div className="bg-white/10 backdrop-blur-xl rounded-xl p-5 border border-white/20 hover:bg-white/15 transition">
             <div className={`w-11 h-11 rounded-lg ${c.icon} flex items-center justify-center mb-3`}>
                 <Icon className="text-lg" />
             </div>
-            <p className="text-2xl font-bold text-gray-900">{value}</p>
-            <p className="text-xs text-gray-500 mt-1">{title}</p>
-            {subtitle && <p className="text-xs text-gray-400">{subtitle}</p>}
+            <p className="text-2xl font-bold text-white">{value}</p>
+            <p className="text-xs text-white/60 mt-1">{title}</p>
+            {subtitle && <p className="text-xs text-white/40">{subtitle}</p>}
             {trend !== undefined && trend !== 0 && (
-                <div className={`flex items-center gap-1 text-xs mt-2 ${trend > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                <div className={`flex items-center gap-1 text-xs mt-2 ${trend > 0 ? 'text-green-400' : 'text-red-400'}`}>
                     {trend > 0 ? <FaArrowUp /> : <FaArrowDown />}
                     {Math.abs(trend)}% vs last week
                 </div>

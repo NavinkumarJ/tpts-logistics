@@ -24,17 +24,17 @@ import java.util.List;
  * Handles all company-related endpoints
  *
  * Private Endpoints (Requires COMPANY_ADMIN role):
- * - GET    /api/company/me                  - Get current company profile
- * - GET    /api/company/dashboard           - Get company dashboard
- * - PUT    /api/company/profile             - Update company profile
- * - PUT    /api/company/hiring              - Update hiring settings
+ * - GET /api/company/me - Get current company profile
+ * - GET /api/company/dashboard - Get company dashboard
+ * - PUT /api/company/profile - Update company profile
+ * - PUT /api/company/hiring - Update hiring settings
  *
  * Public Endpoints (No auth required):
- * - GET    /api/companies                   - Get all approved companies
- * - GET    /api/companies/hiring            - Get hiring companies (jobs page)
- * - GET    /api/companies/city/{city}       - Get companies by service city
- * - GET    /api/companies/compare           - Compare company prices
- * - GET    /api/companies/{id}              - Get company by ID (public info)
+ * - GET /api/companies - Get all approved companies
+ * - GET /api/companies/hiring - Get hiring companies (jobs page)
+ * - GET /api/companies/city/{city} - Get companies by service city
+ * - GET /api/companies/compare - Compare company prices
+ * - GET /api/companies/{id} - Get company by ID (public info)
  */
 @RestController
 @RequiredArgsConstructor
@@ -219,5 +219,71 @@ public class CompanyController {
                 .build();
 
         return ResponseEntity.ok(ApiResponse.success(publicDTO, "Company retrieved"));
+    }
+
+    // ==========================================
+    // Messaging (Company Admin Only)
+    // ==========================================
+
+    private final com.tpts.service.EmailLogService emailLogService;
+
+    /**
+     * Send email to company agents
+     * POST /api/company/messaging/send
+     */
+    @PostMapping("/api/company/messaging/send")
+    @PreAuthorize("hasRole('COMPANY_ADMIN')")
+    public ResponseEntity<ApiResponse<com.tpts.dto.response.EmailLogDTO>> sendEmailToAgents(
+            @Valid @RequestBody com.tpts.dto.request.SendBulkEmailRequest request,
+            @AuthenticationPrincipal User currentUser) {
+
+        log.info("Company sending email to agents - sendToAll: {}", request.isSendToAll());
+
+        com.tpts.dto.response.EmailLogDTO result = emailLogService.sendEmailToAgents(request, currentUser);
+
+        if (result == null) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("No agents found"));
+        }
+
+        return ResponseEntity.ok(ApiResponse.success(result, "Email sent successfully"));
+    }
+
+    /**
+     * Get company email history
+     * GET /api/company/messaging/history
+     */
+    @GetMapping("/api/company/messaging/history")
+    @PreAuthorize("hasRole('COMPANY_ADMIN')")
+    public ResponseEntity<ApiResponse<java.util.List<com.tpts.dto.response.EmailLogDTO>>> getCompanyEmailHistory(
+            @AuthenticationPrincipal User currentUser,
+            @RequestParam(defaultValue = "50") int limit) {
+
+        log.info("Getting email history for company");
+
+        org.springframework.data.domain.Page<com.tpts.dto.response.EmailLogDTO> history = emailLogService
+                .getCompanyEmailHistory(currentUser,
+                        org.springframework.data.domain.PageRequest.of(0, limit));
+
+        return ResponseEntity.ok(ApiResponse.success(history.getContent(),
+                history.getContent().size() + " emails retrieved"));
+    }
+
+    /**
+     * Search company agents for messaging
+     * GET /api/company/messaging/agents/search?q=
+     */
+    @GetMapping("/api/company/messaging/agents/search")
+    @PreAuthorize("hasRole('COMPANY_ADMIN')")
+    public ResponseEntity<ApiResponse<java.util.List<com.tpts.dto.response.AgentDTO>>> searchCompanyAgents(
+            @AuthenticationPrincipal User currentUser,
+            @RequestParam(required = false, defaultValue = "") String q) {
+
+        log.info("Searching company agents: {}", q);
+
+        java.util.List<com.tpts.dto.response.AgentDTO> agents = companyService.searchAgents(currentUser, q);
+
+        return ResponseEntity.ok(ApiResponse.success(agents,
+                agents.size() + " agents found"));
     }
 }

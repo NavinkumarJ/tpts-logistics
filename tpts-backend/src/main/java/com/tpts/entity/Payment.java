@@ -18,7 +18,7 @@ import java.time.LocalDateTime;
         @Index(name = "idx_payment_status", columnList = "status"),
         @Index(name = "idx_payment_razorpay_order", columnList = "razorpay_order_id"),
         @Index(name = "idx_payment_razorpay_payment", columnList = "razorpay_payment_id"),
-        @Index(name = "idx_payment_razorpay_refund", columnList = "razorpay_refund_id")  // ✅ ADDED INDEX
+        @Index(name = "idx_payment_razorpay_refund", columnList = "razorpay_refund_id") // ✅ ADDED INDEX
 })
 @Data
 @NoArgsConstructor
@@ -34,8 +34,9 @@ public class Payment {
     // Related Entities
     // ==========================================
 
+    // Parcel can be null when payment is created before parcel (payment-first flow)
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "parcel_id", nullable = false)
+    @JoinColumn(name = "parcel_id")
     private Parcel parcel;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -45,6 +46,10 @@ public class Payment {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "company_id", nullable = false)
     private CompanyAdmin company;
+
+    // JSON metadata for storing parcel data before parcel is created
+    @Column(name = "metadata", columnDefinition = "TEXT")
+    private String metadata;
 
     // ==========================================
     // Payment Amount Details
@@ -101,7 +106,7 @@ public class Payment {
     @Column(name = "razorpay_signature", length = 100)
     private String razorpaySignature;
 
-    @Column(name = "razorpay_refund_id", length = 50)  // ✅ ADDED THIS FIELD
+    @Column(name = "razorpay_refund_id", length = 50) // ✅ ADDED THIS FIELD
     private String razorpayRefundId;
 
     // ==========================================
@@ -144,7 +149,7 @@ public class Payment {
 
     @Column(name = "refund_amount", precision = 10, scale = 2)
     @Builder.Default
-    private BigDecimal refundAmount = BigDecimal.ZERO;  // ✅ ADDED DEFAULT
+    private BigDecimal refundAmount = BigDecimal.ZERO; // ✅ ADDED DEFAULT
 
     @Column(name = "refund_reason", length = 500)
     private String refundReason;

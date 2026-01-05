@@ -18,151 +18,155 @@ import java.util.Optional;
 @Repository
 public interface PaymentRepository extends JpaRepository<Payment, Long> {
 
-    // ==========================================
-    // Find by Related Entities
-    // ==========================================
+        // ==========================================
+        // Find by Related Entities
+        // ==========================================
 
-    Optional<Payment> findByParcelId(Long parcelId);
+        Optional<Payment> findByParcelId(Long parcelId);
 
-    List<Payment> findByStatusAndCreatedAtBetween(PaymentStatus status, LocalDateTime start, LocalDateTime end);
+        List<Payment> findByStatusAndCreatedAtBetween(PaymentStatus status, LocalDateTime start, LocalDateTime end);
 
-    Optional<Payment> findByRazorpayRefundId(String razorpayRefundId);
+        Optional<Payment> findByRazorpayRefundId(String razorpayRefundId);
 
-    List<Payment> findByParcelIdOrderByCreatedAtDesc(Long parcelId);
+        List<Payment> findByParcelIdOrderByCreatedAtDesc(Long parcelId);
 
-    List<Payment> findByCustomerIdOrderByCreatedAtDesc(Long customerId);
+        // Get the first (most recent) payment for a parcel - needed since balance
+        // payments can create multiple records
+        Optional<Payment> findFirstByParcelIdOrderByCreatedAtDesc(Long parcelId);
 
-    List<Payment> findByCompanyIdOrderByCreatedAtDesc(Long companyId);
+        List<Payment> findByCustomerIdOrderByCreatedAtDesc(Long customerId);
 
-    // ==========================================
-    // Find by Razorpay IDs
-    // ==========================================
+        List<Payment> findByCompanyIdOrderByCreatedAtDesc(Long companyId);
 
-    Optional<Payment> findByRazorpayOrderId(String razorpayOrderId);
+        // ==========================================
+        // Find by Razorpay IDs
+        // ==========================================
 
-    Optional<Payment> findByRazorpayPaymentId(String razorpayPaymentId);
+        Optional<Payment> findByRazorpayOrderId(String razorpayOrderId);
 
-    boolean existsByRazorpayOrderId(String razorpayOrderId);
+        Optional<Payment> findByRazorpayPaymentId(String razorpayPaymentId);
 
-    // ==========================================
-    // Find by Status
-    // ==========================================
+        boolean existsByRazorpayOrderId(String razorpayOrderId);
 
-    List<Payment> findByStatus(PaymentStatus status);
+        // ==========================================
+        // Find by Status
+        // ==========================================
 
-    List<Payment> findByCustomerIdAndStatus(Long customerId, PaymentStatus status);
+        List<Payment> findByStatus(PaymentStatus status);
 
-    List<Payment> findByCompanyIdAndStatus(Long companyId, PaymentStatus status);
+        List<Payment> findByCustomerIdAndStatus(Long customerId, PaymentStatus status);
 
-    // Pending payments older than X minutes (for cleanup/retry)
-    @Query("SELECT p FROM Payment p WHERE p.status = 'PENDING' AND p.initiatedAt < :cutoff")
-    List<Payment> findStalePendingPayments(@Param("cutoff") LocalDateTime cutoff);
+        List<Payment> findByCompanyIdAndStatus(Long companyId, PaymentStatus status);
 
-    // ==========================================
-    // Customer Payment History
-    // ==========================================
+        // Pending payments older than X minutes (for cleanup/retry)
+        @Query("SELECT p FROM Payment p WHERE p.status = 'PENDING' AND p.initiatedAt < :cutoff")
+        List<Payment> findStalePendingPayments(@Param("cutoff") LocalDateTime cutoff);
 
-    @Query("SELECT p FROM Payment p WHERE p.customer.id = :customerId " +
-            "AND p.status = 'SUCCESS' ORDER BY p.completedAt DESC")
-    List<Payment> findSuccessfulPaymentsByCustomer(@Param("customerId") Long customerId);
+        // ==========================================
+        // Customer Payment History
+        // ==========================================
 
-    @Query("SELECT p FROM Payment p WHERE p.customer.id = :customerId " +
-            "ORDER BY p.createdAt DESC")
-    List<Payment> findAllPaymentsByCustomer(@Param("customerId") Long customerId);
+        @Query("SELECT p FROM Payment p WHERE p.customer.id = :customerId " +
+                        "AND p.status = 'SUCCESS' ORDER BY p.completedAt DESC")
+        List<Payment> findSuccessfulPaymentsByCustomer(@Param("customerId") Long customerId);
 
-    // ==========================================
-    // Company Revenue
-    // ==========================================
+        @Query("SELECT p FROM Payment p WHERE p.customer.id = :customerId " +
+                        "ORDER BY p.createdAt DESC")
+        List<Payment> findAllPaymentsByCustomer(@Param("customerId") Long customerId);
 
-    @Query("SELECT p FROM Payment p WHERE p.company.id = :companyId " +
-            "AND p.status = 'SUCCESS' ORDER BY p.completedAt DESC")
-    List<Payment> findSuccessfulPaymentsByCompany(@Param("companyId") Long companyId);
+        // ==========================================
+        // Company Revenue
+        // ==========================================
 
-    @Query("SELECT COALESCE(SUM(p.totalAmount), 0) FROM Payment p " +
-            "WHERE p.company.id = :companyId AND p.status = 'SUCCESS'")
-    BigDecimal getTotalRevenueByCompany(@Param("companyId") Long companyId);
+        @Query("SELECT p FROM Payment p WHERE p.company.id = :companyId " +
+                        "AND p.status = 'SUCCESS' ORDER BY p.completedAt DESC")
+        List<Payment> findSuccessfulPaymentsByCompany(@Param("companyId") Long companyId);
 
-    @Query("SELECT COALESCE(SUM(p.totalAmount), 0) FROM Payment p " +
-            "WHERE p.company.id = :companyId AND p.status = 'SUCCESS' " +
-            "AND DATE(p.completedAt) = CURRENT_DATE")
-    BigDecimal getTodayRevenueByCompany(@Param("companyId") Long companyId);
+        @Query("SELECT COALESCE(SUM(p.totalAmount), 0) FROM Payment p " +
+                        "WHERE p.company.id = :companyId AND p.status = 'SUCCESS'")
+        BigDecimal getTotalRevenueByCompany(@Param("companyId") Long companyId);
 
-    @Query("SELECT COALESCE(SUM(p.totalAmount), 0) FROM Payment p " +
-            "WHERE p.company.id = :companyId AND p.status = 'SUCCESS' " +
-            "AND MONTH(p.completedAt) = MONTH(CURRENT_DATE) " +
-            "AND YEAR(p.completedAt) = YEAR(CURRENT_DATE)")
-    BigDecimal getMonthlyRevenueByCompany(@Param("companyId") Long companyId);
+        @Query("SELECT COALESCE(SUM(p.totalAmount), 0) FROM Payment p " +
+                        "WHERE p.company.id = :companyId AND p.status = 'SUCCESS' " +
+                        "AND DATE(p.completedAt) = CURRENT_DATE")
+        BigDecimal getTodayRevenueByCompany(@Param("companyId") Long companyId);
 
-    // ==========================================
-    // Refund Queries
-    // ==========================================
+        @Query("SELECT COALESCE(SUM(p.totalAmount), 0) FROM Payment p " +
+                        "WHERE p.company.id = :companyId AND p.status = 'SUCCESS' " +
+                        "AND MONTH(p.completedAt) = MONTH(CURRENT_DATE) " +
+                        "AND YEAR(p.completedAt) = YEAR(CURRENT_DATE)")
+        BigDecimal getMonthlyRevenueByCompany(@Param("companyId") Long companyId);
 
-    @Query("SELECT p FROM Payment p WHERE p.company.id = :companyId " +
-            "AND p.status IN ('REFUNDED', 'PARTIALLY_REFUNDED', 'REFUND_INITIATED') " +
-            "ORDER BY p.refundedAt DESC")
-    List<Payment> findRefundedPaymentsByCompany(@Param("companyId") Long companyId);
+        // ==========================================
+        // Refund Queries
+        // ==========================================
 
-    @Query("SELECT COALESCE(SUM(p.refundAmount), 0) FROM Payment p " +
-            "WHERE p.company.id = :companyId " +
-            "AND p.status IN ('REFUNDED', 'PARTIALLY_REFUNDED')")
-    BigDecimal getTotalRefundsByCompany(@Param("companyId") Long companyId);
+        @Query("SELECT p FROM Payment p WHERE p.company.id = :companyId " +
+                        "AND p.status IN ('REFUNDED', 'PARTIALLY_REFUNDED', 'REFUND_INITIATED') " +
+                        "ORDER BY p.refundedAt DESC")
+        List<Payment> findRefundedPaymentsByCompany(@Param("companyId") Long companyId);
 
-    // ==========================================
-    // Statistics
-    // ==========================================
+        @Query("SELECT COALESCE(SUM(p.refundAmount), 0) FROM Payment p " +
+                        "WHERE p.company.id = :companyId " +
+                        "AND p.status IN ('REFUNDED', 'PARTIALLY_REFUNDED')")
+        BigDecimal getTotalRefundsByCompany(@Param("companyId") Long companyId);
 
-    long countByCompanyIdAndStatus(Long companyId, PaymentStatus status);
+        // ==========================================
+        // Statistics
+        // ==========================================
 
-    long countByCustomerIdAndStatus(Long customerId, PaymentStatus status);
+        long countByCompanyIdAndStatus(Long companyId, PaymentStatus status);
 
-    @Query("SELECT COUNT(p) FROM Payment p WHERE p.company.id = :companyId " +
-            "AND p.status = 'SUCCESS' AND DATE(p.completedAt) = CURRENT_DATE")
-    long countTodaySuccessfulPayments(@Param("companyId") Long companyId);
+        long countByCustomerIdAndStatus(Long customerId, PaymentStatus status);
 
-    // ==========================================
-    // Date Range Queries
-    // ==========================================
+        @Query("SELECT COUNT(p) FROM Payment p WHERE p.company.id = :companyId " +
+                        "AND p.status = 'SUCCESS' AND DATE(p.completedAt) = CURRENT_DATE")
+        long countTodaySuccessfulPayments(@Param("companyId") Long companyId);
 
-    @Query("SELECT p FROM Payment p WHERE p.company.id = :companyId " +
-            "AND p.status = 'SUCCESS' AND p.completedAt BETWEEN :startDate AND :endDate " +
-            "ORDER BY p.completedAt DESC")
-    List<Payment> findPaymentsByCompanyAndDateRange(
-            @Param("companyId") Long companyId,
-            @Param("startDate") LocalDateTime startDate,
-            @Param("endDate") LocalDateTime endDate);
+        // ==========================================
+        // Date Range Queries
+        // ==========================================
 
-    @Query("SELECT COALESCE(SUM(p.totalAmount), 0) FROM Payment p " +
-            "WHERE p.company.id = :companyId AND p.status = 'SUCCESS' " +
-            "AND p.completedAt BETWEEN :startDate AND :endDate")
-    BigDecimal getRevenueByCompanyAndDateRange(
-            @Param("companyId") Long companyId,
-            @Param("startDate") LocalDateTime startDate,
-            @Param("endDate") LocalDateTime endDate);
+        @Query("SELECT p FROM Payment p WHERE p.company.id = :companyId " +
+                        "AND p.status = 'SUCCESS' AND p.completedAt BETWEEN :startDate AND :endDate " +
+                        "ORDER BY p.completedAt DESC")
+        List<Payment> findPaymentsByCompanyAndDateRange(
+                        @Param("companyId") Long companyId,
+                        @Param("startDate") LocalDateTime startDate,
+                        @Param("endDate") LocalDateTime endDate);
 
-    // ==========================================
-    // Verification
-    // ==========================================
+        @Query("SELECT COALESCE(SUM(p.totalAmount), 0) FROM Payment p " +
+                        "WHERE p.company.id = :companyId AND p.status = 'SUCCESS' " +
+                        "AND p.completedAt BETWEEN :startDate AND :endDate")
+        BigDecimal getRevenueByCompanyAndDateRange(
+                        @Param("companyId") Long companyId,
+                        @Param("startDate") LocalDateTime startDate,
+                        @Param("endDate") LocalDateTime endDate);
 
-    @Query("SELECT p FROM Payment p WHERE p.id = :id AND p.customer.id = :customerId")
-    Optional<Payment> findByIdAndCustomerId(@Param("id") Long id, @Param("customerId") Long customerId);
+        // ==========================================
+        // Verification
+        // ==========================================
 
-    @Query("SELECT p FROM Payment p WHERE p.id = :id AND p.company.id = :companyId")
-    Optional<Payment> findByIdAndCompanyId(@Param("id") Long id, @Param("companyId") Long companyId);
+        @Query("SELECT p FROM Payment p WHERE p.id = :id AND p.customer.id = :customerId")
+        Optional<Payment> findByIdAndCustomerId(@Param("id") Long id, @Param("customerId") Long customerId);
 
-    // Check if parcel has successful payment
-    boolean existsByParcelIdAndStatus(Long parcelId, PaymentStatus status);
+        @Query("SELECT p FROM Payment p WHERE p.id = :id AND p.company.id = :companyId")
+        Optional<Payment> findByIdAndCompanyId(@Param("id") Long id, @Param("companyId") Long companyId);
 
-    // Count by status (for platform stats)
-    long countByStatus(PaymentStatus status);
+        // Check if parcel has successful payment
+        boolean existsByParcelIdAndStatus(Long parcelId, PaymentStatus status);
 
-    // Add these methods to your PaymentRepository interface:
+        // Count by status (for platform stats)
+        long countByStatus(PaymentStatus status);
 
-    Optional<Payment> findByTransactionId(String transactionId);
+        // Add these methods to your PaymentRepository interface:
 
-    Optional<Payment> findByRefundId(String refundId);
+        Optional<Payment> findByTransactionId(String transactionId);
 
-    @Query("SELECT p FROM Payment p WHERE p.status = :status AND p.createdAt < :before")
-    List<Payment> findByStatusAndCreatedAtBefore(@Param("status") PaymentStatus status,
-                                                 @Param("before") LocalDateTime before);
+        Optional<Payment> findByRefundId(String refundId);
+
+        @Query("SELECT p FROM Payment p WHERE p.status = :status AND p.createdAt < :before")
+        List<Payment> findByStatusAndCreatedAtBefore(@Param("status") PaymentStatus status,
+                        @Param("before") LocalDateTime before);
 
 }

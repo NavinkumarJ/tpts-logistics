@@ -41,6 +41,8 @@ public class SuperAdminService {
     private final AdminActionLogRepository actionLogRepository;
     private final NotificationRepository notificationRepository;
     private final EmailService emailService;
+    private final EarningRepository earningRepository;
+    private final LoginActivityService loginActivityService;
 
     // ==========================================
     // Dashboard & Statistics
@@ -64,9 +66,25 @@ public class SuperAdminService {
         BigDecimal weeklyRevenue = calculateRevenueForPeriod(startOfWeek, LocalDateTime.now());
         BigDecimal monthlyRevenue = calculateRevenueForPeriod(startOfMonth, LocalDateTime.now());
 
+        // Order counting: Group = 1 order, Regular parcel = 1 order
+        long regularOrders = parcelRepository.countRegularOrders();
+        long groupBuyOrders = groupRepository.count(); // Each group is 1 order
+        long totalOrders = regularOrders + groupBuyOrders;
+
+        // Completed orders: delivered regular parcels + completed groups
+        long deliveredRegularOrders = parcelRepository.countRegularOrdersByStatus(ParcelStatus.DELIVERED);
+        long completedGroupOrders = groupRepository.countByStatus(GroupStatus.COMPLETED);
+        long completedOrders = deliveredRegularOrders + completedGroupOrders;
+
+        // Cancelled orders: cancelled regular parcels + cancelled/expired groups
+        long cancelledRegularOrders = parcelRepository.countCancelledRegularOrders();
+        long cancelledGroupOrders = groupRepository.countByStatus(GroupStatus.CANCELLED);
+        long expiredGroupOrders = groupRepository.countByStatus(GroupStatus.EXPIRED);
+        long cancelledOrders = cancelledRegularOrders + cancelledGroupOrders + expiredGroupOrders;
+
         return PlatformStatsDTO.builder()
-                // User counts
-                .totalUsers(userRepository.count())
+                // User counts (excluding soft-deleted and Super Admins)
+                .totalUsers(userRepository.countNonAdminUsers())
                 .totalCustomers(customerRepository.count())
                 .totalCompanies(companyRepository.count())
                 .totalAgents(agentRepository.count())
@@ -74,15 +92,22 @@ public class SuperAdminService {
                 .activeUsersToday(countActiveUsersToday())
 
                 // Company stats
-                .pendingCompanyApprovals(companyRepository.countByIsApprovedFalse())
+                .pendingCompanyApprovals(companyRepository.countByIsApprovedFalseAndIsRejectedFalse())
                 .approvedCompanies(companyRepository.countByIsApprovedTrue())
                 .hiringCompanies(companyRepository.countByIsHiringTrueAndIsApprovedTrue())
 
-                // Parcel stats
+                // Parcel stats (raw counts)
                 .totalParcels(parcelRepository.count())
                 .pendingParcels(parcelRepository.countByStatus(ParcelStatus.PENDING))
                 .inTransitParcels(parcelRepository.countByStatus(ParcelStatus.IN_TRANSIT))
                 .deliveredParcels(parcelRepository.countByStatus(ParcelStatus.DELIVERED))
+
+                // Order stats (groups counted as 1 order)
+                .totalOrders(totalOrders)
+                .regularOrders(regularOrders)
+                .groupBuyOrders(groupBuyOrders)
+                .completedOrders(completedOrders)
+                .cancelledOrders(cancelledOrders)
 
                 // Group stats
                 .totalGroups(groupRepository.count())
@@ -115,59 +140,60 @@ public class SuperAdminService {
                 .activeAgents(agentRepository.countByIsActiveTrue())
                 .availableAgents(agentRepository.countByIsActiveTrueAndIsAvailableTrue())
 
+                // Cancellation stats (raw parcel counts)
+                .cancelledParcels(parcelRepository.countCancelledParcels())
+                .cancellationRate(calculateCancellationRate())
+                .cancelledByCustomer(parcelRepository.countCancelledByType("CUSTOMER"))
+                .cancelledByCompany(parcelRepository.countCancelledByType("COMPANY"))
+                .cancelledByAgent(parcelRepository.countCancelledByType("AGENT"))
+                .cancelledByAdmin(parcelRepository.countCancelledByType("ADMIN"))
+
                 .build();
     }
 
     /**
-     * Calculate total revenue from all successful payments
+     * Calculate total revenue from active earnings (excludes CANCELLED)
      */
     private BigDecimal calculateTotalRevenue() {
-        return paymentRepository.findByStatus(PaymentStatus.SUCCESS).stream()
-                .map(Payment::getAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal total = earningRepository.sumTotalOrderAmount();
+        return total != null ? total : BigDecimal.ZERO;
     }
 
     /**
      * Calculate total commission earned by platform
+     * Uses EarningRepository which properly excludes CANCELLED earnings
      */
-    // ✅ BETTER - Uses stored commission (more accurate)
     private BigDecimal calculateCommissionEarned() {
-        return paymentRepository.findByStatus(PaymentStatus.SUCCESS).stream()
-                .map(payment -> {
-                    // ✅ FIRST: Try to use stored platform commission
-                    if (payment.getPlatformCommission() != null) {
-                        return payment.getPlatformCommission();
-                    }
-
-                    // ✅ FALLBACK: Calculate from commission rate
-                    // (for old payments before split was implemented)
-                    BigDecimal commissionRate = payment.getCompany() != null
-                            ? payment.getCompany().getCommissionRate()
-                            : BigDecimal.valueOf(5.0);
-
-                    return payment.getTotalAmount()
-                            .multiply(commissionRate)
-                            .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
-                })
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal commission = earningRepository.sumPlatformCommission();
+        return commission != null ? commission : BigDecimal.ZERO;
     }
 
     /**
-     * Calculate revenue for a specific time period
+     * Calculate revenue for a specific time period (excludes CANCELLED)
      */
     private BigDecimal calculateRevenueForPeriod(LocalDateTime start, LocalDateTime end) {
-        return paymentRepository.findByStatusAndCreatedAtBetween(
-                PaymentStatus.SUCCESS, start, end).stream()
-                .map(Payment::getAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal total = earningRepository.sumTotalOrderAmountInPeriod(start, end);
+        return total != null ? total : BigDecimal.ZERO;
     }
 
     /**
-     * Count users who logged in today
+     * Calculate cancellation rate as percentage of total parcels
+     */
+    private Double calculateCancellationRate() {
+        long totalParcels = parcelRepository.count();
+        if (totalParcels == 0) {
+            return 0.0;
+        }
+        long cancelledParcels = parcelRepository.countCancelledParcels();
+        return Math.round((cancelledParcels * 100.0 / totalParcels) * 100.0) / 100.0;
+    }
+
+    /**
+     * Count unique users who logged in today (excludes Super Admins)
+     * Uses LoginActivity table for accurate real-time count
      */
     private Long countActiveUsersToday() {
-        LocalDateTime startOfToday = LocalDateTime.now().truncatedTo(ChronoUnit.DAYS);
-        return userRepository.countByLastLoginAfter(startOfToday);
+        return loginActivityService.countUniqueUsersLoggedInToday();
     }
 
     // ==========================================
@@ -175,12 +201,18 @@ public class SuperAdminService {
     // ==========================================
 
     public List<CompanyDTO> getPendingCompanies() {
-        List<CompanyAdmin> companies = companyRepository.findByIsApprovedFalseOrderByCreatedAtDesc();
+        // Pending = not approved AND not rejected
+        List<CompanyAdmin> companies = companyRepository.findByIsApprovedFalseAndIsRejectedFalseOrderByCreatedAtDesc();
         return companies.stream().map(this::mapToCompanyDTO).collect(Collectors.toList());
     }
 
     public List<CompanyDTO> getApprovedCompanies() {
         List<CompanyAdmin> companies = companyRepository.findByIsApprovedTrue();
+        return companies.stream().map(this::mapToCompanyDTO).collect(Collectors.toList());
+    }
+
+    public List<CompanyDTO> getRejectedCompanies() {
+        List<CompanyAdmin> companies = companyRepository.findByIsRejectedTrueOrderByCreatedAtDesc();
         return companies.stream().map(this::mapToCompanyDTO).collect(Collectors.toList());
     }
 
@@ -230,12 +262,26 @@ public class SuperAdminService {
             throw new BadRequestException("Cannot reject an already approved company. Use suspend instead.");
         }
 
+        // ✅ Set rejection status and reason
         company.setIsApproved(false);
+        company.setIsRejected(true);
+        company.setRejectionReason(request.getReason());
         company.getUser().setIsActive(false);
         companyRepository.save(company);
         userRepository.save(company.getUser());
 
         recordAction(currentUser, "Rejected company: " + company.getCompanyName() + ". Reason: " + request.getReason());
+
+        // ✅ Send rejection email notification
+        try {
+            emailService.sendCompanyRejectionEmail(
+                    company.getUser().getEmail(),
+                    company.getCompanyName(),
+                    company.getContactPersonName(),
+                    request.getReason());
+        } catch (Exception e) {
+            log.warn("Failed to send company rejection email: {}", e.getMessage());
+        }
 
         log.info("Company rejected: ID={}, Name={}, Reason={}",
                 companyId, company.getCompanyName(), request.getReason());
@@ -253,6 +299,17 @@ public class SuperAdminService {
 
         recordAction(currentUser, "Suspended company: " + company.getCompanyName() + ". Reason: " + reason);
 
+        // Send suspension email notification with reason
+        try {
+            emailService.sendCompanySuspensionEmail(
+                    company.getUser().getEmail(),
+                    company.getCompanyName(),
+                    company.getContactPersonName(),
+                    reason);
+        } catch (Exception e) {
+            log.warn("Failed to send company suspension email: {}", e.getMessage());
+        }
+
         log.info("Company suspended: ID={}, Name={}", companyId, company.getCompanyName());
 
         return mapToCompanyDTO(company);
@@ -267,6 +324,16 @@ public class SuperAdminService {
         userRepository.save(company.getUser());
 
         recordAction(currentUser, "Reactivated company: " + company.getCompanyName());
+
+        // Send reactivation email notification
+        try {
+            emailService.sendCompanyReactivationEmail(
+                    company.getUser().getEmail(),
+                    company.getCompanyName(),
+                    company.getContactPersonName());
+        } catch (Exception e) {
+            log.warn("Failed to send company reactivation email: {}", e.getMessage());
+        }
 
         log.info("Company reactivated: ID={}, Name={}", companyId, company.getCompanyName());
 
@@ -322,6 +389,9 @@ public class SuperAdminService {
                     .forEach(users::add);
         }
 
+        // Note: Super Admins are excluded from the "All Users" list
+        // They are managed separately via the Admins management section
+
         return users;
     }
 
@@ -369,9 +439,42 @@ public class SuperAdminService {
         recordAction(currentUser, action + " user: " + user.getEmail() +
                 (request.getReason() != null ? ". Reason: " + request.getReason() : ""));
 
+        // Get user's display name for email
+        String userName = getUserDisplayName(user);
+
+        // Send email notification
+        try {
+            if (request.getIsActive()) {
+                emailService.sendUserActivationEmail(user.getEmail(), userName);
+            } else {
+                String reason = request.getReason() != null ? request.getReason() : "Suspended by administrator";
+                emailService.sendUserSuspensionEmail(user.getEmail(), userName, reason);
+            }
+        } catch (Exception e) {
+            log.warn("Failed to send user status change email: {}", e.getMessage());
+        }
+
         log.info("User {} {}: ID={}, Email={}", action.toLowerCase(), user.getUserType(), userId, user.getEmail());
 
         return getUserById(userId);
+    }
+
+    // Helper to get display name based on user type
+    private String getUserDisplayName(User user) {
+        return switch (user.getUserType()) {
+            case CUSTOMER -> customerRepository.findByUser(user)
+                    .map(Customer::getFullName)
+                    .orElse(user.getEmail());
+            case COMPANY_ADMIN -> companyRepository.findByUser(user)
+                    .map(CompanyAdmin::getContactPersonName)
+                    .orElse(user.getEmail());
+            case DELIVERY_AGENT -> agentRepository.findByUser(user)
+                    .map(DeliveryAgent::getFullName)
+                    .orElse(user.getEmail());
+            case SUPER_ADMIN -> superAdminRepository.findByUser(user)
+                    .map(SuperAdmin::getFullName)
+                    .orElse(user.getEmail());
+        };
     }
 
     @Transactional
@@ -697,10 +800,14 @@ public class SuperAdminService {
     }
 
     private CompanyDTO mapToCompanyDTO(CompanyAdmin company) {
-        // Calculate total revenue from successful payments for this company
-        BigDecimal totalRevenue = paymentRepository.findByCompanyIdAndStatus(company.getId(), PaymentStatus.SUCCESS)
-                .stream()
-                .map(Payment::getAmount)
+        // Calculate total revenue from active earnings (excludes CANCELLED)
+        List<Earning> activeEarnings = earningRepository.findByCompanyId(company.getId()).stream()
+                .filter(e -> e.getStatus() != EarningStatus.CANCELLED)
+                .toList();
+
+        BigDecimal totalRevenue = activeEarnings.stream()
+                .map(Earning::getOrderAmount)
+                .filter(a -> a != null)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         return CompanyDTO.builder()
@@ -721,6 +828,9 @@ public class SuperAdminService {
                 .baseRatePerKg(company.getBaseRatePerKg())
                 .isApproved(company.getIsApproved())
                 .isVerified(company.getUser().getIsVerified())
+                .isActive(company.getUser().getIsActive())
+                .isRejected(company.getIsRejected())
+                .rejectionReason(company.getRejectionReason())
                 .isHiring(company.getIsHiring())
                 .openPositions(company.getOpenPositions())
                 .commissionRate(company.getCommissionRate())
@@ -904,5 +1014,149 @@ public class SuperAdminService {
             return "****";
         }
         return "****" + key.substring(key.length() - 4);
+    }
+
+    // ==========================================
+    // Messaging
+    // ==========================================
+
+    private final EmailLogService emailLogService;
+
+    public EmailLogDTO sendBulkEmail(SendBulkEmailRequest request, User currentUser) {
+        EmailLogDTO result = emailLogService.sendBulkEmail(request, currentUser);
+        if (result != null) {
+            recordAction(currentUser, "Sent bulk email to " + request.getRecipientType() +
+                    " - Subject: " + request.getSubject());
+        }
+        return result;
+    }
+
+    public List<EmailLogDTO> getEmailHistory(String type, int limit) {
+        if (type != null && !type.isEmpty()) {
+            try {
+                com.tpts.entity.EmailLog.EmailRecipientType recipientType = com.tpts.entity.EmailLog.EmailRecipientType
+                        .valueOf(type.toUpperCase());
+                return emailLogService.getEmailHistoryByType(recipientType,
+                        org.springframework.data.domain.PageRequest.of(0, limit))
+                        .getContent();
+            } catch (Exception e) {
+                log.warn("Invalid recipient type: {}", type);
+            }
+        }
+        return emailLogService.getEmailHistory(
+                org.springframework.data.domain.PageRequest.of(0, limit))
+                .getContent();
+    }
+
+    // ==========================================
+    // Search for Messaging
+    // ==========================================
+
+    public List<CompanyDTO> searchCompanies(String query) {
+        List<CompanyAdmin> companies;
+        if (query == null || query.isEmpty()) {
+            companies = companyRepository.findByIsApprovedTrue();
+        } else {
+            companies = companyRepository.findByCompanyNameContainingIgnoreCaseAndIsApprovedTrue(query);
+        }
+        return companies.stream()
+                .limit(50)
+                .map(this::mapToCompanyDTO)
+                .collect(Collectors.toList());
+    }
+
+    public List<CustomerDTO> searchCustomers(String query) {
+        List<Customer> customers;
+        if (query == null || query.isEmpty()) {
+            customers = customerRepository.findAll();
+        } else {
+            customers = customerRepository.findByFullNameContainingIgnoreCase(query);
+        }
+        return customers.stream()
+                .limit(50)
+                .map(this::mapToCustomerDTO)
+                .collect(Collectors.toList());
+    }
+
+    private CustomerDTO mapToCustomerDTO(Customer customer) {
+        return CustomerDTO.builder()
+                .id(customer.getId())
+                .userId(customer.getUser().getId())
+                .email(customer.getUser().getEmail())
+                .phone(customer.getUser().getPhone())
+                .fullName(customer.getFullName())
+                .city(customer.getCity())
+                .isVerified(customer.getUser().getIsVerified())
+                .profileImageUrl(customer.getProfileImageUrl())
+                .createdAt(customer.getCreatedAt())
+                .build();
+    }
+
+    // ==========================================
+    // Cancellation Analytics
+    // ==========================================
+
+    public java.util.Map<String, Object> getCancellationStats() {
+        java.util.Map<String, Object> stats = new java.util.HashMap<>();
+
+        // Total parcels and cancelled parcels
+        long totalParcels = parcelRepository.count();
+        long cancelledParcels = parcelRepository.countByStatus(ParcelStatus.CANCELLED);
+
+        // Cancellation rate
+        double cancellationRate = totalParcels > 0
+                ? (double) cancelledParcels / totalParcels * 100
+                : 0.0;
+
+        // Get cancelled parcels with reasons
+        List<Parcel> cancelledList = parcelRepository.findByStatusOrderByCreatedAtDesc(ParcelStatus.CANCELLED);
+
+        // Count by reason (group cancellations)
+        java.util.Map<String, Long> reasonBreakdown = cancelledList.stream()
+                .collect(Collectors.groupingBy(
+                        p -> p.getCancellationReason() != null ? p.getCancellationReason() : "No reason provided",
+                        Collectors.counting()));
+
+        // Recent cancellations (last 30 days)
+        LocalDateTime thirtyDaysAgo = LocalDateTime.now().minusDays(30);
+        long recentCancellations = cancelledList.stream()
+                .filter(p -> p.getCancelledAt() != null && p.getCancelledAt().isAfter(thirtyDaysAgo))
+                .count();
+
+        // Group cancelled orders
+        long cancelledGroups = groupRepository.countByStatus(GroupStatus.CANCELLED);
+
+        stats.put("totalParcels", totalParcels);
+        stats.put("cancelledParcels", cancelledParcels);
+        stats.put("cancellationRate", Math.round(cancellationRate * 100.0) / 100.0);
+        stats.put("recentCancellations", recentCancellations);
+        stats.put("cancelledGroups", cancelledGroups);
+        stats.put("reasonBreakdown", reasonBreakdown);
+
+        return stats;
+    }
+
+    // ==========================================
+    // Login Activity Logs
+    // ==========================================
+
+    /**
+     * Get recent login activities with pagination
+     */
+    public List<LoginActivityDTO> getLoginActivities(int page, int size) {
+        var activities = loginActivityService.getRecentActivities(page, size);
+
+        return activities.getContent().stream()
+                .map(activity -> LoginActivityDTO.builder()
+                        .id(activity.getId())
+                        .userId(activity.getUser() != null ? activity.getUser().getId() : null)
+                        .userEmail(activity.getUserEmail())
+                        .userName(activity.getUserName())
+                        .userType(activity.getUserType())
+                        .activityType(activity.getActivityType())
+                        .ipAddress(activity.getIpAddress())
+                        .timestamp(activity.getTimestamp())
+                        .build())
+                .collect(Collectors.toList());
     }
 }

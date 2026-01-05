@@ -29,10 +29,6 @@ public class UpdateParcelStatusRequest {
     @Size(max = 500, message = "Photo URL cannot exceed 500 characters")
     private String photoUrl;
 
-    // Signature URL (for delivery)
-    @Size(max = 500, message = "Signature URL cannot exceed 500 characters")
-    private String signatureUrl;
-
     // Notes
     @Size(max = 500, message = "Notes cannot exceed 500 characters")
     private String notes;

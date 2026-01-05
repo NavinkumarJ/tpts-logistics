@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { FaPhone, FaEnvelope, FaMapMarkerAlt, FaClock, FaFacebook, FaTwitter, FaLinkedin, FaInstagram } from 'react-icons/fa';
+import { Link } from 'react-router-dom';
+import { FaPhone, FaEnvelope, FaMapMarkerAlt, FaClock, FaArrowLeft, FaExclamationTriangle, FaCheckCircle, FaSpinner, FaUser, FaPaperPlane, FaHandshake, FaCommentDots, FaBriefcase, FaChevronDown } from 'react-icons/fa';
 import apiClient from '../../utils/api';
 
 export default function ContactPage() {
@@ -43,15 +44,33 @@ export default function ContactPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-primary-900 to-indigo-900 relative overflow-hidden">
+      {/* Background decorations */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-40 -right-40 w-96 h-96 bg-primary-500/20 rounded-full blur-3xl" />
+        <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-indigo-500/20 rounded-full blur-3xl" />
+        <div className="absolute top-1/2 left-1/3 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl" />
+      </div>
+
+      {/* Back Button */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 relative z-10">
+        <Link
+          to="/"
+          className="inline-flex items-center gap-2 text-white/70 hover:text-white transition-colors group"
+        >
+          <FaArrowLeft className="text-sm group-hover:-translate-x-1 transition-transform" />
+          <span>Back to Home</span>
+        </Link>
+      </div>
+
       {/* Hero Section */}
-      <section className="bg-gradient-to-br from-primary-50 via-white to-indigo-50 py-20">
+      <section className="py-16 relative z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
-            <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6">
-              Get in <span className="text-primary-600">Touch</span>
+            <h1 className="text-5xl md:text-6xl font-bold text-white mb-6">
+              Get in <span className="text-primary-400">Touch</span>
             </h1>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+            <p className="text-xl text-white/60 max-w-3xl mx-auto">
               Have questions? We'd love to hear from you. Reach out anytime!
             </p>
           </div>
@@ -59,41 +78,49 @@ export default function ContactPage() {
       </section>
 
       {/* Contact Info Cards */}
-      <section className="py-16 bg-white">
+      <section className="py-12 relative z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid md:grid-cols-4 gap-6 mb-12">
-            <div className="bg-gradient-to-br from-primary-50 to-primary-100 p-8 rounded-lg text-center hover:shadow-lg transition-shadow">
-              <FaPhone className="text-4xl text-primary-600 mx-auto mb-4" />
-              <h3 className="text-xl font-bold text-gray-900 mb-2">Call Us</h3>
-              <p className="text-gray-600 mb-2">Available 24/7</p>
-              <a href="tel:+919876543210" className="text-primary-600 font-bold hover:underline">
+          <div className="grid md:grid-cols-4 gap-4">
+            <div className="bg-white/10 backdrop-blur-xl p-6 rounded-2xl border border-white/20 text-center hover:bg-white/15 transition-all group">
+              <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-500/30 group-hover:shadow-blue-500/50 transition-shadow">
+                <FaPhone className="text-xl text-white" />
+              </div>
+              <h3 className="text-lg font-bold text-white mb-1">Call Us</h3>
+              <p className="text-white/50 text-sm mb-2">Available 24/7</p>
+              <a href="tel:+919876543210" className="text-primary-400 font-semibold hover:text-primary-300 transition-colors">
                 +91 98765 43210
               </a>
             </div>
 
-            <div className="bg-gradient-to-br from-green-50 to-green-100 p-8 rounded-lg text-center hover:shadow-lg transition-shadow">
-              <FaEnvelope className="text-4xl text-green-600 mx-auto mb-4" />
-              <h3 className="text-xl font-bold text-gray-900 mb-2">Email</h3>
-              <p className="text-gray-600 mb-2">Reply within 24 hours</p>
-              <a href="mailto:alamalujai@gmail.com" className="text-green-600 font-bold hover:underline text-sm">
+            <div className="bg-white/10 backdrop-blur-xl p-6 rounded-2xl border border-white/20 text-center hover:bg-white/15 transition-all group">
+              <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-green-500/30 group-hover:shadow-green-500/50 transition-shadow">
+                <FaEnvelope className="text-xl text-white" />
+              </div>
+              <h3 className="text-lg font-bold text-white mb-1">Email</h3>
+              <p className="text-white/50 text-sm mb-2">Reply within 24 hours</p>
+              <a href="mailto:alamalujai@gmail.com" className="text-green-400 font-semibold hover:text-green-300 transition-colors text-sm">
                 alamalujai@gmail.com
               </a>
             </div>
 
-            <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-8 rounded-lg text-center hover:shadow-lg transition-shadow">
-              <FaMapMarkerAlt className="text-4xl text-purple-600 mx-auto mb-4" />
-              <h3 className="text-xl font-bold text-gray-900 mb-2">Visit Us</h3>
-              <p className="text-gray-600 text-sm">
-                Tech Park, Chennai<br/>
+            <div className="bg-white/10 backdrop-blur-xl p-6 rounded-2xl border border-white/20 text-center hover:bg-white/15 transition-all group">
+              <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-purple-500/30 group-hover:shadow-purple-500/50 transition-shadow">
+                <FaMapMarkerAlt className="text-xl text-white" />
+              </div>
+              <h3 className="text-lg font-bold text-white mb-1">Visit Us</h3>
+              <p className="text-white/60 text-sm">
+                Tech Park, Chennai<br />
                 Tamil Nadu, India
               </p>
             </div>
 
-            <div className="bg-gradient-to-br from-orange-50 to-orange-100 p-8 rounded-lg text-center hover:shadow-lg transition-shadow">
-              <FaClock className="text-4xl text-orange-600 mx-auto mb-4" />
-              <h3 className="text-xl font-bold text-gray-900 mb-2">Business Hours</h3>
-              <p className="text-gray-600 text-sm">
-                Mon - Fri: 9 AM - 6 PM<br/>
+            <div className="bg-white/10 backdrop-blur-xl p-6 rounded-2xl border border-white/20 text-center hover:bg-white/15 transition-all group">
+              <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-orange-500/30 group-hover:shadow-orange-500/50 transition-shadow">
+                <FaClock className="text-xl text-white" />
+              </div>
+              <h3 className="text-lg font-bold text-white mb-1">Business Hours</h3>
+              <p className="text-white/60 text-sm">
+                Mon - Fri: 9 AM - 6 PM<br />
                 Sat - Sun: 10 AM - 4 PM
               </p>
             </div>
@@ -102,211 +129,185 @@ export default function ContactPage() {
       </section>
 
       {/* Contact Form & Info */}
-      <section className="py-16 bg-gradient-to-r from-primary-50 to-indigo-50">
+      <section className="py-12 relative z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid md:grid-cols-2 gap-12">
+          <div className="grid md:grid-cols-2 gap-8">
             {/* Contact Form */}
-            <div>
-              <h2 className="text-3xl font-bold text-gray-900 mb-8">Send us a Message</h2>
-              <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="bg-white/10 backdrop-blur-xl rounded-2xl border border-white/20 p-8">
+              <h2 className="text-2xl font-bold text-white mb-6">Send us a Message</h2>
+              <form onSubmit={handleSubmit} className="space-y-5">
                 <div>
-                  <label className="block text-gray-700 font-medium mb-2">Name <span className="text-red-500">*</span></label>
-                  <input
-                    type="text"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleInputChange}
-                    placeholder="Your name"
-                    className="input"
-                    required
-                  />
+                  <label className="block text-white/80 font-medium mb-2 text-sm">Name <span className="text-red-400">*</span></label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                      <FaUser className="text-white/40" />
+                    </div>
+                    <input
+                      type="text"
+                      name="name"
+                      value={formData.name}
+                      onChange={handleInputChange}
+                      placeholder="Your name"
+                      className="w-full bg-white/10 border border-white/20 rounded-xl py-3 pl-11 pr-4 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                      required
+                    />
+                  </div>
                 </div>
 
                 <div>
-                  <label className="block text-gray-700 font-medium mb-2">Email <span className="text-red-500">*</span></label>
-                  <input
-                    type="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleInputChange}
-                    placeholder="your@email.com"
-                    className="input"
-                    required
-                  />
+                  <label className="block text-white/80 font-medium mb-2 text-sm">Email <span className="text-red-400">*</span></label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                      <FaEnvelope className="text-white/40" />
+                    </div>
+                    <input
+                      type="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleInputChange}
+                      placeholder="your@email.com"
+                      className="w-full bg-white/10 border border-white/20 rounded-xl py-3 pl-11 pr-4 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                      required
+                    />
+                  </div>
                 </div>
 
                 <div>
-                  <label className="block text-gray-700 font-medium mb-2">Phone</label>
-                  <input
-                    type="tel"
-                    name="phone"
-                    value={formData.phone}
-                    onChange={handleInputChange}
-                    placeholder="+91 98765 43210"
-                    className="input"
-                  />
+                  <label className="block text-white/80 font-medium mb-2 text-sm">Phone</label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                      <FaPhone className="text-white/40" />
+                    </div>
+                    <input
+                      type="tel"
+                      name="phone"
+                      value={formData.phone}
+                      onChange={handleInputChange}
+                      placeholder="+91 98765 43210"
+                      className="w-full bg-white/10 border border-white/20 rounded-xl py-3 pl-11 pr-4 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                    />
+                  </div>
                 </div>
 
                 <div>
-                  <label className="block text-gray-700 font-medium mb-2">Subject <span className="text-red-500">*</span></label>
+                  <label className="block text-white/80 font-medium mb-2 text-sm">Subject <span className="text-red-400">*</span></label>
                   <input
                     type="text"
                     name="subject"
                     value={formData.subject}
                     onChange={handleInputChange}
                     placeholder="How can we help?"
-                    className="input"
+                    className="w-full bg-white/10 border border-white/20 rounded-xl py-3 px-4 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
                     required
                   />
                 </div>
 
                 <div>
-                  <label className="block text-gray-700 font-medium mb-2">Message <span className="text-red-500">*</span></label>
+                  <label className="block text-white/80 font-medium mb-2 text-sm">Message <span className="text-red-400">*</span></label>
                   <textarea
                     name="message"
                     value={formData.message}
                     onChange={handleInputChange}
                     placeholder="Tell us more..."
-                    rows="5"
-                    className="input resize-none"
+                    rows="4"
+                    className="w-full bg-white/10 border border-white/20 rounded-xl py-3 px-4 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all resize-none"
                     required
                   />
                 </div>
 
                 {error && (
-                  <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
-                    ⚠️ {error}
+                  <div className="rounded-xl bg-red-500/20 backdrop-blur-sm border border-red-400/30 p-4 flex items-start gap-3">
+                    <FaExclamationTriangle className="text-red-400 flex-shrink-0 mt-0.5" />
+                    <p className="text-sm text-red-100">{error}</p>
                   </div>
                 )}
 
                 {submitted && (
-                  <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg text-sm">
-                    ✓ Message sent successfully! We'll get back to you soon.
+                  <div className="rounded-xl bg-green-500/20 backdrop-blur-sm border border-green-400/30 p-4 flex items-center gap-3">
+                    <FaCheckCircle className="text-green-400 flex-shrink-0" />
+                    <p className="text-sm text-green-100">Message sent successfully! We'll get back to you soon.</p>
                   </div>
                 )}
 
                 <button
                   type="submit"
                   disabled={loading}
-                  className="btn-primary w-full py-3 disabled:opacity-50"
+                  className="w-full bg-gradient-to-r from-primary-600 to-primary-500 hover:from-primary-500 hover:to-primary-400 text-white font-semibold py-3.5 px-4 rounded-xl shadow-lg shadow-primary-500/30 hover:shadow-primary-500/50 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
-                  {loading ? 'Sending...' : 'Send Message'}
+                  {loading ? (
+                    <>
+                      <FaSpinner className="animate-spin" />
+                      Sending...
+                    </>
+                  ) : (
+                    <>
+                      <FaPaperPlane />
+                      Send Message
+                    </>
+                  )}
                 </button>
               </form>
             </div>
 
             {/* Contact Info */}
             <div>
-              <h2 className="text-3xl font-bold text-gray-900 mb-8">Why Contact Us?</h2>
-              
-              <div className="space-y-6">
-                <div className="bg-white p-6 rounded-lg border-l-4 border-primary-600 shadow-md">
-                  <h3 className="text-xl font-bold text-gray-900 mb-2">Report an Issue</h3>
-                  <p className="text-gray-600">
-                    Experiencing problems with your shipment or account? Our support team is here to help resolve it quickly.
-                  </p>
-                </div>
+              <h2 className="text-2xl font-bold text-white mb-6">Why Contact Us?</h2>
 
-                <div className="bg-white p-6 rounded-lg border-l-4 border-green-500 shadow-md">
-                  <h3 className="text-xl font-bold text-gray-900 mb-2">Partnership Inquiries</h3>
-                  <p className="text-gray-600">
-                    Are you a logistics company or delivery service? Let's explore partnership opportunities together.
-                  </p>
-                </div>
-
-                <div className="bg-white p-6 rounded-lg border-l-4 border-purple-500 shadow-md">
-                  <h3 className="text-xl font-bold text-gray-900 mb-2">Feedback & Suggestions</h3>
-                  <p className="text-gray-600">
-                    Your feedback helps us improve. Share your suggestions to make TPTS better for everyone.
-                  </p>
-                </div>
-
-                <div className="bg-white p-6 rounded-lg border-l-4 border-yellow-500 shadow-md">
-                  <h3 className="text-xl font-bold text-gray-900 mb-2">Career Opportunities</h3>
-                  <p className="text-gray-600">
-                    Join our growing team! Check our <a href="/jobs" className="text-primary-600 hover:underline">Jobs page</a> for open positions.
-                  </p>
-                </div>
+              <div className="space-y-4">
+                {[
+                  { icon: FaExclamationTriangle, title: "Report an Issue", desc: "Experiencing problems with your shipment or account? Our support team is here to help resolve it quickly.", color: "from-blue-500 to-blue-600", border: "border-l-blue-400" },
+                  { icon: FaHandshake, title: "Partnership Inquiries", desc: "Are you a logistics company or delivery service? Let's explore partnership opportunities together.", color: "from-green-500 to-green-600", border: "border-l-green-400" },
+                  { icon: FaCommentDots, title: "Feedback & Suggestions", desc: "Your feedback helps us improve. Share your suggestions to make TPTS better for everyone.", color: "from-purple-500 to-purple-600", border: "border-l-purple-400" },
+                  { icon: FaBriefcase, title: "Career Opportunities", desc: "Join our growing team! Check our Jobs page for open positions.", color: "from-yellow-500 to-yellow-600", border: "border-l-yellow-400" },
+                ].map((item, idx) => {
+                  const IconComponent = item.icon;
+                  return (
+                    <div key={idx} className={`bg-white/10 backdrop-blur-xl p-5 rounded-xl border border-white/20 border-l-4 ${item.border} hover:bg-white/15 transition-all`}>
+                      <div className="flex items-start gap-4">
+                        <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${item.color} flex items-center justify-center flex-shrink-0`}>
+                          <IconComponent className="text-white" />
+                        </div>
+                        <div>
+                          <h3 className="text-lg font-bold text-white mb-1">{item.title}</h3>
+                          <p className="text-white/60 text-sm">{item.desc}</p>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
 
-              {/* Social Links */}
-              <div className="mt-12">
-                <h3 className="text-xl font-bold text-gray-900 mb-4">Connect With Us</h3>
-                <div className="flex space-x-4">
-                  <a href="#" className="bg-white p-4 rounded-lg text-blue-600 hover:bg-blue-50 transition-colors shadow-md">
-                    <FaFacebook size={24} />
-                  </a>
-                  <a href="#" className="bg-white p-4 rounded-lg text-blue-400 hover:bg-blue-50 transition-colors shadow-md">
-                    <FaTwitter size={24} />
-                  </a>
-                  <a href="#" className="bg-white p-4 rounded-lg text-blue-700 hover:bg-blue-50 transition-colors shadow-md">
-                    <FaLinkedin size={24} />
-                  </a>
-                  <a href="#" className="bg-white p-4 rounded-lg text-pink-600 hover:bg-pink-50 transition-colors shadow-md">
-                    <FaInstagram size={24} />
-                  </a>
-                </div>
-              </div>
+
             </div>
           </div>
         </div>
       </section>
 
       {/* FAQ Section */}
-      <section className="py-16 bg-white">
+      <section className="py-16 pb-24 relative z-10">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-4xl font-bold text-center text-gray-900 mb-12">Frequently Asked Questions</h2>
-          
+          <h2 className="text-4xl font-bold text-center text-white mb-12">Frequently Asked Questions</h2>
+
           <div className="space-y-4">
-            <details className="bg-gray-50 p-6 rounded-lg cursor-pointer group hover:bg-gray-100">
-              <summary className="flex items-center justify-between font-bold text-gray-900 text-lg">
-                <span>What is TPTS?</span>
-                <span className="text-primary-600 group-open:rotate-180 transition-transform">▼</span>
-              </summary>
-              <p className="text-gray-600 mt-4">
-                TPTS (Trail Parcel Tracking System) is India's innovative logistics platform that combines group shipments with real-time tracking to offer affordable, transparent, and eco-friendly delivery solutions.
-              </p>
-            </details>
-
-            <details className="bg-gray-50 p-6 rounded-lg cursor-pointer group hover:bg-gray-100">
-              <summary className="flex items-center justify-between font-bold text-gray-900 text-lg">
-                <span>How much can I save?</span>
-                <span className="text-primary-600 group-open:rotate-180 transition-transform">▼</span>
-              </summary>
-              <p className="text-gray-600 mt-4">
-                You can save up to 40% on delivery costs by grouping your shipments with others heading in the same direction. The savings depend on the number of items grouped and distance traveled.
-              </p>
-            </details>
-
-            <details className="bg-gray-50 p-6 rounded-lg cursor-pointer group hover:bg-gray-100">
-              <summary className="flex items-center justify-between font-bold text-gray-900 text-lg">
-                <span>Is my shipment insured?</span>
-                <span className="text-primary-600 group-open:rotate-180 transition-transform">▼</span>
-              </summary>
-              <p className="text-gray-600 mt-4">
-                Yes! All shipments on TPTS come with insurance coverage. Your parcels are protected throughout their journey. Full details are available in your shipment receipt.
-              </p>
-            </details>
-
-            <details className="bg-gray-50 p-6 rounded-lg cursor-pointer group hover:bg-gray-100">
-              <summary className="flex items-center justify-between font-bold text-gray-900 text-lg">
-                <span>How do I track my parcel?</span>
-                <span className="text-primary-600 group-open:rotate-180 transition-transform">▼</span>
-              </summary>
-              <p className="text-gray-600 mt-4">
-                You can track your parcel in real-time using the tracking number on our homepage. Your delivery agent's location is updated in real-time, and you'll receive notifications at each milestone.
-              </p>
-            </details>
-
-            <details className="bg-gray-50 p-6 rounded-lg cursor-pointer group hover:bg-gray-100">
-              <summary className="flex items-center justify-between font-bold text-gray-900 text-lg">
-                <span>Can I become a delivery agent?</span>
-                <span className="text-primary-600 group-open:rotate-180 transition-transform">▼</span>
-              </summary>
-              <p className="text-gray-600 mt-4">
-                Yes! We're always looking for professional delivery agents. Visit our <a href="/jobs" className="text-primary-600 hover:underline">Jobs page</a> to apply. Earn competitive income with flexible working hours.
-              </p>
-            </details>
+            {[
+              { q: "What is TPTS?", a: "TPTS (Trail Parcel Tracking System) is India's innovative logistics platform that combines group shipments with OTP-verified tracking to offer affordable and transparent delivery solutions." },
+              { q: "How much can I save with group shipping?", a: "You can save up to 40% on delivery costs by grouping your shipments with others heading in the same direction. The savings depend on the number of members in the group and the route." },
+              { q: "How does OTP verification work?", a: "Both pickup and delivery are secured with one-time passwords (OTP). The agent verifies the OTP at pickup and the receiver verifies at delivery. Photo proof is also captured for complete transparency." },
+              { q: "How do I track my parcel?", a: "You can track your parcel in real-time using the tracking number on our homepage. You'll receive notifications at each milestone - from pickup to delivery." },
+              { q: "Can I rate the delivery experience?", a: "Yes! After delivery, you can rate both the company and delivery agent. Your ratings help maintain service quality across the platform." },
+              { q: "How can I become a delivery agent?", a: "Visit our Jobs page to see available positions from courier companies. You can apply directly through the platform and companies will review your application." },
+              { q: "What payment methods are accepted?", a: "We accept online payments via Razorpay (UPI, cards, net banking). For group orders with balance due, agents can also collect cash payments with photo proof." },
+            ].map((item, idx) => (
+              <details key={idx} className="bg-white/10 backdrop-blur-xl rounded-xl border border-white/20 overflow-hidden group">
+                <summary className="flex items-center justify-between p-5 cursor-pointer hover:bg-white/5 transition-colors">
+                  <span className="font-bold text-white text-lg">{item.q}</span>
+                  <FaChevronDown className="text-primary-400 group-open:rotate-180 transition-transform" />
+                </summary>
+                <div className="px-5 pb-5 pt-0">
+                  <p className="text-white/70">{item.a}</p>
+                </div>
+              </details>
+            ))}
           </div>
         </div>
       </section>

@@ -2,7 +2,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import {
   FaHome, FaBuilding, FaUsers, FaBox, FaChartBar,
-  FaDollarSign, FaCog, FaBell, FaShieldAlt, FaSignOutAlt, FaUser
+  FaDollarSign, FaCog, FaBell, FaShieldAlt, FaSignOutAlt, FaUser, FaEnvelope
 } from "react-icons/fa";
 import { getUser, logout } from "../../utils/auth";
 import { getPendingCompanies } from "../../services/adminService";
@@ -33,14 +33,15 @@ export default function SuperAdminSidebar() {
     { label: "Company Approvals", icon: FaBuilding, path: "/admin/companies", badge: pendingCount },
     { label: "All Users", icon: FaUsers, path: "/admin/users" },
     { label: "All Parcels", icon: FaBox, path: "/admin/parcels" },
+    { label: "Messaging", icon: FaEnvelope, path: "/admin/messaging", highlight: true },
     { label: "Analytics", icon: FaChartBar, path: "/admin/analytics" },
     { label: "Revenue", icon: FaDollarSign, path: "/admin/revenue" },
     { label: "System Logs", icon: FaShieldAlt, path: "/admin/logs" },
     { label: "Notifications", icon: FaBell, path: "/admin/notifications" },
   ];
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     navigate("/login");
   };
 
@@ -49,11 +50,16 @@ export default function SuperAdminSidebar() {
       <aside className="fixed left-0 top-0 h-screen w-64 bg-gradient-to-b from-slate-800 to-slate-900 text-white shadow-2xl z-50 flex flex-col">
         {/* Logo */}
         <div className="p-5 border-b border-slate-700">
-          <Link to="/" className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-red-600 text-white font-bold text-lg shadow-lg">
-              T
+          <Link to="/" className="flex items-center gap-3 group">
+            <img
+              src="/logo.png"
+              alt="TPTS Logo"
+              className="h-12 w-auto object-contain transition-all duration-200 group-hover:brightness-125 group-hover:scale-105"
+            />
+            <div className="flex flex-col">
+              <span className="text-lg font-bold text-white leading-tight">TPTS</span>
+              <span className="text-xs text-indigo-400 font-medium">Admin Portal</span>
             </div>
-            <span className="text-xl font-bold">TPTS Admin</span>
           </Link>
         </div>
 
@@ -64,10 +70,10 @@ export default function SuperAdminSidebar() {
               <img
                 src={user.profileImageUrl}
                 alt={user?.fullName}
-                className="h-12 w-12 rounded-full object-cover border-2 border-red-500 shadow-md"
+                className="h-12 w-12 rounded-full object-cover border-2 border-indigo-500 shadow-md"
               />
             ) : (
-              <div className="h-12 w-12 rounded-full bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center text-lg font-bold shadow-md">
+              <div className="h-12 w-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-lg font-bold shadow-md">
                 {user?.fullName?.charAt(0) || "P"}
               </div>
             )}

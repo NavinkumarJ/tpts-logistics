@@ -28,6 +28,10 @@ public class RatingDTO {
     private Long agentId;
     private String agentName;
 
+    // Pickup agent (for group shipments)
+    private Long pickupAgentId;
+    private String pickupAgentName;
+
     // Company ratings
     private Integer companyRating;
     private String companyReview;
@@ -36,13 +40,17 @@ public class RatingDTO {
     private Integer companyCommunicationRating;
     private Double averageCompanyRating;
 
-    // Agent ratings
+    // Agent ratings (delivery agent)
     private Integer agentRating;
     private String agentReview;
     private Integer agentPunctualityRating;
     private Integer agentBehaviorRating;
     private Integer agentHandlingRating;
     private Double averageAgentRating;
+
+    // Pickup agent ratings
+    private Integer pickupAgentRating;
+    private String pickupAgentReview;
 
     // Overall
     private Integer overallRating;
@@ -72,4 +80,9 @@ public class RatingDTO {
     // Helper flags
     private Boolean hasAgentRating;
     private Boolean hasCompanyResponse;
+
+    // Rating status flags
+    private Boolean hasRatedPickupAgent;
+    private Boolean hasRatedDeliveryAgent;
+    private Boolean hasRatedCompany;
 }

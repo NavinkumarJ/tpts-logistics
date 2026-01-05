@@ -48,14 +48,18 @@ public class Rating {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "agent_id")
-    private DeliveryAgent agent;
+    private DeliveryAgent agent; // Delivery agent
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "pickup_agent_id")
+    private DeliveryAgent pickupAgent; // Pickup agent (for group shipments)
 
     // ==========================================
     // Company Rating
     // ==========================================
 
-    @Column(name = "company_rating", nullable = false)
-    private Integer companyRating; // 1-5 stars
+    @Column(name = "company_rating")
+    private Integer companyRating; // 1-5 stars (nullable for agent-only ratings)
 
     @Column(name = "company_review", columnDefinition = "TEXT")
     private String companyReview;
@@ -90,12 +94,31 @@ public class Rating {
     @Column(name = "agent_handling_rating")
     private Integer agentHandlingRating; // 1-5 (package handling)
 
+    // Track which agent type has been rated (for two-agent model)
+    @Column(name = "has_rated_pickup_agent")
+    @Builder.Default
+    private Boolean hasRatedPickupAgent = false;
+
+    @Column(name = "pickup_agent_rating")
+    private Integer pickupAgentRating; // 1-5 stars for pickup agent
+
+    @Column(name = "pickup_agent_review", columnDefinition = "TEXT")
+    private String pickupAgentReview;
+
+    @Column(name = "has_rated_delivery_agent")
+    @Builder.Default
+    private Boolean hasRatedDeliveryAgent = false;
+
+    @Column(name = "has_rated_company")
+    @Builder.Default
+    private Boolean hasRatedCompany = false;
+
     // ==========================================
     // Overall Experience
     // ==========================================
 
-    @Column(name = "overall_rating", nullable = false)
-    private Integer overallRating; // 1-5 stars
+    @Column(name = "overall_rating")
+    private Integer overallRating; // 1-5 stars (nullable for partial ratings)
 
     @Column(name = "overall_review", columnDefinition = "TEXT")
     private String overallReview;
@@ -211,7 +234,8 @@ public class Rating {
      * Calculate average agent rating from all aspects
      */
     public double getAverageAgentRating() {
-        if (agentRating == null) return 0;
+        if (agentRating == null)
+            return 0;
 
         int count = 1;
         int total = agentRating;

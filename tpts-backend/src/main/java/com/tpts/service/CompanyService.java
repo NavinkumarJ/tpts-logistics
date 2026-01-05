@@ -18,6 +18,7 @@ import com.tpts.repository.DeliveryAgentRepository;
 import com.tpts.repository.ParcelRepository;
 import com.tpts.repository.EarningRepository;
 import com.tpts.repository.JobApplicationRepository;
+import com.tpts.repository.GroupShipmentRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -45,6 +46,7 @@ public class CompanyService {
     private final ParcelRepository parcelRepository;
     private final EarningRepository earningRepository;
     private final JobApplicationRepository jobApplicationRepository;
+    private final GroupShipmentRepository groupShipmentRepository;
     private final ObjectMapper objectMapper;
 
     // ==========================================
@@ -244,36 +246,42 @@ public class CompanyService {
         // Calculate revenue from earnings
         List<Earning> earnings = earningRepository.findByCompanyId(companyId);
 
-        // Total order amount (what customers paid for ALL parcels) - from parcel
-        // finalPrice
+        // Filter out cancelled earnings - only count CLEARED and PENDING
+        List<Earning> activeEarnings = earnings.stream()
+                .filter(e -> e.getStatus() != EarningStatus.CANCELLED)
+                .toList();
+
+        // Total order amount (what customers paid) - EXCLUDE cancelled parcels
         BigDecimal totalOrderAmount = allParcels.stream()
+                .filter(p -> p.getStatus() != ParcelStatus.CANCELLED) // Exclude cancelled
                 .filter(p -> p.getPaymentStatus() == PaymentStatus.SUCCESS
                         || p.getPaymentStatus() == PaymentStatus.CAPTURED)
                 .map(Parcel::getFinalPrice)
                 .filter(fp -> fp != null)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        // Platform commission (10% to TPTS)
-        BigDecimal totalPlatformCommission = earnings.stream()
+        // Platform commission (10% to TPTS) - from active earnings only
+        BigDecimal totalPlatformCommission = activeEarnings.stream()
                 .map(Earning::getPlatformCommission)
                 .filter(e -> e != null)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        // Agent earnings (20% to agents)
-        BigDecimal totalAgentEarning = earnings.stream()
+        // Agent earnings (20% to agents) - from active earnings only
+        BigDecimal totalAgentEarning = activeEarnings.stream()
                 .map(Earning::getAgentEarning)
                 .filter(e -> e != null)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        // Company's net earning (70% of total after platform and agent commission)
-        BigDecimal companyNetRevenue = earnings.stream()
+        // Company's net earning (70% of total after platform and agent commission) -
+        // from active earnings only
+        BigDecimal companyNetRevenue = activeEarnings.stream()
                 .map(Earning::getCompanyNetEarning)
                 .filter(e -> e != null)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        // Today's revenue
+        // Today's revenue - from active earnings only
         LocalDateTime startOfToday = LocalDate.now().atStartOfDay();
-        BigDecimal todayRevenue = earnings.stream()
+        BigDecimal todayRevenue = activeEarnings.stream()
                 .filter(e -> e.getCreatedAt() != null && e.getCreatedAt().isAfter(startOfToday))
                 .map(Earning::getCompanyNetEarning)
                 .filter(e -> e != null)
@@ -329,11 +337,49 @@ public class CompanyService {
             onTimeDeliveryRate = (int) ((onTimeCount * 100) / deliveredParcels.size());
         }
 
+        // Calculate total orders: count from GroupShipment table + individual parcels
+        // Query group shipments directly from the GroupShipment table
+        List<GroupShipment> allGroups = groupShipmentRepository.findByCompanyIdOrderByCreatedAtDesc(companyId);
+
+        // Individual parcels are those NOT in any group
+        List<Parcel> individualParcels = allParcels.stream()
+                .filter(p -> p.getGroupShipmentId() == null)
+                .collect(Collectors.toList());
+
+        // Total orders = groups + individual parcels
+        int totalOrders = allGroups.size() + individualParcels.size();
+
+        // Completed: groups with COMPLETED status + individual parcels with DELIVERED
+        // status
+        long completedGroupsCount = allGroups.stream()
+                .filter(g -> g.getStatus() == GroupStatus.COMPLETED)
+                .count();
+        long completedIndividualCount = individualParcels.stream()
+                .filter(p -> p.getStatus() == ParcelStatus.DELIVERED)
+                .count();
+        long completedOrdersTotal = completedGroupsCount + completedIndividualCount;
+
+        // Cancelled: groups with CANCELLED status + individual parcels with CANCELLED
+        // status
+        long cancelledGroupsCount = allGroups.stream()
+                .filter(g -> g.getStatus() == GroupStatus.CANCELLED)
+                .count();
+        long cancelledIndividualCount = individualParcels.stream()
+                .filter(p -> p.getStatus() == ParcelStatus.CANCELLED)
+                .count();
+        long cancelledOrdersTotal = cancelledGroupsCount + cancelledIndividualCount;
+
+        // Active orders = total - completed - cancelled
+        long activeOrdersTotal = totalOrders - completedOrdersTotal - cancelledOrdersTotal;
+        if (activeOrdersTotal < 0)
+            activeOrdersTotal = 0;
+
         // Build stats with real data from database
         CompanyDashboardDTO.DashboardStats stats = CompanyDashboardDTO.DashboardStats.builder()
-                .totalOrders((int) allParcels.size())
-                .activeOrders((int) activeParcels)
-                .completedOrders((int) completedParcels)
+                .totalOrders(totalOrders)
+                .activeOrders((int) activeOrdersTotal)
+                .completedOrders((int) completedOrdersTotal)
+                .cancelledOrders((int) cancelledOrdersTotal)
                 .pendingOrders((int) pendingParcels)
                 .totalRevenue(companyNetRevenue) // Company's share (actual from DB)
                 .totalOrderAmount(totalOrderAmount) // Full customer payment
@@ -372,8 +418,9 @@ public class CompanyService {
                 .map(this::mapParcelToDTO)
                 .collect(Collectors.toList());
 
-        // Get top 2 active agents sorted alphabetically
+        // Get top 2 active agents sorted alphabetically (only isActive=true)
         List<AgentDTO> activeAgentsList = agentRepository.findByCompanyId(companyId).stream()
+                .filter(agent -> Boolean.TRUE.equals(agent.getIsActive())) // Only active agents
                 .sorted((a, b) -> a.getFullName().compareToIgnoreCase(b.getFullName()))
                 .limit(2)
                 .map(this::mapAgentToDTO)
@@ -639,5 +686,32 @@ public class CompanyService {
                 .status(app.getStatus())
                 .appliedAt(app.getAppliedAt())
                 .build();
+    }
+
+    // ==========================================
+    // Agent Search for Messaging
+    // ==========================================
+
+    /**
+     * Search company's agents by name for messaging
+     */
+    public List<AgentDTO> searchAgents(User currentUser, String query) {
+        CompanyAdmin company = companyRepository.findByUser(currentUser)
+                .orElseThrow(() -> new ResourceNotFoundException("Company profile not found"));
+
+        List<DeliveryAgent> agents = agentRepository.findByCompanyId(company.getId());
+
+        if (query != null && !query.isEmpty()) {
+            String lowerQuery = query.toLowerCase();
+            agents = agents.stream()
+                    .filter(a -> a.getFullName().toLowerCase().contains(lowerQuery)
+                            || a.getUser().getEmail().toLowerCase().contains(lowerQuery))
+                    .collect(Collectors.toList());
+        }
+
+        return agents.stream()
+                .limit(50)
+                .map(this::mapAgentToDTO)
+                .collect(Collectors.toList());
     }
 }

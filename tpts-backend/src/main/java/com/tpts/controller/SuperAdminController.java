@@ -171,6 +171,20 @@ public class SuperAdminController {
     }
 
     /**
+     * Get rejected companies
+     * GET /api/super-admin/companies/rejected
+     */
+    @GetMapping("/companies/rejected")
+    public ResponseEntity<ApiResponse<List<CompanyDTO>>> getRejectedCompanies() {
+        log.info("Getting rejected companies");
+
+        List<CompanyDTO> companies = superAdminService.getRejectedCompanies();
+
+        return ResponseEntity.ok(ApiResponse.success(companies,
+                "Retrieved " + companies.size() + " rejected companies"));
+    }
+
+    /**
      * Get company by ID (for detailed review)
      * GET /api/super-admin/companies/{id}
      */
@@ -494,5 +508,119 @@ public class SuperAdminController {
 
         return ResponseEntity.ok(ApiResponse.success(logs,
                 logs.size() + " action logs retrieved"));
+    }
+
+    // ==========================================
+    // Messaging
+    // ==========================================
+
+    /**
+     * Send bulk email to companies/customers
+     * POST /api/super-admin/messaging/send
+     */
+    @PostMapping("/messaging/send")
+    public ResponseEntity<ApiResponse<EmailLogDTO>> sendBulkEmail(
+            @Valid @RequestBody SendBulkEmailRequest request,
+            @AuthenticationPrincipal User currentUser) {
+
+        log.info("Sending bulk email - type: {}, sendToAll: {}",
+                request.getRecipientType(), request.isSendToAll());
+
+        EmailLogDTO result = superAdminService.sendBulkEmail(request, currentUser);
+
+        if (result == null) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("No recipients found"));
+        }
+
+        return ResponseEntity.ok(ApiResponse.success(result, "Email sent successfully"));
+    }
+
+    /**
+     * Get email history
+     * GET /api/super-admin/messaging/history
+     */
+    @GetMapping("/messaging/history")
+    public ResponseEntity<ApiResponse<List<EmailLogDTO>>> getEmailHistory(
+            @RequestParam(required = false) String type,
+            @RequestParam(defaultValue = "50") int limit) {
+
+        log.info("Getting email history - type: {}, limit: {}", type, limit);
+
+        List<EmailLogDTO> history = superAdminService.getEmailHistory(type, limit);
+
+        return ResponseEntity.ok(ApiResponse.success(history,
+                history.size() + " emails retrieved"));
+    }
+
+    /**
+     * Search companies for messaging
+     * GET /api/super-admin/search/companies?q=
+     */
+    @GetMapping("/search/companies")
+    public ResponseEntity<ApiResponse<List<CompanyDTO>>> searchCompanies(
+            @RequestParam(required = false, defaultValue = "") String q) {
+
+        log.info("Searching companies: {}", q);
+
+        List<CompanyDTO> companies = superAdminService.searchCompanies(q);
+
+        return ResponseEntity.ok(ApiResponse.success(companies,
+                companies.size() + " companies found"));
+    }
+
+    /**
+     * Search customers for messaging
+     * GET /api/super-admin/search/customers?q=
+     */
+    @GetMapping("/search/customers")
+    public ResponseEntity<ApiResponse<List<CustomerDTO>>> searchCustomers(
+            @RequestParam(required = false, defaultValue = "") String q) {
+
+        log.info("Searching customers: {}", q);
+
+        List<CustomerDTO> customers = superAdminService.searchCustomers(q);
+
+        return ResponseEntity.ok(ApiResponse.success(customers,
+                customers.size() + " customers found"));
+    }
+
+    // ==========================================
+    // Cancellation Analytics
+    // ==========================================
+
+    /**
+     * Get cancellation statistics
+     * GET /api/super-admin/stats/cancellations
+     */
+    @GetMapping("/stats/cancellations")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getCancellationStats() {
+
+        log.info("Getting cancellation statistics");
+
+        Map<String, Object> stats = superAdminService.getCancellationStats();
+
+        return ResponseEntity.ok(ApiResponse.success(stats, "Cancellation stats retrieved"));
+    }
+
+    // ==========================================
+    // Login Activity Logs
+    // ==========================================
+
+    /**
+     * Get recent login activity logs
+     * GET /api/super-admin/login-activity
+     */
+    @GetMapping("/login-activity")
+    public ResponseEntity<ApiResponse<List<LoginActivityDTO>>> getLoginActivity(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size) {
+
+        log.info("Getting login activity logs, page: {}, size: {}", page, size);
+
+        List<LoginActivityDTO> activities = superAdminService.getLoginActivities(page, size);
+
+        return ResponseEntity.ok(ApiResponse.success(activities,
+                activities.size() + " login activities retrieved"));
     }
 }

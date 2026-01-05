@@ -2,7 +2,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import {
     FaHome, FaBox, FaUsers, FaLayerGroup, FaUserPlus,
-    FaChartLine, FaCog, FaSignOutAlt, FaUser, FaStar
+    FaChartLine, FaCog, FaSignOutAlt, FaUser, FaStar, FaEnvelope
 } from "react-icons/fa";
 import { getUser, logout } from "../../utils/auth";
 import { getCurrentCompany } from "../../services/companyService";
@@ -42,14 +42,14 @@ export default function CompanySidebar() {
         { label: "Agents", icon: FaUsers, path: "/company/agents" },
         { label: "Group Shipments", icon: FaLayerGroup, path: "/company/groups" },
         { label: "Job Applications", icon: FaUserPlus, path: "/company/applications" },
+        { label: "Message Agents", icon: FaEnvelope, path: "/company/messaging", highlight: true },
         { label: "Ratings", icon: FaStar, path: "/company/ratings" },
         { label: "Analytics", icon: FaChartLine, path: "/company/analytics" },
-        { label: "Company Profile", icon: FaUser, path: "/company/profile" },
         { label: "Settings", icon: FaCog, path: "/company/settings" },
     ];
 
-    const handleLogout = () => {
-        logout();
+    const handleLogout = async () => {
+        await logout();
         navigate("/login");
     };
 
@@ -58,11 +58,16 @@ export default function CompanySidebar() {
             <aside className="fixed left-0 top-0 h-screen w-64 bg-gradient-to-b from-slate-800 to-slate-900 text-white shadow-2xl z-50 flex flex-col">
                 {/* Logo */}
                 <div className="p-6 border-b border-slate-700">
-                    <Link to="/" className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary-600 text-white font-bold text-lg shadow-lg">
-                            T
+                    <Link to="/" className="flex items-center gap-3 group">
+                        <img
+                            src="/logo.png"
+                            alt="TPTS Logo"
+                            className="h-12 w-auto object-contain transition-all duration-200 group-hover:brightness-125 group-hover:scale-105"
+                        />
+                        <div className="flex flex-col">
+                            <span className="text-lg font-bold text-white leading-tight">TPTS</span>
+                            <span className="text-xs text-indigo-400 font-medium">Company Portal</span>
                         </div>
-                        <span className="text-xl font-bold">TPTS Company</span>
                     </Link>
                 </div>
 
@@ -104,7 +109,7 @@ export default function CompanySidebar() {
                                     key={idx}
                                     to={item.path}
                                     className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition ${isActive
-                                        ? "bg-slate-700 text-white"
+                                        ? "bg-indigo-600 text-white shadow-lg"
                                         : "text-slate-300 hover:bg-slate-700 hover:text-white"
                                         }`}
                                 >

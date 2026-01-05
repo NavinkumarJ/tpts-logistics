@@ -30,9 +30,8 @@ export const updateHiringSettings = async (data) => {
 };
 
 export const updateCompanyLogo = async (formData) => {
-  const response = await apiClient.post("/company/logo", formData, {
-    headers: { "Content-Type": "multipart/form-data" }
-  });
+  // Don't set Content-Type for FormData - browser will set it with the correct boundary
+  const response = await apiClient.post("/company/logo", formData);
   return response.data.data;
 };
 
@@ -109,6 +108,16 @@ export const cancelGroup = async (groupId, reason) => {
   return response.data.data;
 };
 
+export const reopenGroup = async (groupId) => {
+  const response = await apiClient.post(`/groups/${groupId}/reopen`);
+  return response.data.data;
+};
+
+export const closeGroupEarly = async (groupId) => {
+  const response = await apiClient.post(`/groups/${groupId}/close-early`);
+  return response.data.data;
+};
+
 // ==========================================
 // Delivery Agents
 // ==========================================
@@ -143,8 +152,8 @@ export const deleteAgent = async (agentId) => {
   return response.data;
 };
 
-export const setAgentActiveStatus = async (agentId, isActive) => {
-  const response = await apiClient.patch(`/agents/${agentId}/active`, null, { params: { isActive } });
+export const setAgentActiveStatus = async (agentId, isActive, reason = null) => {
+  const response = await apiClient.patch(`/agents/${agentId}/active`, { reason }, { params: { isActive } });
   return response.data.data;
 };
 

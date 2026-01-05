@@ -6,12 +6,12 @@ export default function JobCard({ job, onApply }) {
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
             <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-white/20 text-xl font-bold backdrop-blur">
-              {job.companyName.charAt(0)}
+              {job.companyName?.charAt(0) || "C"}
             </div>
             <div>
               <h3 className="text-base font-semibold">{job.companyName}</h3>
               <div className="mt-1 flex items-center gap-1 text-xs text-white/90">
-                ⭐ {job.ratingAvg ? job.ratingAvg.toFixed(1) : "New"}
+                ⭐ {job.companyRating ? parseFloat(job.companyRating).toFixed(1) : "New"}
                 <span className="mx-1">•</span>
                 {job.totalDeliveries || 0} deliveries
               </div>
@@ -25,7 +25,7 @@ export default function JobCard({ job, onApply }) {
         {/* Location */}
         <div className="flex items-center gap-2 text-sm text-gray-600">
           <span>📍</span>
-          <span>{job.city}, {job.state}</span>
+          <span>{job.companyCity || job.serviceCities || "Multiple Cities"}</span>
         </div>
 
         {/* Job Type */}
@@ -55,23 +55,21 @@ export default function JobCard({ job, onApply }) {
           </div>
           <div>
             <p className="text-xs text-gray-500">Applicants</p>
-            <p className="text-base font-semibold text-gray-900">{job.totalApplicants || 0}</p>
+            <p className="text-base font-semibold text-gray-900">{job.totalApplications || 0}</p>
           </div>
         </div>
       </div>
 
       {/* Footer */}
-      <div className="px-5 pb-5 flex gap-3">
+      <div className="px-5 pb-5">
         <button
           onClick={onApply}
-          className="btn-primary flex-1"
+          className="btn-primary w-full"
         >
           Apply Now
-        </button>
-        <button className="btn-outline px-4">
-          View Details
         </button>
       </div>
     </div>
   );
 }
+

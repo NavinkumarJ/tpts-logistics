@@ -26,17 +26,21 @@ export default function CompanyShipments() {
 
   const filteredShipments = shipments.filter((s) => {
     if (filter === "all") return true;
-    if (filter === "active") return ["PENDING", "ASSIGNED", "IN_PROGRESS"].includes(s.status);
+    if (filter === "active") return ["OPEN", "FULL", "PICKUP_IN_PROGRESS", "PICKUP_COMPLETE", "DELIVERY_IN_PROGRESS"].includes(s.status);
     if (filter === "completed") return s.status === "COMPLETED";
+    if (filter === "cancelled") return s.status === "CANCELLED";
     return true;
   });
 
   const getStatusColor = (status) => {
     const colors = {
-      PENDING: "bg-yellow-100 text-yellow-800",
-      ASSIGNED: "bg-blue-100 text-blue-800",
-      IN_PROGRESS: "bg-purple-100 text-purple-800",
-      COMPLETED: "bg-green-100 text-green-800",
+      OPEN: "bg-green-100 text-green-800",
+      FULL: "bg-blue-100 text-blue-800",
+      PICKUP_IN_PROGRESS: "bg-purple-100 text-purple-800",
+      PICKUP_COMPLETE: "bg-orange-100 text-orange-800",
+      DELIVERY_IN_PROGRESS: "bg-indigo-100 text-indigo-800",
+      COMPLETED: "bg-emerald-100 text-emerald-800",
+      CANCELLED: "bg-red-100 text-red-800",
     };
     return colors[status] || "bg-gray-100 text-gray-800";
   };
@@ -92,6 +96,13 @@ export default function CompanyShipments() {
           >
             Completed
           </button>
+          <button
+            onClick={() => setFilter("cancelled")}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition ${filter === "cancelled" ? "bg-red-600 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+              }`}
+          >
+            Cancelled
+          </button>
         </div>
       </div>
 
@@ -130,15 +141,15 @@ export default function CompanyShipments() {
                   </div>
 
                   <p className="text-sm font-semibold text-gray-900 mb-1">
-                    Group #{shipment.id} - {shipment.totalParcels} Parcels
+                    Group #{shipment.groupCode || shipment.id}
                   </p>
 
                   <p className="text-xs text-gray-600 mb-2">
-                    <strong>Route:</strong> {shipment.pickupCity} → {shipment.deliveryCity}
+                    <strong>Route:</strong> {shipment.sourceCity} → {shipment.targetCity}
                   </p>
 
                   <p className="text-xs text-gray-500">
-                    💰 Total: ₹{shipment.totalAmount}
+                    👥 {shipment.currentMembers}/{shipment.targetMembers} members • 💰 {shipment.discountPercentage}% discount
                   </p>
                 </div>
 

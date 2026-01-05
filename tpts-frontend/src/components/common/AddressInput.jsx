@@ -209,7 +209,7 @@ export default function AddressInput({
     const borderColor = type === "pickup" ? "focus:ring-green-500" : "focus:ring-red-500";
 
     return (
-        <div className="relative">
+        <div className={`relative ${showDropdown ? 'z-[9999]' : ''}`}>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">
                 <FaMapMarkerAlt className={`inline mr-1 ${iconColor}`} />
                 {label} {required && <span className="text-red-500">*</span>}
@@ -271,15 +271,20 @@ export default function AddressInput({
                     </button>
                 </div>
 
-                {/* Suggestions Dropdown */}
+                {/* Suggestions Dropdown - Override dark theme with inline styles */}
                 {showDropdown && (suggestions.length > 0 || loading) && (
                     <div
                         ref={dropdownRef}
-                        className="absolute z-50 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 max-h-64 overflow-y-auto"
+                        className="absolute left-0 right-0 z-[9999] mt-2 rounded-xl shadow-2xl max-h-72 overflow-y-auto"
+                        style={{
+                            backgroundColor: '#ffffff',
+                            boxShadow: '0 10px 40px rgba(0, 0, 0, 0.25)',
+                            border: '2px solid #e5e7eb'
+                        }}
                     >
                         {loading && (
-                            <div className="px-4 py-3 text-sm text-gray-500 flex items-center gap-2">
-                                <FaSpinner className="animate-spin" /> Searching...
+                            <div style={{ backgroundColor: '#eef2ff', color: '#4f46e5' }} className="px-4 py-4 text-sm flex items-center gap-2">
+                                <FaSpinner className="animate-spin" /> Searching addresses...
                             </div>
                         )}
 
@@ -288,22 +293,28 @@ export default function AddressInput({
                                 {/* Saved Addresses Section */}
                                 {suggestions.filter(s => s.type === "saved").length > 0 && (
                                     <div>
-                                        <div className="px-3 py-2 bg-gray-50 text-xs font-semibold text-gray-500 uppercase flex items-center gap-1">
-                                            <FaStar className="text-yellow-500" /> Saved Addresses
+                                        <div style={{ background: 'linear-gradient(to right, #fffbeb, #fef9c3)', color: '#b45309', borderBottom: '1px solid #fde68a' }} className="px-4 py-2 text-xs font-bold uppercase tracking-wider flex items-center gap-2">
+                                            <FaStar style={{ color: '#f59e0b' }} /> Saved Addresses
                                         </div>
                                         {suggestions.filter(s => s.type === "saved").map(addr => (
                                             <button
                                                 key={addr.id}
                                                 type="button"
                                                 onClick={() => handleSelectAddress(addr)}
-                                                className="w-full px-4 py-3 text-left hover:bg-blue-50 border-b border-gray-100 last:border-0"
+                                                style={{ backgroundColor: '#ffffff', borderBottom: '1px solid #f3f4f6' }}
+                                                className="w-full px-4 py-3 text-left hover:bg-blue-50 last:border-0 transition-colors flex items-start gap-3"
                                             >
-                                                <p className="font-medium text-gray-900 text-sm">
-                                                    {addr.label || addr.city}
-                                                </p>
-                                                <p className="text-xs text-gray-500 truncate">
-                                                    {addr.addressLine}
-                                                </p>
+                                                <div style={{ backgroundColor: '#fef3c7' }} className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                                                    <FaStar style={{ color: '#f59e0b' }} className="text-xs" />
+                                                </div>
+                                                <div>
+                                                    <p style={{ color: '#000000' }} className="font-bold text-sm">
+                                                        {addr.label || addr.city}
+                                                    </p>
+                                                    <p style={{ color: '#374151' }} className="text-xs mt-0.5">
+                                                        {addr.addressLine}
+                                                    </p>
+                                                </div>
                                             </button>
                                         ))}
                                     </div>
@@ -312,22 +323,28 @@ export default function AddressInput({
                                 {/* Search Results Section */}
                                 {suggestions.filter(s => s.type === "search").length > 0 && (
                                     <div>
-                                        <div className="px-3 py-2 bg-gray-50 text-xs font-semibold text-gray-500 uppercase flex items-center gap-1">
-                                            <FaSearch className="text-blue-500" /> Search Results
+                                        <div style={{ backgroundColor: '#f3f4f6', color: '#374151', borderBottom: '1px solid #e5e7eb' }} className="px-4 py-2 text-xs font-bold uppercase tracking-wider flex items-center gap-2">
+                                            <FaSearch style={{ color: '#6b7280' }} /> Search Results
                                         </div>
                                         {suggestions.filter(s => s.type === "search").map(addr => (
                                             <button
                                                 key={addr.id}
                                                 type="button"
                                                 onClick={() => handleSelectAddress(addr)}
-                                                className="w-full px-4 py-3 text-left hover:bg-blue-50 border-b border-gray-100 last:border-0"
+                                                style={{ backgroundColor: '#ffffff', borderBottom: '1px solid #f3f4f6' }}
+                                                className="w-full px-4 py-3 text-left hover:bg-blue-50 last:border-0 transition-colors flex items-start gap-3"
                                             >
-                                                <p className="text-sm text-gray-900 truncate">
-                                                    {addr.addressLine}
-                                                </p>
-                                                <p className="text-xs text-gray-500">
-                                                    {addr.city}{addr.state ? `, ${addr.state}` : ""} {addr.pincode}
-                                                </p>
+                                                <div style={{ backgroundColor: '#e0e7ff' }} className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                                                    <FaMapMarkerAlt style={{ color: '#6366f1' }} className="text-xs" />
+                                                </div>
+                                                <div className="min-w-0">
+                                                    <p style={{ color: '#000000' }} className="text-sm font-bold">
+                                                        {addr.addressLine}
+                                                    </p>
+                                                    <p style={{ color: '#111827' }} className="text-sm mt-1">
+                                                        {addr.city || "Unknown"}{addr.state ? `, ${addr.state}` : ""} {addr.pincode ? `- ${addr.pincode}` : ""}
+                                                    </p>
+                                                </div>
                                             </button>
                                         ))}
                                     </div>
@@ -359,3 +376,4 @@ export default function AddressInput({
         </div>
     );
 }
+

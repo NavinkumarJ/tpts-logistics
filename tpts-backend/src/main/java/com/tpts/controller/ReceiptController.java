@@ -54,8 +54,9 @@ public class ReceiptController {
                         throw new RuntimeException("Access denied");
                 }
 
-                // Find payment for this parcel
-                Payment payment = paymentRepository.findByParcelId(parcelId)
+                // Find payment for this parcel (get most recent since balance payments create
+                // multiple records)
+                Payment payment = paymentRepository.findFirstByParcelIdOrderByCreatedAtDesc(parcelId)
                                 .orElseThrow(() -> new RuntimeException("Payment not found for this parcel"));
 
                 // Generate PDF
@@ -97,8 +98,8 @@ public class ReceiptController {
                         throw new RuntimeException("Access denied");
                 }
 
-                // Find payment
-                Payment payment = paymentRepository.findByParcelId(parcelId)
+                // Find payment (get most recent since balance payments create multiple records)
+                Payment payment = paymentRepository.findFirstByParcelIdOrderByCreatedAtDesc(parcelId)
                                 .orElseThrow(() -> new RuntimeException("Payment not found for this parcel"));
 
                 // Generate PDF
